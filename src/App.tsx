@@ -5,6 +5,7 @@ import {
   type CSSProperties,
   type ElementType,
   type FormEvent,
+  type ReactNode,
 } from 'react'
 import {
   ArrowDownLeft,
@@ -49,9 +50,19 @@ type CreditCardAccount = {
   name: string
   currentBalance: number
   creditLimit: number
-  cutOffDate: string
-  dueDate: string
-  recommendation: string
+  cutOffDay: number
+  dueDay: number
+}
+
+type CreditCardInsight = {
+  card: CreditCardAccount
+  utilization: number
+  availableCredit: number
+  daysToCutOff: number
+  daysToDue: number
+  score: number
+  status: 'recommended' | 'watch' | 'avoid'
+  reason: string
 }
 
 type SavingsGoal = {
@@ -127,6 +138,7 @@ type CreditCardEditorState =
     }
 
 const STORAGE_KEY = 'duewise-local-data-v1'
+const DAY_IN_MS = 1000 * 60 * 60 * 24
 
 const peso = new Intl.NumberFormat('en-PH', {
   style: 'currency',
@@ -164,18 +176,16 @@ const initialFinanceData: FinanceData = {
       name: 'BPI Visa',
       currentBalance: 8200,
       creditLimit: 50000,
-      cutOffDate: 'July 12',
-      dueDate: 'August 2',
-      recommendation: 'Best card to use today',
+      cutOffDay: 12,
+      dueDay: 2,
     },
     {
       id: 2,
       name: 'Metrobank Mastercard',
       currentBalance: 18400,
       creditLimit: 60000,
-      cutOffDate: 'June 28',
-      dueDate: 'July 18',
-      recommendation: 'Avoid using for now',
+      cutOffDay: 28,
+      dueDay: 18,
     },
   ],
   savingsGoals: [
@@ -294,6 +304,11 @@ function App() {
       financeData.debts.reduce((total, debt) => total + debt.balance, 0) +
       totalCreditCardDebt,
     [financeData.debts, totalCreditCardDebt],
+  )
+
+  const creditCardInsights = useMemo(
+    () => getCreditCardInsights(financeData.creditCards),
+    [financeData.creditCards],
   )
 
   function changeTab(tab: TabKey) {
@@ -607,6 +622,7 @@ function App() {
               totalCash={totalCash}
               totalDebt={totalDebt}
               transactions={financeData.transactions}
+              creditCardInsights={creditCardInsights}
             />
           )}
 
@@ -614,6 +630,7 @@ function App() {
             <AccountsPage
               accounts={financeData.accounts}
               creditCards={financeData.creditCards}
+              creditCardInsights={creditCardInsights}
               onAddAccount={() => setAccountEditor({ mode: 'add' })}
               onEditAccount={(account) =>
                 setAccountEditor({ mode: 'edit', account })
@@ -643,6 +660,7 @@ function App() {
               totalSavings={totalSavings}
               totalDebt={totalDebt}
               transactions={financeData.transactions}
+              creditCardInsights={creditCardInsights}
             />
           )}
         </section>
@@ -747,10 +765,12 @@ function CalendarPage({
   totalCash,
   totalDebt,
   transactions,
+  creditCardInsights,
 }: {
   totalCash: number
   totalDebt: number
   transactions: Transaction[]
+  creditCardInsights: CreditCardInsight[]
 }) {
   const days = [
     { day: 'Mon', date: 22 },
@@ -762,6 +782,8 @@ function CalendarPage({
     { day: 'Sun', date: 28 },
   ]
 
+  const dailyRecommendation = getDailyRecommendation(creditCardInsights)
+
   const calendarItems = [
     {
       id: 1,
@@ -770,20 +792,22 @@ function CalendarPage({
       amount: 1699,
       type: 'Recurring',
     },
-    {
-      id: 2,
-      title: 'BPI Visa Cut-off',
-      date: 'July 12',
-      amount: 0,
-      type: 'Cut-off',
-    },
-    {
-      id: 3,
-      title: 'Metrobank Due Date',
-      date: 'July 18',
-      amount: 18400,
-      type: 'Due',
-    },
+    ...creditCardInsights.slice(0, 2).flatMap((insight) => [
+      {
+        id: Number(`${insight.card.id}1`),
+        title: `${insight.card.name} Cut-off`,
+        date: formatRelativeDays(insight.daysToCutOff),
+        amount: 0,
+        type: 'Cut-off',
+      },
+      {
+        id: Number(`${insight.card.id}2`),
+        title: `${insight.card.name} Due Date`,
+        date: formatRelativeDays(insight.daysToDue),
+        amount: insight.card.currentBalance,
+        type: 'Due',
+      },
+    ]),
   ]
 
   return (
@@ -808,11 +832,8 @@ function CalendarPage({
 
         <div>
           <p>Today’s Recommendation</p>
-          <h2>Use BPI Visa</h2>
-          <span>
-            Its next cut-off date is still far away, giving you a longer
-            favorable payment window.
-          </span>
+          <h2>{dailyRecommendation.title}</h2>
+          <span>{dailyRecommendation.description}</span>
         </div>
       </section>
 
@@ -844,6 +865,13 @@ function CalendarPage({
       </div>
 
       <SectionTitle
+        title="Card Ranking"
+        subtitle="Based on cut-off, due date, available credit, and utilization"
+      />
+
+      <CreditCardRanking insights={creditCardInsights} />
+
+      <SectionTitle
         title="Recent Activity"
         subtitle="Transactions added through the quick action button"
       />
@@ -853,9 +881,42 @@ function CalendarPage({
   )
 }
 
+function CreditCardRanking({ insights }: { insights: CreditCardInsight[] }) {
+  if (insights.length === 0) {
+    return (
+      <article className="account-card">
+        <div className="card-main-content">
+          <h3>No credit cards yet</h3>
+          <p>Add a credit card to enable DueWise recommendations.</p>
+        </div>
+      </article>
+    )
+  }
+
+  return (
+    <div className="card-list">
+      {insights.map((insight) => (
+        <article key={insight.card.id} className="account-card">
+          <div className={`account-icon ${getInsightAccent(insight.status)}`}>
+            <CreditCard size={21} />
+          </div>
+
+          <div className="card-main-content">
+            <h3>{insight.card.name}</h3>
+            <p>{insight.reason}</p>
+          </div>
+
+          <strong>{insight.status === 'recommended' ? 'Best' : insight.status}</strong>
+        </article>
+      ))}
+    </div>
+  )
+}
+
 function AccountsPage({
   accounts,
   creditCards,
+  creditCardInsights,
   onAddAccount,
   onEditAccount,
   onDeleteAccount,
@@ -865,6 +926,7 @@ function AccountsPage({
 }: {
   accounts: Account[]
   creditCards: CreditCardAccount[]
+  creditCardInsights: CreditCardInsight[]
   onAddAccount: () => void
   onEditAccount: (account: Account) => void
   onDeleteAccount: (accountId: number) => void
@@ -932,7 +994,7 @@ function AccountsPage({
 
       <SectionTitle
         title="Credit Cards"
-        subtitle="Balances, due dates, and utilization"
+        subtitle="Balances, due dates, cut-off dates, and utilization"
       />
 
       <div className="card-list">
@@ -946,16 +1008,18 @@ function AccountsPage({
         )}
 
         {creditCards.map((card) => {
-          const utilization = Math.round(
-            (card.currentBalance / card.creditLimit) * 100,
+          const insight = creditCardInsights.find(
+            (item) => item.card.id === card.id,
           )
+
+          const utilization = insight?.utilization ?? 0
 
           return (
             <article key={card.id} className="credit-card">
               <div className="credit-card-header">
                 <div>
                   <h3>{card.name}</h3>
-                  <p>{card.recommendation}</p>
+                  <p>{insight?.reason ?? 'Available for recommendation'}</p>
                 </div>
 
                 <div style={amountActionColumnStyle}>
@@ -1007,8 +1071,8 @@ function AccountsPage({
               </div>
 
               <div className="credit-dates">
-                <span>Cut-off: {card.cutOffDate}</span>
-                <span>Due: {card.dueDate}</span>
+                <span>Cut-off: {formatOrdinalDay(card.cutOffDay)}</span>
+                <span>Due: {formatOrdinalDay(card.dueDay)}</span>
               </div>
             </article>
           )
@@ -1168,11 +1232,13 @@ function AnalysisPage({
   totalSavings,
   totalDebt,
   transactions,
+  creditCardInsights,
 }: {
   totalCash: number
   totalSavings: number
   totalDebt: number
   transactions: Transaction[]
+  creditCardInsights: CreditCardInsight[]
 }) {
   const netWorth = totalCash + totalSavings - totalDebt
 
@@ -1185,6 +1251,9 @@ function AnalysisPage({
     .reduce((total, transaction) => total + transaction.amount, 0)
 
   const netCashflow = monthlyIncome - monthlyExpenses
+  const bestCard = creditCardInsights.find(
+    (insight) => insight.status === 'recommended',
+  )
 
   return (
     <>
@@ -1198,13 +1267,16 @@ function AnalysisPage({
       <section className="insight-card">
         <p>Cashflow Insight</p>
         <h3>
-          {netCashflow >= 0
-            ? 'Your recorded cashflow is positive.'
-            : 'Your recorded expenses are higher than income.'}
+          {bestCard
+            ? `Best card today: ${bestCard.card.name}`
+            : netCashflow >= 0
+              ? 'Your recorded cashflow is positive.'
+              : 'Your recorded expenses are higher than income.'}
         </h3>
         <span>
-          This insight is based on the transactions added through the quick
-          action button.
+          {bestCard
+            ? bestCard.reason
+            : 'This insight is based on the transactions added through the quick action button.'}
         </span>
       </section>
 
@@ -1401,12 +1473,11 @@ function CreditCardEditorModal({
   const [creditLimit, setCreditLimit] = useState(
     editor.creditCard?.creditLimit.toString() ?? '',
   )
-  const [cutOffDate, setCutOffDate] = useState(
-    editor.creditCard?.cutOffDate ?? '',
+  const [cutOffDay, setCutOffDay] = useState(
+    editor.creditCard?.cutOffDay.toString() ?? '',
   )
-  const [dueDate, setDueDate] = useState(editor.creditCard?.dueDate ?? '')
-  const [recommendation, setRecommendation] = useState(
-    editor.creditCard?.recommendation ?? 'Available for recommendation',
+  const [dueDay, setDueDay] = useState(
+    editor.creditCard?.dueDay.toString() ?? '',
   )
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1414,6 +1485,8 @@ function CreditCardEditorModal({
 
     const parsedCurrentBalance = Number(currentBalance)
     const parsedCreditLimit = Number(creditLimit)
+    const parsedCutOffDay = Number(cutOffDay)
+    const parsedDueDay = Number(dueDay)
 
     if (!name.trim()) {
       alert('Please enter a credit card name.')
@@ -1434,8 +1507,13 @@ function CreditCardEditorModal({
       return
     }
 
-    if (!cutOffDate.trim() || !dueDate.trim()) {
-      alert('Please enter cut-off date and due date.')
+    if (!isValidDayOfMonth(parsedCutOffDay)) {
+      alert('Please enter a valid cut-off day from 1 to 31.')
+      return
+    }
+
+    if (!isValidDayOfMonth(parsedDueDay)) {
+      alert('Please enter a valid due day from 1 to 31.')
       return
     }
 
@@ -1443,9 +1521,8 @@ function CreditCardEditorModal({
       name: name.trim(),
       currentBalance: parsedCurrentBalance,
       creditLimit: parsedCreditLimit,
-      cutOffDate: cutOffDate.trim(),
-      dueDate: dueDate.trim(),
-      recommendation: recommendation.trim() || 'Available for recommendation',
+      cutOffDay: parsedCutOffDay,
+      dueDay: parsedDueDay,
     })
   }
 
@@ -1481,24 +1558,19 @@ function CreditCardEditorModal({
         />
 
         <TextField
-          label="Cut-off date"
-          value={cutOffDate}
-          onChange={setCutOffDate}
-          placeholder="Example: Every 12th or July 12"
+          label="Cut-off day"
+          type="number"
+          value={cutOffDay}
+          onChange={setCutOffDay}
+          placeholder="Example: 12"
         />
 
         <TextField
-          label="Due date"
-          value={dueDate}
-          onChange={setDueDate}
-          placeholder="Example: Every 2nd or August 2"
-        />
-
-        <TextField
-          label="Recommendation note"
-          value={recommendation}
-          onChange={setRecommendation}
-          placeholder="Example: Best card to use today"
+          label="Due day"
+          type="number"
+          value={dueDay}
+          onChange={setDueDay}
+          placeholder="Example: 2"
         />
 
         <button type="submit" style={submitButtonStyle}>
@@ -1702,7 +1774,7 @@ function ModalShell({
 }: {
   eyebrow: string
   title: string
-  children: React.ReactNode
+  children: ReactNode
   onClose: () => void
 }) {
   return (
@@ -1799,6 +1871,163 @@ function OverviewRow({
   )
 }
 
+function getCreditCardInsights(
+  creditCards: CreditCardAccount[],
+): CreditCardInsight[] {
+  const today = new Date()
+
+  const scoredCards = creditCards.map((card) => {
+    const availableCredit = card.creditLimit - card.currentBalance
+    const utilization = Math.round((card.currentBalance / card.creditLimit) * 100)
+    const daysToCutOff = getDaysUntilDay(card.cutOffDay, today)
+    const daysToDue = getDaysUntilDay(card.dueDay, today)
+
+    let score =
+      daysToCutOff * 2 +
+      daysToDue * 0.35 +
+      (100 - utilization) * 0.45 +
+      (availableCredit / card.creditLimit) * 20
+
+    if (daysToDue <= 5) score -= 100
+    if (utilization >= 80) score -= 80
+    if (availableCredit <= 0) score -= 200
+
+    return {
+      card,
+      utilization,
+      availableCredit,
+      daysToCutOff,
+      daysToDue,
+      score,
+    }
+  })
+
+  const sortedCards = [...scoredCards].sort((a, b) => b.score - a.score)
+
+  return sortedCards.map((item, index) => {
+    const isDanger =
+      item.daysToDue <= 5 || item.utilization >= 80 || item.availableCredit <= 0
+
+    const status: CreditCardInsight['status'] =
+      index === 0 && !isDanger ? 'recommended' : isDanger ? 'avoid' : 'watch'
+
+    return {
+      ...item,
+      status,
+      reason: getInsightReason(item, status),
+    }
+  })
+}
+
+function getInsightReason(
+  item: {
+    daysToCutOff: number
+    daysToDue: number
+    utilization: number
+    availableCredit: number
+  },
+  status: CreditCardInsight['status'],
+) {
+  if (item.availableCredit <= 0) {
+    return 'No available credit remaining. Avoid using this card.'
+  }
+
+  if (item.daysToDue <= 5) {
+    return `Due date is ${formatRelativeDays(item.daysToDue)}. Avoid adding more balance.`
+  }
+
+  if (item.utilization >= 80) {
+    return `Utilization is high at ${item.utilization}%. Avoid if possible.`
+  }
+
+  if (status === 'recommended') {
+    return `${formatRelativeDays(item.daysToCutOff)} before cut-off, ${formatRelativeDays(
+      item.daysToDue,
+    )} before due date, and ${item.utilization}% utilization.`
+  }
+
+  return `${formatRelativeDays(item.daysToCutOff)} before cut-off and ${item.utilization}% utilization.`
+}
+
+function getDailyRecommendation(insights: CreditCardInsight[]) {
+  const recommendedCard = insights.find(
+    (insight) => insight.status === 'recommended',
+  )
+
+  if (recommendedCard) {
+    return {
+      title: `Use ${recommendedCard.card.name}`,
+      description: recommendedCard.reason,
+    }
+  }
+
+  const watchCard = insights.find((insight) => insight.status === 'watch')
+
+  if (watchCard) {
+    return {
+      title: `Use ${watchCard.card.name} carefully`,
+      description: watchCard.reason,
+    }
+  }
+
+  if (insights.length > 0) {
+    return {
+      title: 'Use cash today',
+      description:
+        'Your available cards are near due date, highly utilized, or have limited available credit.',
+    }
+  }
+
+  return {
+    title: 'Add a credit card',
+    description:
+      'DueWise needs at least one credit card to calculate the best card to use today.',
+  }
+}
+
+function getDaysUntilDay(day: number, fromDate: Date) {
+  const today = startOfDay(fromDate)
+  let target = buildDateForDay(today.getFullYear(), today.getMonth(), day)
+
+  if (target.getTime() < today.getTime()) {
+    target = buildDateForDay(today.getFullYear(), today.getMonth() + 1, day)
+  }
+
+  return Math.round((target.getTime() - today.getTime()) / DAY_IN_MS)
+}
+
+function buildDateForDay(year: number, month: number, day: number) {
+  const lastDayOfMonth = new Date(year, month + 1, 0).getDate()
+  return new Date(year, month, Math.min(day, lastDayOfMonth))
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+function formatRelativeDays(days: number) {
+  if (days === 0) return 'today'
+  if (days === 1) return 'tomorrow'
+  return `in ${days} days`
+}
+
+function isValidDayOfMonth(day: number) {
+  return Number.isInteger(day) && day >= 1 && day <= 31
+}
+
+function formatOrdinalDay(day: number) {
+  const suffix =
+    day % 10 === 1 && day !== 11
+      ? 'st'
+      : day % 10 === 2 && day !== 12
+        ? 'nd'
+        : day % 10 === 3 && day !== 13
+          ? 'rd'
+          : 'th'
+
+  return `Every ${day}${suffix}`
+}
+
 function getEventClass(type: string) {
   if (type === 'Due') return 'due'
   if (type === 'Cut-off') return 'cutoff'
@@ -1808,6 +2037,12 @@ function getEventClass(type: string) {
 function getTransactionAccent(type: QuickAction): AccountAccent {
   if (type === 'income') return 'green'
   if (type === 'expense') return 'blue'
+  return 'teal'
+}
+
+function getInsightAccent(status: CreditCardInsight['status']): AccountAccent {
+  if (status === 'recommended') return 'green'
+  if (status === 'avoid') return 'blue'
   return 'teal'
 }
 
@@ -1842,6 +2077,44 @@ function createNumericId<T extends { id: number }>(items: T[]) {
   return highestId + 1
 }
 
+function parseDayFromText(value: unknown, fallback: number) {
+  if (typeof value === 'number' && isValidDayOfMonth(value)) return value
+
+  if (typeof value !== 'string') return fallback
+
+  const match = value.match(/\b([1-9]|[12][0-9]|3[01])\b/)
+  const parsedDay = match ? Number(match[1]) : fallback
+
+  return isValidDayOfMonth(parsedDay) ? parsedDay : fallback
+}
+
+function normalizeCreditCards(rawCreditCards: unknown): CreditCardAccount[] {
+  if (!Array.isArray(rawCreditCards)) return initialFinanceData.creditCards
+
+  return rawCreditCards.map((rawCard, index) => {
+    const card = rawCard as Partial<
+      CreditCardAccount & {
+        cutOffDate: string
+        dueDate: string
+        recommendation: string
+      }
+    >
+
+    const creditLimit = Number(card.creditLimit ?? 1)
+    const currentBalance = Number(card.currentBalance ?? 0)
+
+    return {
+      id: Number(card.id ?? index + 1),
+      name: String(card.name ?? `Credit Card ${index + 1}`),
+      currentBalance: Number.isFinite(currentBalance) ? currentBalance : 0,
+      creditLimit:
+        Number.isFinite(creditLimit) && creditLimit > 0 ? creditLimit : 1,
+      cutOffDay: parseDayFromText(card.cutOffDay ?? card.cutOffDate, 1),
+      dueDay: parseDayFromText(card.dueDay ?? card.dueDate, 15),
+    }
+  })
+}
+
 function loadFinanceData(): FinanceData {
   try {
     const savedData = localStorage.getItem(STORAGE_KEY)
@@ -1852,7 +2125,7 @@ function loadFinanceData(): FinanceData {
 
     return {
       accounts: parsedData.accounts ?? initialFinanceData.accounts,
-      creditCards: parsedData.creditCards ?? initialFinanceData.creditCards,
+      creditCards: normalizeCreditCards(parsedData.creditCards),
       savingsGoals: parsedData.savingsGoals ?? initialFinanceData.savingsGoals,
       debts: parsedData.debts ?? initialFinanceData.debts,
       recurringExpenses:
