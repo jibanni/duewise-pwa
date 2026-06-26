@@ -14,10 +14,12 @@ import {
   CalendarDays,
   CreditCard,
   Landmark,
+  Pencil,
   PiggyBank,
   Plus,
   ReceiptText,
   Repeat2,
+  Trash2,
   WalletCards,
   X,
 } from 'lucide-react'
@@ -32,12 +34,14 @@ type TabKey =
 
 type QuickAction = 'income' | 'expense' | 'transfer'
 
+type AccountAccent = 'green' | 'blue' | 'teal'
+
 type Account = {
   id: number
   name: string
   type: string
   balance: number
-  accent: 'green' | 'blue' | 'teal'
+  accent: AccountAccent
 }
 
 type CreditCardAccount = {
@@ -98,6 +102,29 @@ type NavItem = {
   label: string
   icon: ElementType
 }
+
+type AccountFormValues = Omit<Account, 'id'>
+type CreditCardFormValues = Omit<CreditCardAccount, 'id'>
+
+type AccountEditorState =
+  | {
+      mode: 'add'
+      account?: undefined
+    }
+  | {
+      mode: 'edit'
+      account: Account
+    }
+
+type CreditCardEditorState =
+  | {
+      mode: 'add'
+      creditCard?: undefined
+    }
+  | {
+      mode: 'edit'
+      creditCard: CreditCardAccount
+    }
 
 const STORAGE_KEY = 'duewise-local-data-v1'
 
@@ -225,6 +252,10 @@ function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('calendar')
   const [fabOpen, setFabOpen] = useState(false)
   const [activeAction, setActiveAction] = useState<QuickAction | null>(null)
+  const [accountEditor, setAccountEditor] =
+    useState<AccountEditorState | null>(null)
+  const [creditCardEditor, setCreditCardEditor] =
+    useState<CreditCardEditorState | null>(null)
   const [financeData, setFinanceData] = useState<FinanceData>(loadFinanceData)
 
   useEffect(() => {
@@ -273,6 +304,93 @@ function App() {
   function openQuickAction(action: QuickAction) {
     setActiveAction(action)
     setFabOpen(false)
+  }
+
+  function handleSaveAccount(values: AccountFormValues) {
+    if (accountEditor?.mode === 'edit') {
+      const accountId = accountEditor.account.id
+
+      setFinanceData((current) => ({
+        ...current,
+        accounts: current.accounts.map((account) =>
+          account.id === accountId ? { ...account, ...values } : account,
+        ),
+      }))
+    } else {
+      setFinanceData((current) => ({
+        ...current,
+        accounts: [
+          ...current.accounts,
+          {
+            id: createNumericId(current.accounts),
+            ...values,
+          },
+        ],
+      }))
+    }
+
+    setAccountEditor(null)
+  }
+
+  function handleDeleteAccount(accountId: number) {
+    if (financeData.accounts.length <= 1) {
+      alert('At least one cash account is required.')
+      return
+    }
+
+    const account = financeData.accounts.find((item) => item.id === accountId)
+    const confirmed = confirm(`Delete ${account?.name ?? 'this account'}?`)
+
+    if (!confirmed) return
+
+    setFinanceData((current) => ({
+      ...current,
+      accounts: current.accounts.filter((item) => item.id !== accountId),
+    }))
+  }
+
+  function handleSaveCreditCard(values: CreditCardFormValues) {
+    if (creditCardEditor?.mode === 'edit') {
+      const creditCardId = creditCardEditor.creditCard.id
+
+      setFinanceData((current) => ({
+        ...current,
+        creditCards: current.creditCards.map((creditCard) =>
+          creditCard.id === creditCardId
+            ? { ...creditCard, ...values }
+            : creditCard,
+        ),
+      }))
+    } else {
+      setFinanceData((current) => ({
+        ...current,
+        creditCards: [
+          ...current.creditCards,
+          {
+            id: createNumericId(current.creditCards),
+            ...values,
+          },
+        ],
+      }))
+    }
+
+    setCreditCardEditor(null)
+  }
+
+  function handleDeleteCreditCard(creditCardId: number) {
+    const creditCard = financeData.creditCards.find(
+      (item) => item.id === creditCardId,
+    )
+    const confirmed = confirm(`Delete ${creditCard?.name ?? 'this card'}?`)
+
+    if (!confirmed) return
+
+    setFinanceData((current) => ({
+      ...current,
+      creditCards: current.creditCards.filter(
+        (item) => item.id !== creditCardId,
+      ),
+    }))
   }
 
   function handleAddIncome(accountId: number, amount: number, note: string) {
@@ -380,7 +498,10 @@ function App() {
       }))
 
       setActiveAction(null)
+      return
     }
+
+    alert('Please select a payment method.')
   }
 
   function handleTransfer(
@@ -493,6 +614,16 @@ function App() {
             <AccountsPage
               accounts={financeData.accounts}
               creditCards={financeData.creditCards}
+              onAddAccount={() => setAccountEditor({ mode: 'add' })}
+              onEditAccount={(account) =>
+                setAccountEditor({ mode: 'edit', account })
+              }
+              onDeleteAccount={handleDeleteAccount}
+              onAddCreditCard={() => setCreditCardEditor({ mode: 'add' })}
+              onEditCreditCard={(creditCard) =>
+                setCreditCardEditor({ mode: 'edit', creditCard })
+              }
+              onDeleteCreditCard={handleDeleteCreditCard}
             />
           )}
 
@@ -589,6 +720,22 @@ function App() {
             onAddIncome={handleAddIncome}
             onAddExpense={handleAddExpense}
             onTransfer={handleTransfer}
+          />
+        )}
+
+        {accountEditor && (
+          <AccountEditorModal
+            editor={accountEditor}
+            onClose={() => setAccountEditor(null)}
+            onSave={handleSaveAccount}
+          />
+        )}
+
+        {creditCardEditor && (
+          <CreditCardEditorModal
+            editor={creditCardEditor}
+            onClose={() => setCreditCardEditor(null)}
+            onSave={handleSaveCreditCard}
           />
         )}
       </section>
@@ -709,12 +856,36 @@ function CalendarPage({
 function AccountsPage({
   accounts,
   creditCards,
+  onAddAccount,
+  onEditAccount,
+  onDeleteAccount,
+  onAddCreditCard,
+  onEditCreditCard,
+  onDeleteCreditCard,
 }: {
   accounts: Account[]
   creditCards: CreditCardAccount[]
+  onAddAccount: () => void
+  onEditAccount: (account: Account) => void
+  onDeleteAccount: (accountId: number) => void
+  onAddCreditCard: () => void
+  onEditCreditCard: (creditCard: CreditCardAccount) => void
+  onDeleteCreditCard: (creditCardId: number) => void
 }) {
   return (
     <>
+      <div style={accountActionRowStyle}>
+        <button type="button" style={softButtonStyle} onClick={onAddAccount}>
+          <Plus size={16} />
+          Add Account
+        </button>
+
+        <button type="button" style={softButtonStyle} onClick={onAddCreditCard}>
+          <Plus size={16} />
+          Add Card
+        </button>
+      </div>
+
       <SectionTitle
         title="Cash Accounts"
         subtitle="Cash, banks, and e-wallets"
@@ -732,7 +903,29 @@ function AccountsPage({
               <p>{account.type}</p>
             </div>
 
-            <strong>{peso.format(account.balance)}</strong>
+            <div style={amountActionColumnStyle}>
+              <strong>{peso.format(account.balance)}</strong>
+
+              <div style={miniActionRowStyle}>
+                <button
+                  type="button"
+                  style={iconButtonStyle}
+                  onClick={() => onEditAccount(account)}
+                  aria-label={`Edit ${account.name}`}
+                >
+                  <Pencil size={14} />
+                </button>
+
+                <button
+                  type="button"
+                  style={dangerIconButtonStyle}
+                  onClick={() => onDeleteAccount(account.id)}
+                  aria-label={`Delete ${account.name}`}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
           </article>
         ))}
       </div>
@@ -743,6 +936,15 @@ function AccountsPage({
       />
 
       <div className="card-list">
+        {creditCards.length === 0 && (
+          <article className="account-card">
+            <div className="card-main-content">
+              <h3>No credit cards yet</h3>
+              <p>Add your first card to enable recommendations.</p>
+            </div>
+          </article>
+        )}
+
         {creditCards.map((card) => {
           const utilization = Math.round(
             (card.currentBalance / card.creditLimit) * 100,
@@ -756,7 +958,29 @@ function AccountsPage({
                   <p>{card.recommendation}</p>
                 </div>
 
-                <strong>{utilization}%</strong>
+                <div style={amountActionColumnStyle}>
+                  <strong>{utilization}%</strong>
+
+                  <div style={miniActionRowStyle}>
+                    <button
+                      type="button"
+                      style={iconButtonStyle}
+                      onClick={() => onEditCreditCard(card)}
+                      aria-label={`Edit ${card.name}`}
+                    >
+                      <Pencil size={14} />
+                    </button>
+
+                    <button
+                      type="button"
+                      style={dangerIconButtonStyle}
+                      onClick={() => onDeleteCreditCard(card.id)}
+                      aria-label={`Delete ${card.name}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="progress-track">
@@ -1061,6 +1285,230 @@ function TransactionList({ transactions }: { transactions: Transaction[] }) {
   )
 }
 
+function AccountEditorModal({
+  editor,
+  onClose,
+  onSave,
+}: {
+  editor: AccountEditorState
+  onClose: () => void
+  onSave: (values: AccountFormValues) => void
+}) {
+  const [name, setName] = useState(editor.account?.name ?? '')
+  const [type, setType] = useState(editor.account?.type ?? 'Bank Account')
+  const [balance, setBalance] = useState(
+    editor.account?.balance.toString() ?? '',
+  )
+  const [accent, setAccent] = useState<AccountAccent>(
+    editor.account?.accent ?? 'blue',
+  )
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const parsedBalance = Number(balance)
+
+    if (!name.trim()) {
+      alert('Please enter an account name.')
+      return
+    }
+
+    if (!Number.isFinite(parsedBalance) || parsedBalance < 0) {
+      alert('Please enter a valid balance.')
+      return
+    }
+
+    onSave({
+      name: name.trim(),
+      type,
+      balance: parsedBalance,
+      accent,
+    })
+  }
+
+  return (
+    <ModalShell
+      eyebrow="Account"
+      title={editor.mode === 'add' ? 'Add Account' : 'Edit Account'}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <TextField
+          label="Account name"
+          value={name}
+          onChange={setName}
+          placeholder="Example: BDO Savings"
+          autoFocus
+        />
+
+        <label style={fieldStyle}>
+          <span style={labelStyle}>Type</span>
+          <select
+            value={type}
+            onChange={(event) => setType(event.target.value)}
+            style={inputStyle}
+          >
+            <option>Cash</option>
+            <option>Bank Account</option>
+            <option>E-Wallet</option>
+            <option>Savings Account</option>
+            <option>Loan Account</option>
+          </select>
+        </label>
+
+        <TextField
+          label="Current balance"
+          type="number"
+          value={balance}
+          onChange={setBalance}
+          placeholder="0.00"
+        />
+
+        <label style={fieldStyle}>
+          <span style={labelStyle}>Color</span>
+          <select
+            value={accent}
+            onChange={(event) => setAccent(event.target.value as AccountAccent)}
+            style={inputStyle}
+          >
+            <option value="green">Green</option>
+            <option value="blue">Blue</option>
+            <option value="teal">Teal</option>
+          </select>
+        </label>
+
+        <button type="submit" style={submitButtonStyle}>
+          Save Account
+        </button>
+      </form>
+    </ModalShell>
+  )
+}
+
+function CreditCardEditorModal({
+  editor,
+  onClose,
+  onSave,
+}: {
+  editor: CreditCardEditorState
+  onClose: () => void
+  onSave: (values: CreditCardFormValues) => void
+}) {
+  const [name, setName] = useState(editor.creditCard?.name ?? '')
+  const [currentBalance, setCurrentBalance] = useState(
+    editor.creditCard?.currentBalance.toString() ?? '',
+  )
+  const [creditLimit, setCreditLimit] = useState(
+    editor.creditCard?.creditLimit.toString() ?? '',
+  )
+  const [cutOffDate, setCutOffDate] = useState(
+    editor.creditCard?.cutOffDate ?? '',
+  )
+  const [dueDate, setDueDate] = useState(editor.creditCard?.dueDate ?? '')
+  const [recommendation, setRecommendation] = useState(
+    editor.creditCard?.recommendation ?? 'Available for recommendation',
+  )
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const parsedCurrentBalance = Number(currentBalance)
+    const parsedCreditLimit = Number(creditLimit)
+
+    if (!name.trim()) {
+      alert('Please enter a credit card name.')
+      return
+    }
+
+    if (!Number.isFinite(parsedCreditLimit) || parsedCreditLimit <= 0) {
+      alert('Please enter a valid credit limit.')
+      return
+    }
+
+    if (
+      !Number.isFinite(parsedCurrentBalance) ||
+      parsedCurrentBalance < 0 ||
+      parsedCurrentBalance > parsedCreditLimit
+    ) {
+      alert('Please enter a valid current balance.')
+      return
+    }
+
+    if (!cutOffDate.trim() || !dueDate.trim()) {
+      alert('Please enter cut-off date and due date.')
+      return
+    }
+
+    onSave({
+      name: name.trim(),
+      currentBalance: parsedCurrentBalance,
+      creditLimit: parsedCreditLimit,
+      cutOffDate: cutOffDate.trim(),
+      dueDate: dueDate.trim(),
+      recommendation: recommendation.trim() || 'Available for recommendation',
+    })
+  }
+
+  return (
+    <ModalShell
+      eyebrow="Credit Card"
+      title={editor.mode === 'add' ? 'Add Credit Card' : 'Edit Credit Card'}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <TextField
+          label="Card name"
+          value={name}
+          onChange={setName}
+          placeholder="Example: BPI Visa"
+          autoFocus
+        />
+
+        <TextField
+          label="Current balance"
+          type="number"
+          value={currentBalance}
+          onChange={setCurrentBalance}
+          placeholder="0.00"
+        />
+
+        <TextField
+          label="Credit limit"
+          type="number"
+          value={creditLimit}
+          onChange={setCreditLimit}
+          placeholder="50000"
+        />
+
+        <TextField
+          label="Cut-off date"
+          value={cutOffDate}
+          onChange={setCutOffDate}
+          placeholder="Example: Every 12th or July 12"
+        />
+
+        <TextField
+          label="Due date"
+          value={dueDate}
+          onChange={setDueDate}
+          placeholder="Example: Every 2nd or August 2"
+        />
+
+        <TextField
+          label="Recommendation note"
+          value={recommendation}
+          onChange={setRecommendation}
+          placeholder="Example: Best card to use today"
+        />
+
+        <button type="submit" style={submitButtonStyle}>
+          Save Credit Card
+        </button>
+      </form>
+    </ModalShell>
+  )
+}
+
 function QuickActionModal({
   action,
   accounts,
@@ -1133,41 +1581,69 @@ function QuickActionModal({
   }
 
   return (
-    <div style={modalBackdropStyle}>
-      <section style={modalPanelStyle}>
-        <div style={modalHeaderStyle}>
-          <div>
-            <p style={modalEyebrowStyle}>Quick Action</p>
-            <h2 style={modalTitleStyle}>{actionTitle}</h2>
-          </div>
+    <ModalShell eyebrow="Quick Action" title={actionTitle} onClose={onClose}>
+      <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <TextField
+          label="Amount"
+          type="number"
+          value={amount}
+          onChange={setAmount}
+          placeholder="0.00"
+          autoFocus
+        />
 
-          <button type="button" style={modalCloseButtonStyle} onClick={onClose}>
-            <X size={21} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={modalFormStyle}>
+        {action === 'income' && (
           <label style={fieldStyle}>
-            <span style={labelStyle}>Amount</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              min="1"
-              step="0.01"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              placeholder="0.00"
+            <span style={labelStyle}>Deposit to</span>
+            <select
+              value={incomeAccountId}
+              onChange={(event) => setIncomeAccountId(event.target.value)}
               style={inputStyle}
-              autoFocus
-            />
+            >
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name} · {peso.format(account.balance)}
+                </option>
+              ))}
+            </select>
           </label>
+        )}
 
-          {action === 'income' && (
+        {action === 'expense' && (
+          <label style={fieldStyle}>
+            <span style={labelStyle}>Payment method</span>
+            <select
+              value={paymentSource}
+              onChange={(event) => setPaymentSource(event.target.value)}
+              style={inputStyle}
+            >
+              <optgroup label="Cash Accounts">
+                {accounts.map((account) => (
+                  <option key={account.id} value={`account:${account.id}`}>
+                    {account.name} · {peso.format(account.balance)}
+                  </option>
+                ))}
+              </optgroup>
+
+              <optgroup label="Credit Cards">
+                {creditCards.map((card) => (
+                  <option key={card.id} value={`card:${card.id}`}>
+                    {card.name} · Available{' '}
+                    {peso.format(card.creditLimit - card.currentBalance)}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </label>
+        )}
+
+        {action === 'transfer' && (
+          <>
             <label style={fieldStyle}>
-              <span style={labelStyle}>Deposit to</span>
+              <span style={labelStyle}>From</span>
               <select
-                value={incomeAccountId}
-                onChange={(event) => setIncomeAccountId(event.target.value)}
+                value={sourceAccountId}
+                onChange={(event) => setSourceAccountId(event.target.value)}
                 style={inputStyle}
               >
                 {accounts.map((account) => (
@@ -1177,95 +1653,108 @@ function QuickActionModal({
                 ))}
               </select>
             </label>
-          )}
 
-          {action === 'expense' && (
             <label style={fieldStyle}>
-              <span style={labelStyle}>Payment method</span>
+              <span style={labelStyle}>To</span>
               <select
-                value={paymentSource}
-                onChange={(event) => setPaymentSource(event.target.value)}
+                value={destinationAccountId}
+                onChange={(event) =>
+                  setDestinationAccountId(event.target.value)
+                }
                 style={inputStyle}
               >
-                <optgroup label="Cash Accounts">
-                  {accounts.map((account) => (
-                    <option key={account.id} value={`account:${account.id}`}>
-                      {account.name} · {peso.format(account.balance)}
-                    </option>
-                  ))}
-                </optgroup>
-
-                <optgroup label="Credit Cards">
-                  {creditCards.map((card) => (
-                    <option key={card.id} value={`card:${card.id}`}>
-                      {card.name} · Available{' '}
-                      {peso.format(card.creditLimit - card.currentBalance)}
-                    </option>
-                  ))}
-                </optgroup>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
               </select>
             </label>
-          )}
+          </>
+        )}
 
-          {action === 'transfer' && (
-            <>
-              <label style={fieldStyle}>
-                <span style={labelStyle}>From</span>
-                <select
-                  value={sourceAccountId}
-                  onChange={(event) => setSourceAccountId(event.target.value)}
-                  style={inputStyle}
-                >
-                  {accounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name} · {peso.format(account.balance)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+        <TextField
+          label="Note"
+          value={note}
+          onChange={setNote}
+          placeholder={
+            action === 'income'
+              ? 'Salary, allowance, refund...'
+              : action === 'expense'
+                ? 'Food, fuel, bills...'
+                : 'Move funds...'
+          }
+        />
 
-              <label style={fieldStyle}>
-                <span style={labelStyle}>To</span>
-                <select
-                  value={destinationAccountId}
-                  onChange={(event) =>
-                    setDestinationAccountId(event.target.value)
-                  }
-                  style={inputStyle}
-                >
-                  {accounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </>
-          )}
+        <button type="submit" style={submitButtonStyle}>
+          Save
+        </button>
+      </form>
+    </ModalShell>
+  )
+}
 
-          <label style={fieldStyle}>
-            <span style={labelStyle}>Note</span>
-            <input
-              type="text"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder={
-                action === 'income'
-                  ? 'Salary, allowance, refund...'
-                  : action === 'expense'
-                    ? 'Food, fuel, bills...'
-                    : 'Move funds...'
-              }
-              style={inputStyle}
-            />
-          </label>
+function ModalShell({
+  eyebrow,
+  title,
+  children,
+  onClose,
+}: {
+  eyebrow: string
+  title: string
+  children: React.ReactNode
+  onClose: () => void
+}) {
+  return (
+    <div style={modalBackdropStyle}>
+      <section style={modalPanelStyle}>
+        <div style={modalHeaderStyle}>
+          <div>
+            <p style={modalEyebrowStyle}>{eyebrow}</p>
+            <h2 style={modalTitleStyle}>{title}</h2>
+          </div>
 
-          <button type="submit" style={submitButtonStyle}>
-            Save
+          <button type="button" style={modalCloseButtonStyle} onClick={onClose}>
+            <X size={21} />
           </button>
-        </form>
+        </div>
+
+        {children}
       </section>
     </div>
+  )
+}
+
+function TextField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+  autoFocus = false,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  type?: 'text' | 'number'
+  autoFocus?: boolean
+}) {
+  return (
+    <label style={fieldStyle}>
+      <span style={labelStyle}>{label}</span>
+      <input
+        type={type}
+        inputMode={type === 'number' ? 'decimal' : undefined}
+        min={type === 'number' ? '0' : undefined}
+        step={type === 'number' ? '0.01' : undefined}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        style={inputStyle}
+        autoFocus={autoFocus}
+      />
+    </label>
   )
 }
 
@@ -1316,7 +1805,7 @@ function getEventClass(type: string) {
   return 'recurring'
 }
 
-function getTransactionAccent(type: QuickAction): 'green' | 'blue' | 'teal' {
+function getTransactionAccent(type: QuickAction): AccountAccent {
   if (type === 'income') return 'green'
   if (type === 'expense') return 'blue'
   return 'teal'
@@ -1348,6 +1837,11 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+function createNumericId<T extends { id: number }>(items: T[]) {
+  const highestId = items.reduce((highest, item) => Math.max(highest, item.id), 0)
+  return highestId + 1
+}
+
 function loadFinanceData(): FinanceData {
   try {
     const savedData = localStorage.getItem(STORAGE_KEY)
@@ -1370,6 +1864,57 @@ function loadFinanceData(): FinanceData {
   }
 }
 
+const accountActionRowStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 10,
+  marginBottom: 4,
+}
+
+const softButtonStyle: CSSProperties = {
+  minHeight: 45,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 7,
+  border: 0,
+  borderRadius: 17,
+  color: '#171717',
+  background: 'rgba(255, 255, 255, 0.78)',
+  fontSize: '0.78rem',
+  fontWeight: 800,
+  boxShadow: 'inset 0 0 0 1px rgba(23, 23, 23, 0.05)',
+}
+
+const amountActionColumnStyle: CSSProperties = {
+  display: 'grid',
+  justifyItems: 'end',
+  gap: 8,
+  flex: '0 0 auto',
+}
+
+const miniActionRowStyle: CSSProperties = {
+  display: 'flex',
+  gap: 6,
+}
+
+const iconButtonStyle: CSSProperties = {
+  width: 29,
+  height: 29,
+  display: 'grid',
+  placeItems: 'center',
+  border: 0,
+  borderRadius: 10,
+  color: '#245f4c',
+  background: '#dcece5',
+}
+
+const dangerIconButtonStyle: CSSProperties = {
+  ...iconButtonStyle,
+  color: '#b64a46',
+  background: '#f3dfdc',
+}
+
 const modalBackdropStyle: CSSProperties = {
   position: 'fixed',
   inset: 0,
@@ -1384,6 +1929,8 @@ const modalBackdropStyle: CSSProperties = {
 
 const modalPanelStyle: CSSProperties = {
   width: 'min(100%, 444px)',
+  maxHeight: 'calc(100vh - 36px)',
+  overflowY: 'auto',
   padding: 20,
   borderRadius: 30,
   background: '#faf8f3',
