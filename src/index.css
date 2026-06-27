@@ -8,6 +8,9 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --duewise-dark: #171717;
+  --duewise-dark-soft: #1f1f1f;
+  --duewise-page: #f3f0e9;
 }
 
 * {
@@ -19,6 +22,7 @@ html {
   min-width: 320px;
   min-height: 100%;
   background: #f3f0e9;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -54,6 +58,16 @@ button:focus-visible {
   min-height: 100vh;
   display: flex;
   justify-content: center;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(255, 255, 255, 0.95),
+      transparent 28rem
+    ),
+    #f3f0e9;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
 }
 
 .mobile-app {
@@ -63,8 +77,10 @@ button:focus-visible {
   padding:
     calc(env(safe-area-inset-top) + 18px)
     18px
-    calc(env(safe-area-inset-bottom) + 116px);
+    calc(env(safe-area-inset-bottom) + 132px);
   overflow-x: hidden;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
 }
 
 .app-header {
@@ -92,7 +108,14 @@ button:focus-visible {
   letter-spacing: -0.06em;
 }
 
-.profile-button {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-button,
+.theme-toggle-button {
   width: 46px;
   height: 46px;
   flex: 0 0 auto;
@@ -100,11 +123,27 @@ button:focus-visible {
   place-items: center;
   border: 0;
   border-radius: 50%;
+  box-shadow: 0 12px 28px rgba(20, 20, 20, 0.16);
+}
+
+.profile-button {
   color: #ffffff;
   background: #181818;
   font-size: 0.9rem;
   font-weight: 800;
-  box-shadow: 0 12px 28px rgba(20, 20, 20, 0.2);
+}
+
+.theme-toggle-button {
+  color: #171717;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow:
+    inset 0 0 0 1px rgba(23, 23, 23, 0.05),
+    0 10px 24px rgba(20, 20, 20, 0.08);
+}
+
+.theme-toggle-button svg {
+  display: block;
+  stroke-width: 2.25;
 }
 
 .balance-hero {
@@ -123,6 +162,7 @@ button:focus-visible {
     ),
     #171717;
   box-shadow: 0 24px 50px rgba(20, 20, 20, 0.24);
+  animation: duewiseHeroIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hero-label {
@@ -147,29 +187,12 @@ button:focus-visible {
   line-height: 1.45;
 }
 
-.hero-recommendation {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 13px;
-  border-radius: 999px;
-  color: #171717;
-  background: #ffffff;
-}
-
-.hero-recommendation span {
-  color: #777067;
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-.hero-recommendation strong {
-  font-size: 0.79rem;
-}
-
 .page-content {
   padding: 19px 0 12px;
+}
+
+.page-content > * {
+  animation: duewisePageIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .date-strip {
@@ -194,6 +217,11 @@ button:focus-visible {
   color: #8b8378;
   background: rgba(255, 255, 255, 0.72);
   box-shadow: inset 0 0 0 1px rgba(23, 23, 23, 0.04);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .date-strip button span {
@@ -219,7 +247,13 @@ button:focus-visible {
   color: #ffffff;
 }
 
+.date-strip button:active {
+  transform: scale(0.94);
+}
+
 .recommendation-card {
+  position: relative;
+  overflow: hidden;
   padding: 20px;
   display: flex;
   align-items: flex-start;
@@ -232,19 +266,44 @@ button:focus-visible {
       rgba(255, 255, 255, 0.09),
       transparent 55%
     ),
-    #245f4c;
+    #28644f;
   box-shadow: 0 18px 38px rgba(31, 83, 66, 0.2);
+}
+
+.recommendation-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 42%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.08) 58%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  animation: duewiseSoftShine 5.4s ease-in-out infinite;
 }
 
 .recommendation-icon {
   width: 47px;
   height: 47px;
   flex: 0 0 auto;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 16px;
-  color: #245f4c;
+  color: #28644f;
   background: #ffffff;
+}
+
+.recommendation-icon svg {
+  display: block;
+  width: 27px;
+  height: 27px;
+  stroke-width: 2.35;
 }
 
 .recommendation-card p {
@@ -574,7 +633,7 @@ button:focus-visible {
   padding: 20px;
   border-radius: 26px;
   color: #ffffff;
-  background: #245f4c;
+  background: #28644f;
   box-shadow: 0 17px 34px rgba(36, 95, 76, 0.18);
 }
 
@@ -659,14 +718,14 @@ button:focus-visible {
 
 .fab-actions {
   position: fixed;
-  right: max(24px, calc((100vw - min(100vw, 480px)) / 2 + 24px));
-  bottom: calc(env(safe-area-inset-bottom) + 105px);
-  z-index: 50;
+  right: max(22px, calc((100vw - min(100vw, 480px)) / 2 + 22px));
+  bottom: calc(env(safe-area-inset-bottom) + 162px);
+  z-index: 70;
   display: grid;
   gap: 10px;
   pointer-events: none;
   opacity: 0;
-  transform: translateY(18px) scale(0.96);
+  transform: translateY(14px) scale(0.96);
   transform-origin: bottom right;
   transition:
     opacity 180ms ease,
@@ -680,18 +739,24 @@ button:focus-visible {
 }
 
 .fab-action {
-  min-width: 138px;
-  height: 46px;
+  min-width: 136px;
+  height: 44px;
   padding: 0 15px;
   display: flex;
   align-items: center;
   gap: 9px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 999px;
   color: #ffffff;
-  font-size: 0.78rem;
-  font-weight: 750;
+  font-size: 0.76rem;
+  font-weight: 800;
   box-shadow: 0 13px 28px rgba(20, 20, 20, 0.22);
+}
+
+.fab-action svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.4;
 }
 
 .fab-action.income {
@@ -708,75 +773,414 @@ button:focus-visible {
 
 .main-fab {
   position: fixed;
-  right: max(24px, calc((100vw - min(100vw, 480px)) / 2 + 24px));
-  bottom: calc(env(safe-area-inset-bottom) + 77px);
-  z-index: 60;
+  right: max(22px, calc((100vw - min(100vw, 480px)) / 2 + 22px));
+  bottom: calc(env(safe-area-inset-bottom) + 98px);
+  z-index: 80;
   width: 58px;
   height: 58px;
   display: grid;
   place-items: center;
-  border: 5px solid #f3f0e9;
+  border: 5px solid rgba(243, 240, 233, 0.98);
   border-radius: 50%;
   color: #ffffff;
   background: #171717;
-  box-shadow: 0 17px 36px rgba(20, 20, 20, 0.3);
+  box-shadow:
+    0 18px 38px rgba(20, 20, 20, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   transition:
     transform 180ms ease,
-    background 180ms ease;
+    background 180ms ease,
+    box-shadow 180ms ease;
+  animation: duewiseFabFloat 3.4s ease-in-out infinite;
+}
+
+.main-fab svg {
+  width: 25px;
+  height: 25px;
+  stroke-width: 2.4;
 }
 
 .main-fab.open {
-  transform: rotate(90deg);
+  transform: rotate(90deg) scale(1.02);
   background: #38312f;
+  animation: none;
+}
+
+.main-fab:active {
+  transform: scale(0.92);
 }
 
 .bottom-nav {
   position: fixed;
   left: 50%;
   bottom: 0;
-  z-index: 40;
+  z-index: 60;
   width: min(100%, 480px);
-  min-height: calc(env(safe-area-inset-bottom) + 78px);
+  min-height: calc(env(safe-area-inset-bottom) + 82px);
   padding:
-    11px
     9px
-    calc(env(safe-area-inset-bottom) + 8px);
+    12px
+    calc(env(safe-area-inset-bottom) + 9px);
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 2px;
-  border-top: 1px solid rgba(23, 23, 23, 0.06);
-  background: rgba(250, 248, 243, 0.93);
-  backdrop-filter: blur(22px);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  border-top: 1px solid rgba(23, 23, 23, 0.055);
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(250, 248, 243, 0.98),
+      rgba(250, 248, 243, 0.93)
+    );
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 -18px 40px rgba(40, 34, 27, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
   transform: translateX(-50%);
+  animation: duewiseBottomNavIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .bottom-nav button {
+  position: relative;
   min-width: 0;
-  min-height: 53px;
-  padding: 5px 1px;
+  min-height: 58px;
+  padding: 5px 2px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   border: 0;
-  border-radius: 15px;
-  color: #948c82;
+  border-radius: 20px;
+  color: #9b9389;
   background: transparent;
+  transition:
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.bottom-nav button svg {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: currentColor;
+  background: transparent;
+  box-shadow: none;
+  stroke-width: 2.05;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease,
+    stroke-width 0.2s ease;
 }
 
 .bottom-nav button span {
   max-width: 100%;
   overflow: hidden;
   font-size: 0.58rem;
-  font-weight: 700;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
+  opacity: 0.74;
 }
 
 .bottom-nav button.active {
   color: #171717;
-  background: rgba(23, 23, 23, 0.065);
+  background: rgba(23, 23, 23, 0.055);
+}
+
+.bottom-nav button.active svg {
+  color: #171717;
+  transform: translateY(-1px) scale(1.08);
+  stroke-width: 2.5;
+}
+
+.bottom-nav button:active {
+  transform: scale(0.94);
+}
+
+.bottom-nav button::after {
+  content: "";
+  position: absolute;
+  bottom: 5px;
+  width: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: transparent;
+  transition:
+    width 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.bottom-nav button.active::after {
+  width: 18px;
+  background: #171717;
+}
+
+.account-card,
+.event-card,
+.credit-card,
+.goal-card,
+.debt-card,
+.recurring-card,
+.info-card,
+.recommendation-card,
+.insight-card,
+.strategy-card,
+.recurring-summary,
+.debt-summary {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+.account-card:active,
+.event-card:active,
+.credit-card:active,
+.goal-card:active,
+.debt-card:active,
+.recurring-card:active,
+.info-card:active,
+.recommendation-card:active,
+.insight-card:active,
+.strategy-card:active {
+  transform: scale(0.985);
+}
+
+input,
+select {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+input:focus,
+select:focus {
+  box-shadow: 0 0 0 4px rgba(23, 23, 23, 0.07);
+}
+
+.theme-dark {
+  color: #f8f7f2;
+  background: #171717;
+}
+
+.theme-dark .app-shell,
+.theme-dark.mobile-app,
+.theme-dark .mobile-app {
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(255, 255, 255, 0.06),
+      transparent 24rem
+    ),
+    #171717;
+}
+
+.theme-dark .brand-name,
+.theme-dark .section-heading p,
+.theme-dark .card-main-content p,
+.theme-dark .card-main-content span,
+.theme-dark .credit-card-header p,
+.theme-dark .goal-header p {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.theme-dark .app-header h1,
+.theme-dark .section-heading h2,
+.theme-dark .card-main-content h3,
+.theme-dark .account-card h3,
+.theme-dark .event-card h3,
+.theme-dark .debt-card h3,
+.theme-dark .recurring-card h3,
+.theme-dark .credit-card-header h3,
+.theme-dark .goal-header h3 {
+  color: #f8f7f2;
+}
+
+.theme-dark .balance-hero {
+  color: #ffffff;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08),
+      transparent 44%
+    ),
+    #1f1f1f;
+  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.42);
+}
+
+.theme-dark .profile-button {
+  color: #171717;
+  background: #f8f7f2;
+}
+
+.theme-dark .theme-toggle-button {
+  color: #f8f7f2;
+  background: #262626;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.theme-dark .date-strip button,
+.theme-dark .info-card,
+.theme-dark .event-card,
+.theme-dark .account-card,
+.theme-dark .debt-card,
+.theme-dark .recurring-card,
+.theme-dark .credit-card,
+.theme-dark .goal-card,
+.theme-dark .overview-row {
+  color: #f8f7f2;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.055),
+    0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .date-strip button strong,
+.theme-dark .info-card strong,
+.theme-dark .event-card > strong,
+.theme-dark .account-card > strong,
+.theme-dark .debt-card > strong,
+.theme-dark .recurring-card > strong,
+.theme-dark .credit-details strong,
+.theme-dark .goal-values strong,
+.theme-dark .overview-row strong {
+  color: #f8f7f2;
+}
+
+.theme-dark .date-strip button.selected {
+  color: #171717;
+  background: #f8f7f2;
+}
+
+.theme-dark .date-strip button.selected strong {
+  color: #171717;
+}
+
+.theme-dark .recommendation-card,
+.theme-dark .insight-card,
+.theme-dark .strategy-card {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08),
+      transparent 55%
+    ),
+    #28644f;
+}
+
+.theme-dark .recommendation-icon {
+  color: #28644f;
+  background: #f8f7f2;
+}
+
+.theme-dark .bottom-nav {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(31, 31, 31, 0.96),
+      rgba(23, 23, 23, 0.94)
+    );
+  box-shadow:
+    0 -18px 40px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.theme-dark .bottom-nav button {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.theme-dark .bottom-nav button.active {
+  color: #f8f7f2;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.theme-dark .bottom-nav button.active svg {
+  color: #f8f7f2;
+}
+
+.theme-dark .bottom-nav button.active::after {
+  background: #f8f7f2;
+}
+
+.theme-dark .main-fab {
+  color: #171717;
+  border-color: #171717;
+  background: #f8f7f2;
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(23, 23, 23, 0.08);
+}
+
+.theme-dark .main-fab.open {
+  color: #f8f7f2;
+  background: #2a2a2a;
+}
+
+@keyframes duewisePageIn {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.99);
+    filter: blur(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes duewiseHeroIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes duewiseBottomNavIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes duewiseFabFloat {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -4px;
+  }
+}
+
+@keyframes duewiseSoftShine {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  45%,
+  100% {
+    transform: translateX(120%);
+  }
 }
 
 @media (max-width: 385px) {
@@ -799,8 +1203,27 @@ button:focus-visible {
     border-radius: 17px;
   }
 
+  .bottom-nav {
+    gap: 3px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
   .bottom-nav button span {
-    font-size: 0.54rem;
+    font-size: 0.53rem;
+  }
+
+  .bottom-nav button svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .main-fab {
+    right: max(17px, calc((100vw - min(100vw, 480px)) / 2 + 17px));
+  }
+
+  .fab-actions {
+    right: max(17px, calc((100vw - min(100vw, 480px)) / 2 + 17px));
   }
 
   .event-card > strong,
@@ -817,4 +1240,198 @@ button:focus-visible {
     border-left: 1px solid rgba(23, 23, 23, 0.05);
     background: rgba(255, 255, 255, 0.18);
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+/* =========================================================
+   Fix Recommendation Card Icon Centering
+   ========================================================= */
+
+.recommendation-card {
+  align-items: center !important;
+}
+
+.recommendation-icon {
+  width: 54px !important;
+  height: 54px !important;
+  min-width: 54px !important;
+  min-height: 54px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+}
+
+.recommendation-icon svg {
+  display: block !important;
+  width: 29px !important;
+  height: 29px !important;
+  margin: 0 !important;
+  transform: translateY(0.5px) !important;
+  stroke-width: 2.35 !important;
+}
+/* =========================================================
+   DueWise 4-Tab Modern Navigation Refinement
+   Today | Wallet | Plan | Insights
+   ========================================================= */
+
+.bottom-nav {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  min-height: calc(env(safe-area-inset-bottom) + 80px) !important;
+  padding:
+    9px
+    18px
+    calc(env(safe-area-inset-bottom) + 9px) !important;
+  gap: 12px !important;
+}
+
+.bottom-nav button {
+  min-height: 56px !important;
+  padding: 5px 4px 4px !important;
+  gap: 5px !important;
+  border-radius: 20px !important;
+  background: transparent !important;
+}
+
+.bottom-nav button svg {
+  width: 22px !important;
+  height: 22px !important;
+  padding: 0 !important;
+  color: currentColor !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  stroke-width: 1.85 !important;
+}
+
+.bottom-nav button span {
+  font-size: 0.61rem !important;
+  font-weight: 780 !important;
+  letter-spacing: -0.01em !important;
+  opacity: 0.72 !important;
+}
+
+.bottom-nav button.active {
+  color: #171717 !important;
+  background: rgba(23, 23, 23, 0.055) !important;
+}
+
+.bottom-nav button.active svg {
+  color: #171717 !important;
+  transform: translateY(-1px) scale(1.04) !important;
+  stroke-width: 2.35 !important;
+}
+
+.bottom-nav button::after {
+  bottom: 5px !important;
+  height: 3px !important;
+}
+
+.bottom-nav button.active::after {
+  width: 20px !important;
+  background: #171717 !important;
+}
+
+.theme-dark .bottom-nav button.active {
+  color: #f8f7f2 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.theme-dark .bottom-nav button.active svg {
+  color: #f8f7f2 !important;
+}
+
+.theme-dark .bottom-nav button.active::after {
+  background: #f8f7f2 !important;
+}
+
+/* Fix recommendation card icon alignment */
+.recommendation-card {
+  align-items: center !important;
+}
+
+.recommendation-icon {
+  width: 54px !important;
+  height: 54px !important;
+  min-width: 54px !important;
+  min-height: 54px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+}
+
+.recommendation-icon svg {
+  display: block !important;
+  width: 29px !important;
+  height: 29px !important;
+  margin: 0 !important;
+  transform: translateY(0.5px) !important;
+  stroke-width: 2.35 !important;
+}
+
+@media (max-width: 385px) {
+  .bottom-nav {
+    gap: 8px !important;
+    padding-right: 12px !important;
+    padding-left: 12px !important;
+  }
+
+  .bottom-nav button span {
+    font-size: 0.56rem !important;
+  }
+
+  .bottom-nav button svg {
+    width: 21px !important;
+    height: 21px !important;
+  }
+}
+/* =========================================================
+   Fix App Internal Scrolling
+   Makes the phone/app area scroll, not the outside page
+   ========================================================= */
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.app-shell {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.mobile-app {
+  height: 100dvh;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 150px) !important;
+}
+
+.mobile-app::-webkit-scrollbar {
+  display: none;
+}
+
+.page-content {
+  padding-bottom: 32px;
 }

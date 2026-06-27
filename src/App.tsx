@@ -1,3 +1,5 @@
+import './index.css'
+
 import {
   useEffect,
   useMemo,
@@ -12,26 +14,21 @@ import {
   ArrowRightLeft,
   ArrowUpRight,
   BarChart3,
-  CalendarDays,
+  ClipboardList,
   CreditCard,
+  Home,
   Landmark,
+  Moon,
   Pencil,
-  PiggyBank,
   Plus,
-  ReceiptText,
   Repeat2,
+  Sun,
   Trash2,
   WalletCards,
   X,
 } from 'lucide-react'
 
-type TabKey =
-  | 'calendar'
-  | 'accounts'
-  | 'savings'
-  | 'debts'
-  | 'recurring'
-  | 'analysis'
+type TabKey = 'today' | 'wallet' | 'plan' | 'insights'
 
 type QuickAction = 'income' | 'expense' | 'transfer'
 
@@ -116,6 +113,7 @@ type NavItem = {
 
 type AccountFormValues = Omit<Account, 'id'>
 type CreditCardFormValues = Omit<CreditCardAccount, 'id'>
+type RecurringExpenseFormValues = Omit<RecurringExpense, 'id'>
 
 type AccountEditorState =
   | {
@@ -137,7 +135,18 @@ type CreditCardEditorState =
       creditCard: CreditCardAccount
     }
 
+type RecurringExpenseEditorState =
+  | {
+      mode: 'add'
+      recurringExpense?: undefined
+    }
+  | {
+      mode: 'edit'
+      recurringExpense: RecurringExpense
+    }
+
 const STORAGE_KEY = 'duewise-local-data-v1'
+const THEME_KEY = 'duewise-theme'
 const DAY_IN_MS = 1000 * 60 * 60 * 24
 
 const peso = new Intl.NumberFormat('en-PH', {
@@ -250,27 +259,34 @@ const initialFinanceData: FinanceData = {
 }
 
 const navItems: NavItem[] = [
-  { key: 'accounts', label: 'Accounts', icon: WalletCards },
-  { key: 'savings', label: 'Savings', icon: PiggyBank },
-  { key: 'calendar', label: 'Calendar', icon: CalendarDays },
-  { key: 'debts', label: 'Debts', icon: ReceiptText },
-  { key: 'recurring', label: 'Recurring', icon: Repeat2 },
-  { key: 'analysis', label: 'Analysis', icon: BarChart3 },
+  { key: 'today', label: 'Today', icon: Home },
+  { key: 'wallet', label: 'Wallet', icon: WalletCards },
+  { key: 'plan', label: 'Plan', icon: ClipboardList },
+  { key: 'insights', label: 'Insights', icon: BarChart3 },
 ]
 
 function App() {
-  const [activeTab, setActiveTab] = useState<TabKey>('calendar')
+  const [activeTab, setActiveTab] = useState<TabKey>('today')
   const [fabOpen, setFabOpen] = useState(false)
   const [activeAction, setActiveAction] = useState<QuickAction | null>(null)
   const [accountEditor, setAccountEditor] =
     useState<AccountEditorState | null>(null)
   const [creditCardEditor, setCreditCardEditor] =
     useState<CreditCardEditorState | null>(null)
+  const [recurringExpenseEditor, setRecurringExpenseEditor] =
+    useState<RecurringExpenseEditorState | null>(null)
   const [financeData, setFinanceData] = useState<FinanceData>(loadFinanceData)
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem(THEME_KEY) === 'dark'
+  })
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(financeData))
   }, [financeData])
+
+  useEffect(() => {
+    localStorage.setItem(THEME_KEY, darkMode ? 'dark' : 'light')
+  }, [darkMode])
 
   const totalCash = useMemo(
     () =>
@@ -304,6 +320,15 @@ function App() {
       financeData.debts.reduce((total, debt) => total + debt.balance, 0) +
       totalCreditCardDebt,
     [financeData.debts, totalCreditCardDebt],
+  )
+
+  const recurringTotal = useMemo(
+    () =>
+      financeData.recurringExpenses.reduce(
+        (total, expense) => total + expense.amount,
+        0,
+      ),
+    [financeData.recurringExpenses],
   )
 
   const creditCardInsights = useMemo(
@@ -404,6 +429,52 @@ function App() {
       ...current,
       creditCards: current.creditCards.filter(
         (item) => item.id !== creditCardId,
+      ),
+    }))
+  }
+
+  function handleSaveRecurringExpense(values: RecurringExpenseFormValues) {
+    if (recurringExpenseEditor?.mode === 'edit') {
+      const recurringExpenseId = recurringExpenseEditor.recurringExpense.id
+
+      setFinanceData((current) => ({
+        ...current,
+        recurringExpenses: current.recurringExpenses.map((expense) =>
+          expense.id === recurringExpenseId
+            ? { ...expense, ...values }
+            : expense,
+        ),
+      }))
+    } else {
+      setFinanceData((current) => ({
+        ...current,
+        recurringExpenses: [
+          ...current.recurringExpenses,
+          {
+            id: createNumericId(current.recurringExpenses),
+            ...values,
+          },
+        ],
+      }))
+    }
+
+    setRecurringExpenseEditor(null)
+  }
+
+  function handleDeleteRecurringExpense(recurringExpenseId: number) {
+    const recurringExpense = financeData.recurringExpenses.find(
+      (item) => item.id === recurringExpenseId,
+    )
+    const confirmed = confirm(
+      `Delete ${recurringExpense?.name ?? 'this recurring expense'}?`,
+    )
+
+    if (!confirmed) return
+
+    setFinanceData((current) => ({
+      ...current,
+      recurringExpenses: current.recurringExpenses.filter(
+        (item) => item.id !== recurringExpenseId,
       ),
     }))
   }
@@ -588,7 +659,7 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${darkMode ? 'theme-dark' : ''}`}>
       <section className="mobile-app">
         <header className="app-header">
           <div>
@@ -596,14 +667,25 @@ function App() {
             <h1>{getPageTitle(activeTab)}</h1>
           </div>
 
-          <button
-            className="profile-button"
-            type="button"
-            aria-label="Reset local data"
-            onClick={resetLocalData}
-          >
-            JD
-          </button>
+          <div className="header-actions">
+            <button
+              className="theme-toggle-button"
+              type="button"
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={() => setDarkMode((current) => !current)}
+            >
+              {darkMode ? <Sun size={19} /> : <Moon size={19} />}
+            </button>
+
+            <button
+              className="profile-button"
+              type="button"
+              aria-label="Reset local data"
+              onClick={resetLocalData}
+            >
+              JD
+            </button>
+          </div>
         </header>
 
         <section className="balance-hero">
@@ -617,16 +699,19 @@ function App() {
         </section>
 
         <section className="page-content">
-          {activeTab === 'calendar' && (
-            <CalendarPage
+          {activeTab === 'today' && (
+            <TodayPage
               totalCash={totalCash}
               totalDebt={totalDebt}
               transactions={financeData.transactions}
               creditCardInsights={creditCardInsights}
+              recurringExpenses={financeData.recurringExpenses}
+              onOpenPlan={() => changeTab('plan')}
+              onOpenWallet={() => changeTab('wallet')}
             />
           )}
 
-          {activeTab === 'accounts' && (
+          {activeTab === 'wallet' && (
             <AccountsPage
               accounts={financeData.accounts}
               creditCards={financeData.creditCards}
@@ -644,21 +729,31 @@ function App() {
             />
           )}
 
-          {activeTab === 'savings' && (
-            <SavingsPage savingsGoals={financeData.savingsGoals} />
+          {activeTab === 'plan' && (
+            <PlanPage
+              recurringExpenses={financeData.recurringExpenses}
+              recurringTotal={recurringTotal}
+              savingsGoals={financeData.savingsGoals}
+              debts={financeData.debts}
+              onAddRecurringExpense={() =>
+                setRecurringExpenseEditor({ mode: 'add' })
+              }
+              onEditRecurringExpense={(recurringExpense) =>
+                setRecurringExpenseEditor({
+                  mode: 'edit',
+                  recurringExpense,
+                })
+              }
+              onDeleteRecurringExpense={handleDeleteRecurringExpense}
+            />
           )}
 
-          {activeTab === 'debts' && <DebtsPage debts={financeData.debts} />}
-
-          {activeTab === 'recurring' && (
-            <RecurringPage recurringExpenses={financeData.recurringExpenses} />
-          )}
-
-          {activeTab === 'analysis' && (
+          {activeTab === 'insights' && (
             <AnalysisPage
               totalCash={totalCash}
               totalSavings={totalSavings}
               totalDebt={totalDebt}
+              recurringTotal={recurringTotal}
               transactions={financeData.transactions}
               creditCardInsights={creditCardInsights}
             />
@@ -721,7 +816,7 @@ function App() {
                 className={isActive ? 'active' : ''}
                 onClick={() => changeTab(item.key)}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                <Icon size={20} strokeWidth={isActive ? 2.25 : 1.8} />
                 <span>{item.label}</span>
               </button>
             )
@@ -756,21 +851,35 @@ function App() {
             onSave={handleSaveCreditCard}
           />
         )}
+
+        {recurringExpenseEditor && (
+          <RecurringExpenseEditorModal
+            editor={recurringExpenseEditor}
+            onClose={() => setRecurringExpenseEditor(null)}
+            onSave={handleSaveRecurringExpense}
+          />
+        )}
       </section>
     </main>
   )
 }
 
-function CalendarPage({
+function TodayPage({
   totalCash,
   totalDebt,
   transactions,
   creditCardInsights,
+  recurringExpenses,
+  onOpenPlan,
+  onOpenWallet,
 }: {
   totalCash: number
   totalDebt: number
   transactions: Transaction[]
   creditCardInsights: CreditCardInsight[]
+  recurringExpenses: RecurringExpense[]
+  onOpenPlan: () => void
+  onOpenWallet: () => void
 }) {
   const days = [
     { day: 'Mon', date: 22 },
@@ -784,15 +893,19 @@ function CalendarPage({
 
   const dailyRecommendation = getDailyRecommendation(creditCardInsights)
 
-  const calendarItems = [
-    {
-      id: 1,
-      title: 'Internet Bill',
-      date: 'Today',
-      amount: 1699,
+  const recurringCalendarItems = recurringExpenses
+    .slice(0, 3)
+    .map((expense) => ({
+      id: Number(`9${expense.id}`),
+      title: expense.name,
+      date: expense.nextDue,
+      amount: expense.amount,
       type: 'Recurring',
-    },
-    ...creditCardInsights.slice(0, 2).flatMap((insight) => [
+    }))
+
+  const creditCardCalendarItems = creditCardInsights
+    .slice(0, 1)
+    .flatMap((insight) => [
       {
         id: Number(`${insight.card.id}1`),
         title: `${insight.card.name} Cut-off`,
@@ -807,8 +920,15 @@ function CalendarPage({
         amount: insight.card.currentBalance,
         type: 'Due',
       },
-    ]),
-  ]
+    ])
+
+  const calendarItems = [...recurringCalendarItems, ...creditCardCalendarItems]
+  const previewNote =
+    recurringExpenses.length > 3
+      ? `${recurringExpenses.length - 3} more planned item${
+          recurringExpenses.length - 3 === 1 ? '' : 's'
+        } hidden from this preview.`
+      : 'Showing your nearest planned items and top card events.'
 
   return (
     <>
@@ -843,11 +963,20 @@ function CalendarPage({
       </section>
 
       <SectionTitle
-        title="Upcoming Money Events"
-        subtitle="Bills, cut-off dates, and payment schedules"
+        title="Next Money Events"
+        subtitle="Short preview only to keep Today clean"
       />
 
       <div className="card-list">
+        {calendarItems.length === 0 && (
+          <article className="account-card">
+            <div className="card-main-content">
+              <h3>No events yet</h3>
+              <p>Add planned bills or credit cards to generate events.</p>
+            </div>
+          </article>
+        )}
+
         {calendarItems.map((item) => (
           <article key={item.id} className="event-card">
             <div className={`event-indicator ${getEventClass(item.type)}`} />
@@ -864,19 +993,28 @@ function CalendarPage({
         ))}
       </div>
 
+      <section style={previewCardStyle}>
+        <p>{previewNote}</p>
+
+        <button type="button" style={textLinkButtonStyle} onClick={onOpenPlan}>
+          View full plan
+        </button>
+      </section>
+
       <SectionTitle
-        title="Card Ranking"
-        subtitle="Based on cut-off, due date, available credit, and utilization"
+        title="Best Cards"
+        subtitle="Top 2 cards based on cut-off, due date, credit, and utilization"
       />
 
-      <CreditCardRanking insights={creditCardInsights} />
+      <CreditCardRanking insights={creditCardInsights.slice(0, 2)} />
 
-      <SectionTitle
-        title="Recent Activity"
-        subtitle="Transactions added through the quick action button"
-      />
+      <button type="button" style={wideSoftButtonStyle} onClick={onOpenWallet}>
+        View wallet
+      </button>
 
-      <TransactionList transactions={transactions} />
+      <SectionTitle title="Recent Activity" subtitle="Latest 3 quick transactions" />
+
+      <TransactionList transactions={transactions} limit={3} />
     </>
   )
 }
@@ -906,7 +1044,9 @@ function CreditCardRanking({ insights }: { insights: CreditCardInsight[] }) {
             <p>{insight.reason}</p>
           </div>
 
-          <strong>{insight.status === 'recommended' ? 'Best' : insight.status}</strong>
+          <strong>
+            {insight.status === 'recommended' ? 'Best' : insight.status}
+          </strong>
         </article>
       ))}
     </div>
@@ -948,10 +1088,7 @@ function AccountsPage({
         </button>
       </div>
 
-      <SectionTitle
-        title="Cash Accounts"
-        subtitle="Cash, banks, and e-wallets"
-      />
+      <SectionTitle title="Cash Accounts" subtitle="Cash, banks, and e-wallets" />
 
       <div className="card-list">
         {accounts.map((account) => (
@@ -1082,6 +1219,40 @@ function AccountsPage({
   )
 }
 
+function PlanPage({
+  recurringExpenses,
+  recurringTotal,
+  savingsGoals,
+  debts,
+  onAddRecurringExpense,
+  onEditRecurringExpense,
+  onDeleteRecurringExpense,
+}: {
+  recurringExpenses: RecurringExpense[]
+  recurringTotal: number
+  savingsGoals: SavingsGoal[]
+  debts: Debt[]
+  onAddRecurringExpense: () => void
+  onEditRecurringExpense: (recurringExpense: RecurringExpense) => void
+  onDeleteRecurringExpense: (recurringExpenseId: number) => void
+}) {
+  return (
+    <>
+      <RecurringPage
+        recurringExpenses={recurringExpenses}
+        recurringTotal={recurringTotal}
+        onAddRecurringExpense={onAddRecurringExpense}
+        onEditRecurringExpense={onEditRecurringExpense}
+        onDeleteRecurringExpense={onDeleteRecurringExpense}
+      />
+
+      <SavingsPage savingsGoals={savingsGoals} />
+
+      <DebtsPage debts={debts} />
+    </>
+  )
+}
+
 function SavingsPage({ savingsGoals }: { savingsGoals: SavingsGoal[] }) {
   return (
     <>
@@ -1146,10 +1317,7 @@ function DebtsPage({ debts }: { debts: Debt[] }) {
         <span>Excludes your separate credit card balances</span>
       </section>
 
-      <SectionTitle
-        title="Debt Tracker"
-        subtitle="Monitor balances and monthly payments"
-      />
+      <SectionTitle title="Debt Tracker" subtitle="Monitor balances and monthly payments" />
 
       <div className="card-list">
         {debts.map((debt) => (
@@ -1180,31 +1348,54 @@ function DebtsPage({ debts }: { debts: Debt[] }) {
 
 function RecurringPage({
   recurringExpenses,
+  recurringTotal,
+  onAddRecurringExpense,
+  onEditRecurringExpense,
+  onDeleteRecurringExpense,
 }: {
   recurringExpenses: RecurringExpense[]
+  recurringTotal: number
+  onAddRecurringExpense: () => void
+  onEditRecurringExpense: (recurringExpense: RecurringExpense) => void
+  onDeleteRecurringExpense: (recurringExpenseId: number) => void
 }) {
-  const recurringTotal = recurringExpenses.reduce(
-    (total, expense) => total + expense.amount,
-    0,
-  )
-
   return (
     <>
       <section className="recurring-summary">
         <div>
-          <p>Monthly Recurring Total</p>
+          <p>Monthly Plan Total</p>
           <h2>{peso.format(recurringTotal)}</h2>
         </div>
 
         <Repeat2 size={30} />
       </section>
 
+      <div style={{ marginTop: 14 }}>
+        <button
+          type="button"
+          style={softButtonStyle}
+          onClick={onAddRecurringExpense}
+        >
+          <Plus size={16} />
+          Add Bill
+        </button>
+      </div>
+
       <SectionTitle
-        title="Recurring Expenses"
-        subtitle="Regular bills and scheduled payments"
+        title="Bills"
+        subtitle="Regular bills, subscriptions, and scheduled payments"
       />
 
       <div className="card-list">
+        {recurringExpenses.length === 0 && (
+          <article className="account-card">
+            <div className="card-main-content">
+              <h3>No bills yet</h3>
+              <p>Add rent, utilities, subscriptions, or scheduled bills.</p>
+            </div>
+          </article>
+        )}
+
         {recurringExpenses.map((expense) => (
           <article key={expense.id} className="recurring-card">
             <div className="recurring-icon">
@@ -1219,7 +1410,29 @@ function RecurringPage({
               <span>Next due: {expense.nextDue}</span>
             </div>
 
-            <strong>{peso.format(expense.amount)}</strong>
+            <div style={amountActionColumnStyle}>
+              <strong>{peso.format(expense.amount)}</strong>
+
+              <div style={miniActionRowStyle}>
+                <button
+                  type="button"
+                  style={iconButtonStyle}
+                  onClick={() => onEditRecurringExpense(expense)}
+                  aria-label={`Edit ${expense.name}`}
+                >
+                  <Pencil size={14} />
+                </button>
+
+                <button
+                  type="button"
+                  style={dangerIconButtonStyle}
+                  onClick={() => onDeleteRecurringExpense(expense.id)}
+                  aria-label={`Delete ${expense.name}`}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
           </article>
         ))}
       </div>
@@ -1231,12 +1444,14 @@ function AnalysisPage({
   totalCash,
   totalSavings,
   totalDebt,
+  recurringTotal,
   transactions,
   creditCardInsights,
 }: {
   totalCash: number
   totalSavings: number
   totalDebt: number
+  recurringTotal: number
   transactions: Transaction[]
   creditCardInsights: CreditCardInsight[]
 }) {
@@ -1282,7 +1497,7 @@ function AnalysisPage({
 
       <SectionTitle
         title="Monthly Overview"
-        subtitle="Based on your locally recorded transactions"
+        subtitle="Based on your locally recorded transactions and plan"
       />
 
       <div className="overview-list">
@@ -1305,6 +1520,12 @@ function AnalysisPage({
         />
 
         <OverviewRow
+          label="Planned Bills"
+          value={peso.format(recurringTotal)}
+          type="neutral"
+        />
+
+        <OverviewRow
           label="Transactions"
           value={`${transactions.length}`}
           type="neutral"
@@ -1314,7 +1535,13 @@ function AnalysisPage({
   )
 }
 
-function TransactionList({ transactions }: { transactions: Transaction[] }) {
+function TransactionList({
+  transactions,
+  limit = 5,
+}: {
+  transactions: Transaction[]
+  limit?: number
+}) {
   if (transactions.length === 0) {
     return (
       <article className="account-card">
@@ -1328,7 +1555,7 @@ function TransactionList({ transactions }: { transactions: Transaction[] }) {
 
   return (
     <div className="card-list">
-      {transactions.slice(0, 5).map((transaction) => (
+      {transactions.slice(0, limit).map((transaction) => (
         <article key={transaction.id} className="account-card">
           <div className={`account-icon ${getTransactionAccent(transaction.type)}`}>
             {transaction.type === 'income' && <ArrowDownLeft size={21} />}
@@ -1575,6 +1802,131 @@ function CreditCardEditorModal({
 
         <button type="submit" style={submitButtonStyle}>
           Save Credit Card
+        </button>
+      </form>
+    </ModalShell>
+  )
+}
+
+function RecurringExpenseEditorModal({
+  editor,
+  onClose,
+  onSave,
+}: {
+  editor: RecurringExpenseEditorState
+  onClose: () => void
+  onSave: (values: RecurringExpenseFormValues) => void
+}) {
+  const [name, setName] = useState(editor.recurringExpense?.name ?? '')
+  const [category, setCategory] = useState(
+    editor.recurringExpense?.category ?? 'Utilities',
+  )
+  const [amount, setAmount] = useState(
+    editor.recurringExpense?.amount.toString() ?? '',
+  )
+  const [frequency, setFrequency] = useState(
+    editor.recurringExpense?.frequency ?? 'Monthly',
+  )
+  const [nextDue, setNextDue] = useState(
+    editor.recurringExpense?.nextDue ?? '',
+  )
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const parsedAmount = Number(amount)
+
+    if (!name.trim()) {
+      alert('Please enter a bill name.')
+      return
+    }
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      alert('Please enter a valid amount.')
+      return
+    }
+
+    if (!nextDue.trim()) {
+      alert('Please enter the next due date.')
+      return
+    }
+
+    onSave({
+      name: name.trim(),
+      category,
+      amount: parsedAmount,
+      frequency,
+      nextDue: nextDue.trim(),
+    })
+  }
+
+  return (
+    <ModalShell
+      eyebrow="Plan"
+      title={editor.mode === 'add' ? 'Add Bill' : 'Edit Bill'}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <TextField
+          label="Bill name"
+          value={name}
+          onChange={setName}
+          placeholder="Example: Internet, Rent, Netflix"
+          autoFocus
+        />
+
+        <label style={fieldStyle}>
+          <span style={labelStyle}>Category</span>
+          <select
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+            style={inputStyle}
+          >
+            <option>Utilities</option>
+            <option>Subscription</option>
+            <option>Rent</option>
+            <option>Insurance</option>
+            <option>Loan Payment</option>
+            <option>Food</option>
+            <option>Transportation</option>
+            <option>Education</option>
+            <option>Other</option>
+          </select>
+        </label>
+
+        <TextField
+          label="Amount"
+          type="number"
+          value={amount}
+          onChange={setAmount}
+          placeholder="0.00"
+        />
+
+        <label style={fieldStyle}>
+          <span style={labelStyle}>Frequency</span>
+          <select
+            value={frequency}
+            onChange={(event) => setFrequency(event.target.value)}
+            style={inputStyle}
+          >
+            <option>Daily</option>
+            <option>Weekly</option>
+            <option>Biweekly</option>
+            <option>Monthly</option>
+            <option>Quarterly</option>
+            <option>Yearly</option>
+          </select>
+        </label>
+
+        <TextField
+          label="Next due date"
+          value={nextDue}
+          onChange={setNextDue}
+          placeholder="Example: July 10 or Every 10th"
+        />
+
+        <button type="submit" style={submitButtonStyle}>
+          Save Bill
         </button>
       </form>
     </ModalShell>
@@ -2048,12 +2400,10 @@ function getInsightAccent(status: CreditCardInsight['status']): AccountAccent {
 
 function getPageTitle(activeTab: TabKey) {
   const titles: Record<TabKey, string> = {
-    calendar: 'Calendar',
-    accounts: 'Accounts',
-    savings: 'Savings',
-    debts: 'Debts',
-    recurring: 'Recurring',
-    analysis: 'Analysis',
+    today: 'Today',
+    wallet: 'Wallet',
+    plan: 'Plan',
+    insights: 'Insights',
   }
 
   return titles[activeTab]
@@ -2145,6 +2495,7 @@ const accountActionRowStyle: CSSProperties = {
 }
 
 const softButtonStyle: CSSProperties = {
+  width: '100%',
   minHeight: 45,
   display: 'inline-flex',
   alignItems: 'center',
@@ -2157,6 +2508,31 @@ const softButtonStyle: CSSProperties = {
   fontSize: '0.78rem',
   fontWeight: 800,
   boxShadow: 'inset 0 0 0 1px rgba(23, 23, 23, 0.05)',
+}
+
+const wideSoftButtonStyle: CSSProperties = {
+  ...softButtonStyle,
+  marginTop: 10,
+}
+
+const previewCardStyle: CSSProperties = {
+  display: 'grid',
+  gap: 9,
+  padding: '13px 14px',
+  borderRadius: 18,
+  background: 'rgba(255, 255, 255, 0.7)',
+  boxShadow: 'inset 0 0 0 1px rgba(23, 23, 23, 0.05)',
+}
+
+const textLinkButtonStyle: CSSProperties = {
+  width: 'fit-content',
+  padding: 0,
+  border: 0,
+  color: '#171717',
+  background: 'transparent',
+  fontSize: '0.78rem',
+  fontWeight: 850,
+  textDecoration: 'underline',
 }
 
 const amountActionColumnStyle: CSSProperties = {
