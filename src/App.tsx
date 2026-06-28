@@ -34,6 +34,8 @@ type QuickAction = 'income' | 'expense' | 'transfer'
 
 type AccountAccent = 'green' | 'blue' | 'teal'
 
+type GoalMoneyMode = 'deposit' | 'withdraw'
+
 type Account = {
   id: number
   name: string
@@ -114,6 +116,8 @@ type NavItem = {
 type AccountFormValues = Omit<Account, 'id'>
 type CreditCardFormValues = Omit<CreditCardAccount, 'id'>
 type RecurringExpenseFormValues = Omit<RecurringExpense, 'id'>
+type SavingsGoalFormValues = Omit<SavingsGoal, 'id'>
+type DebtFormValues = Omit<Debt, 'id'>
 
 type AccountEditorState =
   | {
@@ -144,6 +148,31 @@ type RecurringExpenseEditorState =
       mode: 'edit'
       recurringExpense: RecurringExpense
     }
+
+type SavingsGoalEditorState =
+  | {
+      mode: 'add'
+      savingsGoal?: undefined
+    }
+  | {
+      mode: 'edit'
+      savingsGoal: SavingsGoal
+    }
+
+type DebtEditorState =
+  | {
+      mode: 'add'
+      debt?: undefined
+    }
+  | {
+      mode: 'edit'
+      debt: Debt
+    }
+
+type GoalMoneyState = {
+  mode: GoalMoneyMode
+  savingsGoal: SavingsGoal
+}
 
 const STORAGE_KEY = 'duewise-local-data-v1'
 const THEME_KEY = 'duewise-theme'
@@ -275,6 +304,13 @@ function App() {
     useState<CreditCardEditorState | null>(null)
   const [recurringExpenseEditor, setRecurringExpenseEditor] =
     useState<RecurringExpenseEditorState | null>(null)
+  const [savingsGoalEditor, setSavingsGoalEditor] =
+    useState<SavingsGoalEditorState | null>(null)
+  const [debtEditor, setDebtEditor] = useState<DebtEditorState | null>(null)
+  const [goalMoneyAction, setGoalMoneyAction] = useState<GoalMoneyState | null>(
+    null,
+  )
+  const [debtPaymentTarget, setDebtPaymentTarget] = useState<Debt | null>(null)
   const [financeData, setFinanceData] = useState<FinanceData>(loadFinanceData)
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem(THEME_KEY) === 'dark'
@@ -477,6 +513,210 @@ function App() {
         (item) => item.id !== recurringExpenseId,
       ),
     }))
+  }
+
+  function handleSaveSavingsGoal(values: SavingsGoalFormValues) {
+    if (savingsGoalEditor?.mode === 'edit') {
+      const savingsGoalId = savingsGoalEditor.savingsGoal.id
+
+      setFinanceData((current) => ({
+        ...current,
+        savingsGoals: current.savingsGoals.map((goal) =>
+          goal.id === savingsGoalId ? { ...goal, ...values } : goal,
+        ),
+      }))
+    } else {
+      setFinanceData((current) => ({
+        ...current,
+        savingsGoals: [
+          ...current.savingsGoals,
+          {
+            id: createNumericId(current.savingsGoals),
+            ...values,
+          },
+        ],
+      }))
+    }
+
+    setSavingsGoalEditor(null)
+  }
+
+  function handleDeleteSavingsGoal(savingsGoalId: number) {
+    const goal = financeData.savingsGoals.find(
+      (item) => item.id === savingsGoalId,
+    )
+    const confirmed = confirm(`Delete ${goal?.name ?? 'this savings goal'}?`)
+
+    if (!confirmed) return
+
+    setFinanceData((current) => ({
+      ...current,
+      savingsGoals: current.savingsGoals.filter(
+        (item) => item.id !== savingsGoalId,
+      ),
+    }))
+  }
+
+  function handleMoveGoalMoney(
+    goalId: number,
+    accountId: number,
+    amount: number,
+    mode: GoalMoneyMode,
+  ) {
+    const goal = financeData.savingsGoals.find((item) => item.id === goalId)
+    const account = financeData.accounts.find((item) => item.id === accountId)
+
+    if (!goal || !account) {
+      alert('Please select valid details.')
+      return
+    }
+
+    if (mode === 'deposit' && amount > account.balance) {
+      alert('Insufficient account balance.')
+      return
+    }
+
+    if (mode === 'deposit' && amount > goal.target - goal.current) {
+      alert('Deposit is higher than the remaining target amount.')
+      return
+    }
+
+    if (mode === 'withdraw' && amount > goal.current) {
+      alert('Withdrawal is higher than current saved amount.')
+      return
+    }
+
+    const transaction: Transaction = {
+      id: createId(),
+      type: 'transfer',
+      amount,
+      label:
+        mode === 'deposit'
+          ? `Add to savings - ${goal.name}`
+          : `Withdraw from savings - ${goal.name}`,
+      accountLabel:
+        mode === 'deposit'
+          ? `${account.name} → ${goal.name}`
+          : `${goal.name} → ${account.name}`,
+      createdAt: new Date().toISOString(),
+    }
+
+    setFinanceData((current) => ({
+      ...current,
+      accounts: current.accounts.map((item) =>
+        item.id === accountId
+          ? {
+              ...item,
+              balance:
+                mode === 'deposit'
+                  ? item.balance - amount
+                  : item.balance + amount,
+            }
+          : item,
+      ),
+      savingsGoals: current.savingsGoals.map((item) =>
+        item.id === goalId
+          ? {
+              ...item,
+              current:
+                mode === 'deposit'
+                  ? item.current + amount
+                  : Math.max(item.current - amount, 0),
+            }
+          : item,
+      ),
+      transactions: [transaction, ...current.transactions].slice(0, 50),
+    }))
+
+    setGoalMoneyAction(null)
+  }
+
+  function handleSaveDebt(values: DebtFormValues) {
+    if (debtEditor?.mode === 'edit') {
+      const debtId = debtEditor.debt.id
+
+      setFinanceData((current) => ({
+        ...current,
+        debts: current.debts.map((debt) =>
+          debt.id === debtId ? { ...debt, ...values } : debt,
+        ),
+      }))
+    } else {
+      setFinanceData((current) => ({
+        ...current,
+        debts: [
+          ...current.debts,
+          {
+            id: createNumericId(current.debts),
+            ...values,
+          },
+        ],
+      }))
+    }
+
+    setDebtEditor(null)
+  }
+
+  function handleDeleteDebt(debtId: number) {
+    const debt = financeData.debts.find((item) => item.id === debtId)
+    const confirmed = confirm(`Delete ${debt?.name ?? 'this debt'}?`)
+
+    if (!confirmed) return
+
+    setFinanceData((current) => ({
+      ...current,
+      debts: current.debts.filter((item) => item.id !== debtId),
+    }))
+  }
+
+  function handleRecordDebtPayment(
+    debtId: number,
+    accountId: number,
+    amount: number,
+  ) {
+    const debt = financeData.debts.find((item) => item.id === debtId)
+    const account = financeData.accounts.find((item) => item.id === accountId)
+
+    if (!debt || !account) {
+      alert('Please select valid details.')
+      return
+    }
+
+    if (amount > account.balance) {
+      alert('Insufficient account balance.')
+      return
+    }
+
+    if (amount > debt.balance) {
+      alert('Payment is higher than remaining debt balance.')
+      return
+    }
+
+    const transaction: Transaction = {
+      id: createId(),
+      type: 'expense',
+      amount,
+      label: `Debt payment - ${debt.name}`,
+      accountLabel: account.name,
+      createdAt: new Date().toISOString(),
+    }
+
+    setFinanceData((current) => ({
+      ...current,
+      accounts: current.accounts.map((item) =>
+        item.id === accountId
+          ? { ...item, balance: item.balance - amount }
+          : item,
+      ),
+      debts: current.debts.map((item) =>
+        item.id === debtId
+          ? { ...item, balance: Math.max(item.balance - amount, 0) }
+          : item,
+      ),
+      transactions: [transaction, ...current.transactions].slice(0, 50),
+    }))
+
+    setDebtPaymentTarget(null)
   }
 
   function handleAddIncome(accountId: number, amount: number, note: string) {
@@ -745,6 +985,18 @@ function App() {
                 })
               }
               onDeleteRecurringExpense={handleDeleteRecurringExpense}
+              onAddSavingsGoal={() => setSavingsGoalEditor({ mode: 'add' })}
+              onEditSavingsGoal={(savingsGoal) =>
+                setSavingsGoalEditor({ mode: 'edit', savingsGoal })
+              }
+              onDeleteSavingsGoal={handleDeleteSavingsGoal}
+              onOpenGoalMoneyAction={(mode, savingsGoal) =>
+                setGoalMoneyAction({ mode, savingsGoal })
+              }
+              onAddDebt={() => setDebtEditor({ mode: 'add' })}
+              onEditDebt={(debt) => setDebtEditor({ mode: 'edit', debt })}
+              onDeleteDebt={handleDeleteDebt}
+              onRecordDebtPayment={setDebtPaymentTarget}
             />
           )}
 
@@ -857,6 +1109,40 @@ function App() {
             editor={recurringExpenseEditor}
             onClose={() => setRecurringExpenseEditor(null)}
             onSave={handleSaveRecurringExpense}
+          />
+        )}
+
+        {savingsGoalEditor && (
+          <SavingsGoalEditorModal
+            editor={savingsGoalEditor}
+            onClose={() => setSavingsGoalEditor(null)}
+            onSave={handleSaveSavingsGoal}
+          />
+        )}
+
+        {debtEditor && (
+          <DebtEditorModal
+            editor={debtEditor}
+            onClose={() => setDebtEditor(null)}
+            onSave={handleSaveDebt}
+          />
+        )}
+
+        {goalMoneyAction && (
+          <GoalMoneyModal
+            action={goalMoneyAction}
+            accounts={financeData.accounts}
+            onClose={() => setGoalMoneyAction(null)}
+            onSave={handleMoveGoalMoney}
+          />
+        )}
+
+        {debtPaymentTarget && (
+          <DebtPaymentModal
+            debt={debtPaymentTarget}
+            accounts={financeData.accounts}
+            onClose={() => setDebtPaymentTarget(null)}
+            onSave={handleRecordDebtPayment}
           />
         )}
       </section>
@@ -1227,6 +1513,14 @@ function PlanPage({
   onAddRecurringExpense,
   onEditRecurringExpense,
   onDeleteRecurringExpense,
+  onAddSavingsGoal,
+  onEditSavingsGoal,
+  onDeleteSavingsGoal,
+  onOpenGoalMoneyAction,
+  onAddDebt,
+  onEditDebt,
+  onDeleteDebt,
+  onRecordDebtPayment,
 }: {
   recurringExpenses: RecurringExpense[]
   recurringTotal: number
@@ -1235,6 +1529,14 @@ function PlanPage({
   onAddRecurringExpense: () => void
   onEditRecurringExpense: (recurringExpense: RecurringExpense) => void
   onDeleteRecurringExpense: (recurringExpenseId: number) => void
+  onAddSavingsGoal: () => void
+  onEditSavingsGoal: (savingsGoal: SavingsGoal) => void
+  onDeleteSavingsGoal: (savingsGoalId: number) => void
+  onOpenGoalMoneyAction: (mode: GoalMoneyMode, savingsGoal: SavingsGoal) => void
+  onAddDebt: () => void
+  onEditDebt: (debt: Debt) => void
+  onDeleteDebt: (debtId: number) => void
+  onRecordDebtPayment: (debt: Debt) => void
 }) {
   return (
     <>
@@ -1246,14 +1548,38 @@ function PlanPage({
         onDeleteRecurringExpense={onDeleteRecurringExpense}
       />
 
-      <SavingsPage savingsGoals={savingsGoals} />
+      <SavingsPage
+        savingsGoals={savingsGoals}
+        onAddSavingsGoal={onAddSavingsGoal}
+        onEditSavingsGoal={onEditSavingsGoal}
+        onDeleteSavingsGoal={onDeleteSavingsGoal}
+        onOpenGoalMoneyAction={onOpenGoalMoneyAction}
+      />
 
-      <DebtsPage debts={debts} />
+      <DebtsPage
+        debts={debts}
+        onAddDebt={onAddDebt}
+        onEditDebt={onEditDebt}
+        onDeleteDebt={onDeleteDebt}
+        onRecordDebtPayment={onRecordDebtPayment}
+      />
     </>
   )
 }
 
-function SavingsPage({ savingsGoals }: { savingsGoals: SavingsGoal[] }) {
+function SavingsPage({
+  savingsGoals,
+  onAddSavingsGoal,
+  onEditSavingsGoal,
+  onDeleteSavingsGoal,
+  onOpenGoalMoneyAction,
+}: {
+  savingsGoals: SavingsGoal[]
+  onAddSavingsGoal: () => void
+  onEditSavingsGoal: (savingsGoal: SavingsGoal) => void
+  onDeleteSavingsGoal: (savingsGoalId: number) => void
+  onOpenGoalMoneyAction: (mode: GoalMoneyMode, savingsGoal: SavingsGoal) => void
+}) {
   return (
     <>
       <SectionTitle
@@ -1261,10 +1587,24 @@ function SavingsPage({ savingsGoals }: { savingsGoals: SavingsGoal[] }) {
         subtitle="Track progress toward your financial targets"
       />
 
-      <div className="card-list">
+      <button type="button" style={softButtonStyle} onClick={onAddSavingsGoal}>
+        <Plus size={16} />
+        Add Savings Goal
+      </button>
+
+      <div className="card-list" style={{ marginTop: 12 }}>
+        {savingsGoals.length === 0 && (
+          <article className="account-card">
+            <div className="card-main-content">
+              <h3>No savings goals yet</h3>
+              <p>Add your first goal to start tracking progress.</p>
+            </div>
+          </article>
+        )}
+
         {savingsGoals.map((goal) => {
           const progress = Math.round((goal.current / goal.target) * 100)
-          const remaining = goal.target - goal.current
+          const remaining = Math.max(goal.target - goal.current, 0)
 
           return (
             <article key={goal.id} className="goal-card">
@@ -1274,7 +1614,7 @@ function SavingsPage({ savingsGoals }: { savingsGoals: SavingsGoal[] }) {
                   <p>Target: {goal.targetDate}</p>
                 </div>
 
-                <strong>{progress}%</strong>
+                <strong>{Math.min(progress, 100)}%</strong>
               </div>
 
               <div className="progress-track">
@@ -1295,6 +1635,40 @@ function SavingsPage({ savingsGoals }: { savingsGoals: SavingsGoal[] }) {
                   <strong>{peso.format(remaining)}</strong>
                 </span>
               </div>
+
+              <div style={cardActionGridStyle}>
+                <button
+                  type="button"
+                  style={compactButtonStyle}
+                  onClick={() => onOpenGoalMoneyAction('deposit', goal)}
+                >
+                  Add Money
+                </button>
+
+                <button
+                  type="button"
+                  style={compactButtonStyle}
+                  onClick={() => onOpenGoalMoneyAction('withdraw', goal)}
+                >
+                  Withdraw
+                </button>
+
+                <button
+                  type="button"
+                  style={compactButtonStyle}
+                  onClick={() => onEditSavingsGoal(goal)}
+                >
+                  Edit
+                </button>
+
+                <button
+                  type="button"
+                  style={compactDangerButtonStyle}
+                  onClick={() => onDeleteSavingsGoal(goal.id)}
+                >
+                  Delete
+                </button>
+              </div>
             </article>
           )
         })}
@@ -1303,7 +1677,19 @@ function SavingsPage({ savingsGoals }: { savingsGoals: SavingsGoal[] }) {
   )
 }
 
-function DebtsPage({ debts }: { debts: Debt[] }) {
+function DebtsPage({
+  debts,
+  onAddDebt,
+  onEditDebt,
+  onDeleteDebt,
+  onRecordDebtPayment,
+}: {
+  debts: Debt[]
+  onAddDebt: () => void
+  onEditDebt: (debt: Debt) => void
+  onDeleteDebt: (debtId: number) => void
+  onRecordDebtPayment: (debt: Debt) => void
+}) {
   const totalDebtBalance = debts.reduce(
     (total, debt) => total + debt.balance,
     0,
@@ -1317,9 +1703,23 @@ function DebtsPage({ debts }: { debts: Debt[] }) {
         <span>Excludes your separate credit card balances</span>
       </section>
 
+      <button type="button" style={softButtonWithTopMarginStyle} onClick={onAddDebt}>
+        <Plus size={16} />
+        Add Debt
+      </button>
+
       <SectionTitle title="Debt Tracker" subtitle="Monitor balances and monthly payments" />
 
       <div className="card-list">
+        {debts.length === 0 && (
+          <article className="account-card">
+            <div className="card-main-content">
+              <h3>No debts yet</h3>
+              <p>Add loans, installments, or other obligations here.</p>
+            </div>
+          </article>
+        )}
+
         {debts.map((debt) => (
           <article key={debt.id} className="debt-card">
             <div className="card-main-content">
@@ -1330,6 +1730,35 @@ function DebtsPage({ debts }: { debts: Debt[] }) {
             </div>
 
             <strong>{peso.format(debt.balance)}</strong>
+
+            <div style={inlineCardActionsStyle}>
+              <button
+                type="button"
+                style={iconButtonStyle}
+                onClick={() => onRecordDebtPayment(debt)}
+                aria-label={`Pay ${debt.name}`}
+              >
+                <ArrowDownLeft size={14} />
+              </button>
+
+              <button
+                type="button"
+                style={iconButtonStyle}
+                onClick={() => onEditDebt(debt)}
+                aria-label={`Edit ${debt.name}`}
+              >
+                <Pencil size={14} />
+              </button>
+
+              <button
+                type="button"
+                style={dangerIconButtonStyle}
+                onClick={() => onDeleteDebt(debt.id)}
+                aria-label={`Delete ${debt.name}`}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           </article>
         ))}
       </div>
@@ -1581,6 +2010,349 @@ function TransactionList({
         </article>
       ))}
     </div>
+  )
+}
+
+function SavingsGoalEditorModal({
+  editor,
+  onClose,
+  onSave,
+}: {
+  editor: SavingsGoalEditorState
+  onClose: () => void
+  onSave: (values: SavingsGoalFormValues) => void
+}) {
+  const [name, setName] = useState(editor.savingsGoal?.name ?? '')
+  const [current, setCurrent] = useState(
+    editor.savingsGoal?.current.toString() ?? '',
+  )
+  const [target, setTarget] = useState(
+    editor.savingsGoal?.target.toString() ?? '',
+  )
+  const [targetDate, setTargetDate] = useState(
+    editor.savingsGoal?.targetDate ?? '',
+  )
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const parsedCurrent = Number(current)
+    const parsedTarget = Number(target)
+
+    if (!name.trim()) {
+      alert('Please enter a savings goal name.')
+      return
+    }
+
+    if (!Number.isFinite(parsedCurrent) || parsedCurrent < 0) {
+      alert('Please enter a valid saved amount.')
+      return
+    }
+
+    if (!Number.isFinite(parsedTarget) || parsedTarget <= 0) {
+      alert('Please enter a valid target amount.')
+      return
+    }
+
+    if (parsedCurrent > parsedTarget) {
+      alert('Saved amount cannot be higher than the target.')
+      return
+    }
+
+    if (!targetDate.trim()) {
+      alert('Please enter a target date.')
+      return
+    }
+
+    onSave({
+      name: name.trim(),
+      current: parsedCurrent,
+      target: parsedTarget,
+      targetDate: targetDate.trim(),
+    })
+  }
+
+  return (
+    <ModalShell
+      eyebrow="Savings Goal"
+      title={editor.mode === 'add' ? 'Add Savings Goal' : 'Edit Savings Goal'}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <TextField
+          label="Goal name"
+          value={name}
+          onChange={setName}
+          placeholder="Example: Emergency Fund"
+          autoFocus
+        />
+
+        <TextField
+          label="Current saved amount"
+          type="number"
+          value={current}
+          onChange={setCurrent}
+          placeholder="0.00"
+        />
+
+        <TextField
+          label="Target amount"
+          type="number"
+          value={target}
+          onChange={setTarget}
+          placeholder="100000"
+        />
+
+        <TextField
+          label="Target date"
+          value={targetDate}
+          onChange={setTargetDate}
+          placeholder="Example: December 2027"
+        />
+
+        <button type="submit" style={submitButtonStyle}>
+          Save Goal
+        </button>
+      </form>
+    </ModalShell>
+  )
+}
+
+function DebtEditorModal({
+  editor,
+  onClose,
+  onSave,
+}: {
+  editor: DebtEditorState
+  onClose: () => void
+  onSave: (values: DebtFormValues) => void
+}) {
+  const [name, setName] = useState(editor.debt?.name ?? '')
+  const [balance, setBalance] = useState(editor.debt?.balance.toString() ?? '')
+  const [monthly, setMonthly] = useState(editor.debt?.monthly.toString() ?? '')
+  const [due, setDue] = useState(editor.debt?.due ?? '')
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const parsedBalance = Number(balance)
+    const parsedMonthly = Number(monthly)
+
+    if (!name.trim()) {
+      alert('Please enter a debt name.')
+      return
+    }
+
+    if (!Number.isFinite(parsedBalance) || parsedBalance < 0) {
+      alert('Please enter a valid debt balance.')
+      return
+    }
+
+    if (!Number.isFinite(parsedMonthly) || parsedMonthly <= 0) {
+      alert('Please enter a valid monthly payment.')
+      return
+    }
+
+    if (!due.trim()) {
+      alert('Please enter a due schedule.')
+      return
+    }
+
+    onSave({
+      name: name.trim(),
+      balance: parsedBalance,
+      monthly: parsedMonthly,
+      due: due.trim(),
+    })
+  }
+
+  return (
+    <ModalShell
+      eyebrow="Debt"
+      title={editor.mode === 'add' ? 'Add Debt' : 'Edit Debt'}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <TextField
+          label="Debt name"
+          value={name}
+          onChange={setName}
+          placeholder="Example: Personal Loan"
+          autoFocus
+        />
+
+        <TextField
+          label="Remaining balance"
+          type="number"
+          value={balance}
+          onChange={setBalance}
+          placeholder="0.00"
+        />
+
+        <TextField
+          label="Monthly payment"
+          type="number"
+          value={monthly}
+          onChange={setMonthly}
+          placeholder="5000"
+        />
+
+        <TextField
+          label="Due schedule"
+          value={due}
+          onChange={setDue}
+          placeholder="Example: Every 15th"
+        />
+
+        <button type="submit" style={submitButtonStyle}>
+          Save Debt
+        </button>
+      </form>
+    </ModalShell>
+  )
+}
+
+function GoalMoneyModal({
+  action,
+  accounts,
+  onClose,
+  onSave,
+}: {
+  action: GoalMoneyState
+  accounts: Account[]
+  onClose: () => void
+  onSave: (
+    goalId: number,
+    accountId: number,
+    amount: number,
+    mode: GoalMoneyMode,
+  ) => void
+}) {
+  const [amount, setAmount] = useState('')
+  const [accountId, setAccountId] = useState(accounts[0]?.id.toString() ?? '')
+
+  const isDeposit = action.mode === 'deposit'
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const parsedAmount = Number(amount)
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      alert('Please enter a valid amount.')
+      return
+    }
+
+    onSave(
+      action.savingsGoal.id,
+      Number(accountId),
+      parsedAmount,
+      action.mode,
+    )
+  }
+
+  return (
+    <ModalShell
+      eyebrow="Savings"
+      title={`${isDeposit ? 'Add Money to' : 'Withdraw from'} ${
+        action.savingsGoal.name
+      }`}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <label style={fieldStyle}>
+          <span style={labelStyle}>{isDeposit ? 'From account' : 'To account'}</span>
+          <select
+            value={accountId}
+            onChange={(event) => setAccountId(event.target.value)}
+            style={inputStyle}
+          >
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name} · {peso.format(account.balance)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <TextField
+          label="Amount"
+          type="number"
+          value={amount}
+          onChange={setAmount}
+          placeholder="0.00"
+          autoFocus
+        />
+
+        <button type="submit" style={submitButtonStyle}>
+          {isDeposit ? 'Add Money' : 'Withdraw'}
+        </button>
+      </form>
+    </ModalShell>
+  )
+}
+
+function DebtPaymentModal({
+  debt,
+  accounts,
+  onClose,
+  onSave,
+}: {
+  debt: Debt
+  accounts: Account[]
+  onClose: () => void
+  onSave: (debtId: number, accountId: number, amount: number) => void
+}) {
+  const [amount, setAmount] = useState(
+    Math.min(debt.monthly, debt.balance).toString(),
+  )
+  const [accountId, setAccountId] = useState(accounts[0]?.id.toString() ?? '')
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const parsedAmount = Number(amount)
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      alert('Please enter a valid payment amount.')
+      return
+    }
+
+    onSave(debt.id, Number(accountId), parsedAmount)
+  }
+
+  return (
+    <ModalShell eyebrow="Debt Payment" title={`Pay ${debt.name}`} onClose={onClose}>
+      <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <label style={fieldStyle}>
+          <span style={labelStyle}>Pay from</span>
+          <select
+            value={accountId}
+            onChange={(event) => setAccountId(event.target.value)}
+            style={inputStyle}
+          >
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name} · {peso.format(account.balance)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <TextField
+          label="Payment amount"
+          type="number"
+          value={amount}
+          onChange={setAmount}
+          placeholder="0.00"
+          autoFocus
+        />
+
+        <button type="submit" style={submitButtonStyle}>
+          Record Payment
+        </button>
+      </form>
+    </ModalShell>
   )
 }
 
@@ -2508,6 +3280,41 @@ const softButtonStyle: CSSProperties = {
   fontSize: '0.78rem',
   fontWeight: 800,
   boxShadow: 'inset 0 0 0 1px rgba(23, 23, 23, 0.05)',
+}
+
+const softButtonWithTopMarginStyle: CSSProperties = {
+  ...softButtonStyle,
+  marginTop: 14,
+}
+
+const compactButtonStyle: CSSProperties = {
+  minHeight: 36,
+  padding: '0 10px',
+  border: 0,
+  borderRadius: 13,
+  color: '#171717',
+  background: 'rgba(23, 23, 23, 0.07)',
+  fontSize: '0.7rem',
+  fontWeight: 850,
+}
+
+const compactDangerButtonStyle: CSSProperties = {
+  ...compactButtonStyle,
+  color: '#b64a46',
+  background: '#f3dfdc',
+}
+
+const cardActionGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  gap: 7,
+  marginTop: 15,
+}
+
+const inlineCardActionsStyle: CSSProperties = {
+  display: 'flex',
+  gap: 6,
+  flex: '0 0 auto',
 }
 
 const wideSoftButtonStyle: CSSProperties = {
