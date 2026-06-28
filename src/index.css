@@ -1435,3 +1435,319 @@ body,
 .page-content {
   padding-bottom: 32px;
 }
+/* =========================================================
+   DueWise Dark Mode UI Fixes
+   Fixes transaction history, preview cards, goal buttons,
+   modals, inputs, and light inline-style components
+   ========================================================= */
+
+/* General dark text contrast */
+.theme-dark {
+  color: #f8f7f2;
+}
+
+.theme-dark h1,
+.theme-dark h2,
+.theme-dark h3,
+.theme-dark strong {
+  color: #f8f7f2;
+}
+
+.theme-dark p,
+.theme-dark span {
+  color: rgba(248, 247, 242, 0.72);
+}
+
+/* Fix light preview cards in Today and Insights */
+.theme-dark .page-content > section[style*="border-radius: 18px"] {
+  color: #f8f7f2 !important;
+  background: rgba(255, 255, 255, 0.075) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 18px 40px rgba(0, 0, 0, 0.24) !important;
+}
+
+.theme-dark .page-content > section[style*="border-radius: 18px"] p,
+.theme-dark .page-content > section[style*="border-radius: 18px"] span {
+  color: rgba(248, 247, 242, 0.78) !important;
+}
+
+.theme-dark .page-content > section[style*="border-radius: 18px"] button {
+  color: #f8f7f2 !important;
+}
+
+/* Fix Plan savings goal buttons */
+.theme-dark .goal-card button {
+  color: #f8f7f2 !important;
+  background: rgba(255, 255, 255, 0.085) !important;
+}
+
+.theme-dark .goal-card button:last-child {
+  color: #ffb4ad !important;
+  background: rgba(255, 95, 95, 0.16) !important;
+}
+
+/* Fix debt card icon action buttons */
+.theme-dark .debt-card button,
+.theme-dark .credit-card button,
+.theme-dark .recurring-card button,
+.theme-dark .account-card button {
+  color: #f8f7f2 !important;
+  background: rgba(255, 255, 255, 0.085) !important;
+}
+
+.theme-dark .debt-card button:last-child,
+.theme-dark .credit-card button:last-child,
+.theme-dark .recurring-card button:last-child,
+.theme-dark .account-card button:last-child {
+  color: #ffb4ad !important;
+  background: rgba(255, 95, 95, 0.16) !important;
+}
+
+/* Fix full transaction history modal panel */
+.theme-dark [style*="height: min(88vh"] {
+  color: #f8f7f2 !important;
+  background: #171717 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.58) !important;
+}
+
+.theme-dark [style*="height: min(88vh"] h2,
+.theme-dark [style*="height: min(88vh"] h3,
+.theme-dark [style*="height: min(88vh"] strong {
+  color: #f8f7f2 !important;
+}
+
+.theme-dark [style*="height: min(88vh"] p,
+.theme-dark [style*="height: min(88vh"] span {
+  color: rgba(248, 247, 242, 0.7) !important;
+}
+
+/* Fix transaction history close button */
+.theme-dark [style*="height: min(88vh"] header button {
+  color: #f8f7f2 !important;
+  background: rgba(255, 255, 255, 0.09) !important;
+}
+
+/* Fix transaction history metric cards */
+.theme-dark [style*="height: min(88vh"] header + section article {
+  color: #f8f7f2 !important;
+  background: rgba(255, 255, 255, 0.065) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.075) !important;
+}
+
+.theme-dark [style*="height: min(88vh"] header + section article span {
+  color: rgba(248, 247, 242, 0.68) !important;
+}
+
+.theme-dark [style*="height: min(88vh"] header + section article strong {
+  color: #f8f7f2 !important;
+}
+
+/* Fix transaction history search bar */
+.theme-dark [style*="height: min(88vh"] header + section + label {
+  color: rgba(248, 247, 242, 0.7) !important;
+  background: rgba(255, 255, 255, 0.065) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.075) !important;
+}
+
+.theme-dark [style*="height: min(88vh"] header + section + label input {
+  color: #f8f7f2 !important;
+  background: transparent !important;
+}
+
+.theme-dark [style*="height: min(88vh"] header + section + label input::placeholder {
+  color: rgba(248, 247, 242, 0.48) !important;
+}
+
+/* Fix transaction history filter buttons */
+.theme-dark [style*="height: min(88vh"] header + section + label + div button {
+  color: #f8f7f2 !important;
+  background: rgba(255, 255, 255, 0.085) !important;
+}
+
+.theme-dark [style*="height: min(88vh"] header + section + label + div button[style*="background: rgb(23, 23, 23)"],
+.theme-dark [style*="height: min(88vh"] header + section + label + div button[style*="background: #171717"] {
+  color: #171717 !important;
+  background: #f8f7f2 !important;
+}
+
+/* Fix transaction rows inside history */
+.theme-dark [style*="height: min(88vh"] .account-card {
+  color: #f8f7f2 !important;
+  background: rgba(255, 255, 255, 0.065) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 12px 28px rgba(0, 0, 0, 0.24) !important;
+}
+
+.theme-dark [style*="height: min(88vh"] .account-card h3,
+.theme-dark [style*="height: min(88vh"] .account-card strong {
+  color: #f8f7f2 !important;
+}
+
+.theme-dark [style*="height: min(88vh"] .account-card p {
+  color: rgba(248, 247, 242, 0.58) !important;
+}
+
+/* Fix regular bottom-sheet modals in dark mode */
+.theme-dark [style*="max-height: calc(100vh - 36px)"] {
+  color: #f8f7f2 !important;
+  background: #171717 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.58) !important;
+}
+
+.theme-dark [style*="max-height: calc(100vh - 36px)"] h2,
+.theme-dark [style*="max-height: calc(100vh - 36px)"] h3,
+.theme-dark [style*="max-height: calc(100vh - 36px)"] strong {
+  color: #f8f7f2 !important;
+}
+
+.theme-dark [style*="max-height: calc(100vh - 36px)"] p,
+.theme-dark [style*="max-height: calc(100vh - 36px)"] span {
+  color: rgba(248, 247, 242, 0.7) !important;
+}
+
+.theme-dark [style*="max-height: calc(100vh - 36px)"] button {
+  color: #f8f7f2 !important;
+}
+
+.theme-dark [style*="max-height: calc(100vh - 36px)"] button[type="submit"] {
+  color: #171717 !important;
+  background: #f8f7f2 !important;
+}
+
+/* Fix form fields and dropdowns */
+.theme-dark input,
+.theme-dark select {
+  color: #f8f7f2 !important;
+  background: rgba(255, 255, 255, 0.075) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.theme-dark input::placeholder {
+  color: rgba(248, 247, 242, 0.45) !important;
+}
+
+.theme-dark select option,
+.theme-dark select optgroup {
+  color: #171717;
+  background: #ffffff;
+}
+
+/* Fix small note panels inside payment modals */
+.theme-dark [style*="max-height: calc(100vh - 36px)"] section[style*="border-radius: 16px"] {
+  color: #f8f7f2 !important;
+  background: rgba(255, 255, 255, 0.075) !important;
+}
+
+.theme-dark [style*="max-height: calc(100vh - 36px)"] section[style*="border-radius: 16px"] span,
+.theme-dark [style*="max-height: calc(100vh - 36px)"] section[style*="border-radius: 16px"] strong {
+  color: #f8f7f2 !important;
+}
+
+/* Fix minimalist alert/confirm popup in dark mode */
+.theme-dark [style*="width: min(100%, 338px)"] {
+  color: #f8f7f2 !important;
+  background: #171717 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.theme-dark [style*="width: min(100%, 338px)"] h2 {
+  color: #f8f7f2 !important;
+}
+
+.theme-dark [style*="width: min(100%, 338px)"] p {
+  color: rgba(248, 247, 242, 0.7) !important;
+}
+
+.theme-dark [style*="width: min(100%, 338px)"] button {
+  color: #171717 !important;
+  background: #f8f7f2 !important;
+}
+
+/* Mobile polish */
+@media (max-width: 430px) {
+  .theme-dark [style*="height: min(88vh"] {
+    height: min(90vh, 790px) !important;
+  }
+
+  .theme-dark [style*="height: min(88vh"] .account-card {
+    border-radius: 22px !important;
+  }
+}
+/* =========================================================
+   Fix Today Card / Best Cards Overlap
+   Adds clean vertical spacing after preview cards
+   ========================================================= */
+
+.page-content > section[style*="border-radius: 18px"] {
+  margin-bottom: 30px !important;
+}
+
+.page-content > section[style*="border-radius: 18px"] + .section-heading {
+  margin-top: 34px !important;
+}
+
+/* Extra spacing after Next Money Events list before preview card */
+.card-list + section[style*="border-radius: 18px"] {
+  margin-top: 16px !important;
+}
+
+/* Prevent card shadow from visually touching next section */
+.page-content > section[style*="border-radius: 18px"] {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.page-content > section[style*="border-radius: 18px"] + .section-heading {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Mobile spacing polish */
+@media (max-width: 430px) {
+  .page-content > section[style*="border-radius: 18px"] {
+    margin-bottom: 34px !important;
+  }
+
+  .page-content > section[style*="border-radius: 18px"] + .section-heading {
+    margin-top: 36px !important;
+  }
+}
+/* =========================================================
+   Fix Insights Overview / Transaction History Card Overlap
+   Adds spacing between overview rows and the preview action card
+   ========================================================= */
+
+.overview-list {
+  margin-bottom: 20px !important;
+}
+
+.overview-list + section[style*="border-radius: 18px"] {
+  margin-top: 22px !important;
+  margin-bottom: 32px !important;
+}
+
+/* Better spacing for the last overview row */
+.overview-list .overview-row:last-child {
+  margin-bottom: 4px !important;
+}
+
+/* Dark mode spacing and readability for preview action card */
+.theme-dark .overview-list + section[style*="border-radius: 18px"] {
+  margin-top: 24px !important;
+  background: rgba(255, 255, 255, 0.075) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 18px 38px rgba(0, 0, 0, 0.22) !important;
+}
+
+.theme-dark .overview-list + section[style*="border-radius: 18px"] p {
+  color: rgba(248, 247, 242, 0.76) !important;
+}
+
+.theme-dark .overview-list + section[style*="border-radius: 18px"] button {
+  color: #f8f7f2 !important;
+}

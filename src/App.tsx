@@ -22,6 +22,7 @@ import {
   Pencil,
   Plus,
   Repeat2,
+  Search,
   Sun,
   Trash2,
   WalletCards,
@@ -29,13 +30,10 @@ import {
 } from 'lucide-react'
 
 type TabKey = 'today' | 'wallet' | 'plan' | 'insights'
-
 type QuickAction = 'income' | 'expense' | 'transfer'
-
+type TransactionFilter = 'all' | QuickAction
 type AccountAccent = 'green' | 'blue' | 'teal'
-
 type GoalMoneyMode = 'deposit' | 'withdraw'
-
 type DialogTone = 'default' | 'danger' | 'success'
 
 type MessageDialogState = {
@@ -336,6 +334,7 @@ function App() {
     useState<RecurringExpense | null>(null)
   const [creditCardPaymentTarget, setCreditCardPaymentTarget] =
     useState<CreditCardAccount | null>(null)
+  const [transactionHistoryOpen, setTransactionHistoryOpen] = useState(false)
   const [messageDialog, setMessageDialog] =
     useState<MessageDialogState | null>(null)
   const [financeData, setFinanceData] = useState<FinanceData>(loadFinanceData)
@@ -541,7 +540,9 @@ function App() {
 
     showConfirm({
       title: 'Delete Credit Card?',
-      message: `This will remove ${creditCard?.name ?? 'this card'} from your wallet.`,
+      message: `This will remove ${
+        creditCard?.name ?? 'this card'
+      } from your wallet.`,
       confirmLabel: 'Delete',
       tone: 'danger',
       onConfirm: () => {
@@ -571,7 +572,10 @@ function App() {
     }
 
     if (amount > account.balance) {
-      showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
+      showAlert(
+        'Insufficient Balance',
+        'Your selected account has insufficient balance.',
+      )
       return
     }
 
@@ -698,7 +702,10 @@ function App() {
     const currentBalanceDue = getBillRemainingBalance(recurringExpense)
 
     if (amount > account.balance) {
-      showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
+      showAlert(
+        'Insufficient Balance',
+        'Your selected account has insufficient balance.',
+      )
       return
     }
 
@@ -778,7 +785,9 @@ function App() {
 
     showConfirm({
       title: 'Delete Savings Goal?',
-      message: `This will remove ${goal?.name ?? 'this savings goal'} from your plan.`,
+      message: `This will remove ${
+        goal?.name ?? 'this savings goal'
+      } from your plan.`,
       confirmLabel: 'Delete',
       tone: 'danger',
       onConfirm: () => {
@@ -807,7 +816,10 @@ function App() {
     }
 
     if (mode === 'deposit' && amount > account.balance) {
-      showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
+      showAlert(
+        'Insufficient Balance',
+        'Your selected account has insufficient balance.',
+      )
       return
     }
 
@@ -929,7 +941,10 @@ function App() {
     }
 
     if (amount > account.balance) {
-      showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
+      showAlert(
+        'Insufficient Balance',
+        'Your selected account has insufficient balance.',
+      )
       return
     }
 
@@ -1011,7 +1026,10 @@ function App() {
       }
 
       if (amount > account.balance) {
-        showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
+        showAlert(
+          'Insufficient Balance',
+          'Your selected account has insufficient balance.',
+        )
         return
       }
 
@@ -1110,7 +1128,10 @@ function App() {
     }
 
     if (amount > sourceAccount.balance) {
-      showAlert('Insufficient Balance', 'Your source account has insufficient balance.')
+      showAlert(
+        'Insufficient Balance',
+        'Your source account has insufficient balance.',
+      )
       return
     }
 
@@ -1205,6 +1226,7 @@ function App() {
               recurringExpenses={activeRecurringExpenses}
               onOpenPlan={() => changeTab('plan')}
               onOpenWallet={() => changeTab('wallet')}
+              onOpenTransactions={() => setTransactionHistoryOpen(true)}
             />
           )}
 
@@ -1267,6 +1289,7 @@ function App() {
               recurringTotal={recurringTotal}
               transactions={financeData.transactions}
               creditCardInsights={creditCardInsights}
+              onOpenTransactions={() => setTransactionHistoryOpen(true)}
             />
           )}
         </section>
@@ -1433,6 +1456,13 @@ function App() {
           />
         )}
 
+        {transactionHistoryOpen && (
+          <TransactionHistoryModal
+            transactions={financeData.transactions}
+            onClose={() => setTransactionHistoryOpen(false)}
+          />
+        )}
+
         {messageDialog && (
           <MessageDialogModal
             dialog={messageDialog}
@@ -1453,6 +1483,7 @@ function TodayPage({
   recurringExpenses,
   onOpenPlan,
   onOpenWallet,
+  onOpenTransactions,
 }: {
   totalCash: number
   totalDebt: number
@@ -1461,6 +1492,7 @@ function TodayPage({
   recurringExpenses: RecurringExpense[]
   onOpenPlan: () => void
   onOpenWallet: () => void
+  onOpenTransactions: () => void
 }) {
   const days = [
     { day: 'Mon', date: 22 },
@@ -1596,6 +1628,10 @@ function TodayPage({
       <SectionTitle title="Recent Activity" subtitle="Latest 3 quick transactions" />
 
       <TransactionList transactions={transactions} limit={3} />
+
+      <button type="button" style={wideSoftButtonStyle} onClick={onOpenTransactions}>
+        View All Transactions
+      </button>
     </>
   )
 }
@@ -2213,6 +2249,7 @@ function AnalysisPage({
   recurringTotal,
   transactions,
   creditCardInsights,
+  onOpenTransactions,
 }: {
   totalCash: number
   totalSavings: number
@@ -2220,6 +2257,7 @@ function AnalysisPage({
   recurringTotal: number
   transactions: Transaction[]
   creditCardInsights: CreditCardInsight[]
+  onOpenTransactions: () => void
 }) {
   const netWorth = totalCash + totalSavings - totalDebt
 
@@ -2297,6 +2335,18 @@ function AnalysisPage({
           type="neutral"
         />
       </div>
+
+      <section style={previewCardStyle}>
+        <p>Review income, expenses, transfers, savings movements, and payments.</p>
+
+        <button
+          type="button"
+          style={textLinkButtonStyle}
+          onClick={onOpenTransactions}
+        >
+          Open transaction history
+        </button>
+      </section>
     </>
   )
 }
@@ -2322,31 +2372,170 @@ function TransactionList({
   return (
     <div className="card-list">
       {transactions.slice(0, limit).map((transaction) => (
-        <article key={transaction.id} className="account-card">
-          <div className={`account-icon ${getTransactionAccent(transaction.type)}`}>
-            {transaction.type === 'income' && <ArrowDownLeft size={21} />}
-            {transaction.type === 'expense' && <ArrowUpRight size={21} />}
-            {transaction.type === 'transfer' && <ArrowRightLeft size={21} />}
-          </div>
-
-          <div className="card-main-content">
-            <h3>{transaction.label}</h3>
-            <p>
-              {transaction.accountLabel} · {formatShortDate(transaction.createdAt)}
-            </p>
-          </div>
-
-          <strong>
-            {transaction.type === 'expense'
-              ? '-'
-              : transaction.type === 'income'
-                ? '+'
-                : ''}
-            {peso.format(transaction.amount)}
-          </strong>
-        </article>
+        <TransactionRow key={transaction.id} transaction={transaction} />
       ))}
     </div>
+  )
+}
+
+function TransactionRow({ transaction }: { transaction: Transaction }) {
+  return (
+    <article className="account-card">
+      <div className={`account-icon ${getTransactionAccent(transaction.type)}`}>
+        {transaction.type === 'income' && <ArrowDownLeft size={21} />}
+        {transaction.type === 'expense' && <ArrowUpRight size={21} />}
+        {transaction.type === 'transfer' && <ArrowRightLeft size={21} />}
+      </div>
+
+      <div className="card-main-content">
+        <h3>{transaction.label}</h3>
+        <p>
+          {transaction.accountLabel} · {formatShortDate(transaction.createdAt)}
+        </p>
+      </div>
+
+      <strong>
+        {transaction.type === 'expense'
+          ? '-'
+          : transaction.type === 'income'
+            ? '+'
+            : ''}
+        {peso.format(transaction.amount)}
+      </strong>
+    </article>
+  )
+}
+
+function TransactionHistoryModal({
+  transactions,
+  onClose,
+}: {
+  transactions: Transaction[]
+  onClose: () => void
+}) {
+  const [filter, setFilter] = useState<TransactionFilter>('all')
+  const [query, setQuery] = useState('')
+
+  const filteredTransactions = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+
+    return transactions.filter((transaction) => {
+      const matchesType = filter === 'all' || transaction.type === filter
+
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        transaction.label.toLowerCase().includes(normalizedQuery) ||
+        transaction.accountLabel.toLowerCase().includes(normalizedQuery) ||
+        transaction.type.toLowerCase().includes(normalizedQuery)
+
+      return matchesType && matchesQuery
+    })
+  }, [transactions, filter, query])
+
+  const incomeTotal = filteredTransactions
+    .filter((transaction) => transaction.type === 'income')
+    .reduce((total, transaction) => total + transaction.amount, 0)
+
+  const expenseTotal = filteredTransactions
+    .filter((transaction) => transaction.type === 'expense')
+    .reduce((total, transaction) => total + transaction.amount, 0)
+
+  const transferTotal = filteredTransactions
+    .filter((transaction) => transaction.type === 'transfer')
+    .reduce((total, transaction) => total + transaction.amount, 0)
+
+  const netTotal = incomeTotal - expenseTotal
+
+  return (
+    <div style={historyBackdropStyle}>
+      <section style={historyPanelStyle}>
+        <header style={historyHeaderStyle}>
+          <div>
+            <p style={modalEyebrowStyle}>Transactions</p>
+            <h2 style={modalTitleStyle}>History</h2>
+          </div>
+
+          <button type="button" style={modalCloseButtonStyle} onClick={onClose}>
+            <X size={21} />
+          </button>
+        </header>
+
+        <section style={historySummaryGridStyle}>
+          <HistoryMetric label="Income" value={peso.format(incomeTotal)} />
+          <HistoryMetric label="Expenses" value={peso.format(expenseTotal)} />
+          <HistoryMetric label="Transfers" value={peso.format(transferTotal)} />
+          <HistoryMetric label="Net" value={peso.format(netTotal)} />
+        </section>
+
+        <label style={historySearchWrapStyle}>
+          <Search size={17} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search note, account, bill, card..."
+            style={historySearchInputStyle}
+          />
+        </label>
+
+        <div style={historyFilterGridStyle}>
+          <button
+            type="button"
+            style={historyFilterButtonStyle(filter === 'all')}
+            onClick={() => setFilter('all')}
+          >
+            All
+          </button>
+
+          <button
+            type="button"
+            style={historyFilterButtonStyle(filter === 'income')}
+            onClick={() => setFilter('income')}
+          >
+            Income
+          </button>
+
+          <button
+            type="button"
+            style={historyFilterButtonStyle(filter === 'expense')}
+            onClick={() => setFilter('expense')}
+          >
+            Expense
+          </button>
+
+          <button
+            type="button"
+            style={historyFilterButtonStyle(filter === 'transfer')}
+            onClick={() => setFilter('transfer')}
+          >
+            Transfer
+          </button>
+        </div>
+
+        <div style={historyListStyle}>
+          {filteredTransactions.length === 0 && (
+            <article className="account-card">
+              <div className="card-main-content">
+                <h3>No matching transactions</h3>
+                <p>Try changing the filter or search keyword.</p>
+              </div>
+            </article>
+          )}
+
+          {filteredTransactions.map((transaction) => (
+            <TransactionRow key={transaction.id} transaction={transaction} />
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function HistoryMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <article style={historyMetricStyle}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>
   )
 }
 
@@ -2758,7 +2947,9 @@ function GoalMoneyModal({
     >
       <form onSubmit={handleSubmit} style={modalFormStyle}>
         <label style={fieldStyle}>
-          <span style={labelStyle}>{isDeposit ? 'From account' : 'To account'}</span>
+          <span style={labelStyle}>
+            {isDeposit ? 'From account' : 'To account'}
+          </span>
           <select
             value={accountId}
             onChange={(event) => setAccountId(event.target.value)}
@@ -3010,7 +3201,10 @@ function CreditCardEditorModal({
     }
 
     if (!isValidDayOfMonth(parsedCutOffDay)) {
-      onNotify('Invalid Cut-off Day', 'Please enter a valid cut-off day from 1 to 31.')
+      onNotify(
+        'Invalid Cut-off Day',
+        'Please enter a valid cut-off day from 1 to 31.',
+      )
       return
     }
 
@@ -4210,6 +4404,103 @@ function messageConfirmButtonStyle(tone: DialogTone): CSSProperties {
     fontSize: '0.84rem',
     fontWeight: 850,
   }
+}
+
+const historyBackdropStyle: CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  zIndex: 180,
+  display: 'flex',
+  alignItems: 'flex-end',
+  justifyContent: 'center',
+  padding: '18px',
+  background: 'rgba(23, 23, 23, 0.32)',
+  backdropFilter: 'blur(8px)',
+}
+
+const historyPanelStyle: CSSProperties = {
+  width: 'min(100%, 444px)',
+  height: 'min(88vh, 780px)',
+  display: 'flex',
+  flexDirection: 'column',
+  padding: 20,
+  borderRadius: 30,
+  background: '#faf8f3',
+  boxShadow: '0 24px 60px rgba(20, 20, 20, 0.28)',
+}
+
+const historyHeaderStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'space-between',
+  gap: 16,
+  marginBottom: 16,
+}
+
+const historySummaryGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 9,
+  marginBottom: 13,
+}
+
+const historyMetricStyle: CSSProperties = {
+  display: 'grid',
+  gap: 5,
+  padding: '12px 13px',
+  borderRadius: 17,
+  color: '#171717',
+  background: '#ffffff',
+  boxShadow: 'inset 0 0 0 1px rgba(23, 23, 23, 0.06)',
+}
+
+const historySearchWrapStyle: CSSProperties = {
+  minHeight: 48,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 9,
+  padding: '0 13px',
+  borderRadius: 17,
+  color: '#6f685f',
+  background: '#ffffff',
+  boxShadow: 'inset 0 0 0 1px rgba(23, 23, 23, 0.07)',
+  marginBottom: 11,
+}
+
+const historySearchInputStyle: CSSProperties = {
+  width: '100%',
+  border: 0,
+  outline: 0,
+  color: '#171717',
+  background: 'transparent',
+  fontSize: '0.84rem',
+  fontWeight: 700,
+}
+
+const historyFilterGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  gap: 7,
+  marginBottom: 13,
+}
+
+function historyFilterButtonStyle(active: boolean): CSSProperties {
+  return {
+    minHeight: 38,
+    border: 0,
+    borderRadius: 14,
+    color: active ? '#ffffff' : '#171717',
+    background: active ? '#171717' : '#eee9df',
+    fontSize: '0.7rem',
+    fontWeight: 850,
+  }
+}
+
+const historyListStyle: CSSProperties = {
+  display: 'grid',
+  gap: 10,
+  overflowY: 'auto',
+  paddingBottom: 8,
 }
 
 export default App
