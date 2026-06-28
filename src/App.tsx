@@ -51,6 +51,7 @@ type CreditCardAccount = {
   creditLimit: number
   cutOffDay: number
   dueDay: number
+  lastPaymentAt?: string
 }
 
 type CreditCardInsight = {
@@ -87,6 +88,7 @@ type RecurringExpense = {
   amount: number
   frequency: string
   nextDue: string
+  lastPaidAt?: string
 }
 
 type Transaction = {
@@ -114,8 +116,11 @@ type NavItem = {
 }
 
 type AccountFormValues = Omit<Account, 'id'>
-type CreditCardFormValues = Omit<CreditCardAccount, 'id'>
-type RecurringExpenseFormValues = Omit<RecurringExpense, 'id'>
+type CreditCardFormValues = Omit<CreditCardAccount, 'id' | 'lastPaymentAt'>
+type RecurringExpenseFormValues = Omit<
+  RecurringExpense,
+  'id' | 'lastPaidAt'
+>
 type SavingsGoalFormValues = Omit<SavingsGoal, 'id'>
 type DebtFormValues = Omit<Debt, 'id'>
 
@@ -311,6 +316,10 @@ function App() {
     null,
   )
   const [debtPaymentTarget, setDebtPaymentTarget] = useState<Debt | null>(null)
+  const [billPaymentTarget, setBillPaymentTarget] =
+    useState<RecurringExpense | null>(null)
+  const [creditCardPaymentTarget, setCreditCardPaymentTarget] =
+    useState<CreditCardAccount | null>(null)
   const [financeData, setFinanceData] = useState<FinanceData>(loadFinanceData)
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem(THEME_KEY) === 'dark'
@@ -469,6 +478,64 @@ function App() {
     }))
   }
 
+  function handlePayCreditCard(
+    creditCardId: number,
+    accountId: number,
+    amount: number,
+  ) {
+    const creditCard = financeData.creditCards.find(
+      (item) => item.id === creditCardId,
+    )
+    const account = financeData.accounts.find((item) => item.id === accountId)
+
+    if (!creditCard || !account) {
+      alert('Please select valid payment details.')
+      return
+    }
+
+    if (amount > account.balance) {
+      alert('Insufficient account balance.')
+      return
+    }
+
+    if (amount > creditCard.currentBalance) {
+      alert('Payment is higher than the current credit card balance.')
+      return
+    }
+
+    const paidAt = new Date().toISOString()
+
+    const transaction: Transaction = {
+      id: createId(),
+      type: 'transfer',
+      amount,
+      label: `Credit card payment - ${creditCard.name}`,
+      accountLabel: `${account.name} → ${creditCard.name}`,
+      createdAt: paidAt,
+    }
+
+    setFinanceData((current) => ({
+      ...current,
+      accounts: current.accounts.map((item) =>
+        item.id === accountId
+          ? { ...item, balance: item.balance - amount }
+          : item,
+      ),
+      creditCards: current.creditCards.map((item) =>
+        item.id === creditCardId
+          ? {
+              ...item,
+              currentBalance: Math.max(item.currentBalance - amount, 0),
+              lastPaymentAt: paidAt,
+            }
+          : item,
+      ),
+      transactions: [transaction, ...current.transactions].slice(0, 50),
+    }))
+
+    setCreditCardPaymentTarget(null)
+  }
+
   function handleSaveRecurringExpense(values: RecurringExpenseFormValues) {
     if (recurringExpenseEditor?.mode === 'edit') {
       const recurringExpenseId = recurringExpenseEditor.recurringExpense.id
@@ -513,6 +580,60 @@ function App() {
         (item) => item.id !== recurringExpenseId,
       ),
     }))
+  }
+
+  function handlePayBill(
+    recurringExpenseId: number,
+    accountId: number,
+    amount: number,
+  ) {
+    const recurringExpense = financeData.recurringExpenses.find(
+      (item) => item.id === recurringExpenseId,
+    )
+    const account = financeData.accounts.find((item) => item.id === accountId)
+
+    if (!recurringExpense || !account) {
+      alert('Please select valid payment details.')
+      return
+    }
+
+    if (amount > account.balance) {
+      alert('Insufficient account balance.')
+      return
+    }
+
+    if (amount > recurringExpense.amount) {
+      alert('Payment is higher than the scheduled bill amount.')
+      return
+    }
+
+    const paidAt = new Date().toISOString()
+
+    const transaction: Transaction = {
+      id: createId(),
+      type: 'expense',
+      amount,
+      label: `Bill payment - ${recurringExpense.name}`,
+      accountLabel: account.name,
+      createdAt: paidAt,
+    }
+
+    setFinanceData((current) => ({
+      ...current,
+      accounts: current.accounts.map((item) =>
+        item.id === accountId
+          ? { ...item, balance: item.balance - amount }
+          : item,
+      ),
+      recurringExpenses: current.recurringExpenses.map((item) =>
+        item.id === recurringExpenseId
+          ? { ...item, lastPaidAt: paidAt }
+          : item,
+      ),
+      transactions: [transaction, ...current.transactions].slice(0, 50),
+    }))
+
+    setBillPaymentTarget(null)
   }
 
   function handleSaveSavingsGoal(values: SavingsGoalFormValues) {
@@ -966,6 +1087,7 @@ function App() {
                 setCreditCardEditor({ mode: 'edit', creditCard })
               }
               onDeleteCreditCard={handleDeleteCreditCard}
+              onPayCreditCard={setCreditCardPaymentTarget}
             />
           )}
 
@@ -985,6 +1107,7 @@ function App() {
                 })
               }
               onDeleteRecurringExpense={handleDeleteRecurringExpense}
+              onPayRecurringExpense={setBillPaymentTarget}
               onAddSavingsGoal={() => setSavingsGoalEditor({ mode: 'add' })}
               onEditSavingsGoal={(savingsGoal) =>
                 setSavingsGoalEditor({ mode: 'edit', savingsGoal })
@@ -1143,6 +1266,24 @@ function App() {
             accounts={financeData.accounts}
             onClose={() => setDebtPaymentTarget(null)}
             onSave={handleRecordDebtPayment}
+          />
+        )}
+
+        {billPaymentTarget && (
+          <BillPaymentModal
+            expense={billPaymentTarget}
+            accounts={financeData.accounts}
+            onClose={() => setBillPaymentTarget(null)}
+            onSave={handlePayBill}
+          />
+        )}
+
+        {creditCardPaymentTarget && (
+          <CreditCardPaymentModal
+            creditCard={creditCardPaymentTarget}
+            accounts={financeData.accounts}
+            onClose={() => setCreditCardPaymentTarget(null)}
+            onSave={handlePayCreditCard}
           />
         )}
       </section>
@@ -1349,6 +1490,7 @@ function AccountsPage({
   onAddCreditCard,
   onEditCreditCard,
   onDeleteCreditCard,
+  onPayCreditCard,
 }: {
   accounts: Account[]
   creditCards: CreditCardAccount[]
@@ -1359,6 +1501,7 @@ function AccountsPage({
   onAddCreditCard: () => void
   onEditCreditCard: (creditCard: CreditCardAccount) => void
   onDeleteCreditCard: (creditCardId: number) => void
+  onPayCreditCard: (creditCard: CreditCardAccount) => void
 }) {
   return (
     <>
@@ -1452,6 +1595,15 @@ function AccountsPage({
                     <button
                       type="button"
                       style={iconButtonStyle}
+                      onClick={() => onPayCreditCard(card)}
+                      aria-label={`Pay ${card.name}`}
+                    >
+                      <ArrowDownLeft size={14} />
+                    </button>
+
+                    <button
+                      type="button"
+                      style={iconButtonStyle}
                       onClick={() => onEditCreditCard(card)}
                       aria-label={`Edit ${card.name}`}
                     >
@@ -1497,6 +1649,12 @@ function AccountsPage({
                 <span>Cut-off: {formatOrdinalDay(card.cutOffDay)}</span>
                 <span>Due: {formatOrdinalDay(card.dueDay)}</span>
               </div>
+
+              {card.lastPaymentAt && (
+                <p style={smallMutedLineStyle}>
+                  Last payment: {formatShortDate(card.lastPaymentAt)}
+                </p>
+              )}
             </article>
           )
         })}
@@ -1513,6 +1671,7 @@ function PlanPage({
   onAddRecurringExpense,
   onEditRecurringExpense,
   onDeleteRecurringExpense,
+  onPayRecurringExpense,
   onAddSavingsGoal,
   onEditSavingsGoal,
   onDeleteSavingsGoal,
@@ -1529,6 +1688,7 @@ function PlanPage({
   onAddRecurringExpense: () => void
   onEditRecurringExpense: (recurringExpense: RecurringExpense) => void
   onDeleteRecurringExpense: (recurringExpenseId: number) => void
+  onPayRecurringExpense: (recurringExpense: RecurringExpense) => void
   onAddSavingsGoal: () => void
   onEditSavingsGoal: (savingsGoal: SavingsGoal) => void
   onDeleteSavingsGoal: (savingsGoalId: number) => void
@@ -1546,6 +1706,7 @@ function PlanPage({
         onAddRecurringExpense={onAddRecurringExpense}
         onEditRecurringExpense={onEditRecurringExpense}
         onDeleteRecurringExpense={onDeleteRecurringExpense}
+        onPayRecurringExpense={onPayRecurringExpense}
       />
 
       <SavingsPage
@@ -1781,12 +1942,14 @@ function RecurringPage({
   onAddRecurringExpense,
   onEditRecurringExpense,
   onDeleteRecurringExpense,
+  onPayRecurringExpense,
 }: {
   recurringExpenses: RecurringExpense[]
   recurringTotal: number
   onAddRecurringExpense: () => void
   onEditRecurringExpense: (recurringExpense: RecurringExpense) => void
   onDeleteRecurringExpense: (recurringExpenseId: number) => void
+  onPayRecurringExpense: (recurringExpense: RecurringExpense) => void
 }) {
   return (
     <>
@@ -1837,12 +2000,24 @@ function RecurringPage({
                 {expense.category} · {expense.frequency}
               </p>
               <span>Next due: {expense.nextDue}</span>
+              {expense.lastPaidAt && (
+                <span>Last paid: {formatShortDate(expense.lastPaidAt)}</span>
+              )}
             </div>
 
             <div style={amountActionColumnStyle}>
               <strong>{peso.format(expense.amount)}</strong>
 
               <div style={miniActionRowStyle}>
+                <button
+                  type="button"
+                  style={iconButtonStyle}
+                  onClick={() => onPayRecurringExpense(expense)}
+                  aria-label={`Pay ${expense.name}`}
+                >
+                  <ArrowDownLeft size={14} />
+                </button>
+
                 <button
                   type="button"
                   style={iconButtonStyle}
@@ -2010,6 +2185,144 @@ function TransactionList({
         </article>
       ))}
     </div>
+  )
+}
+
+function BillPaymentModal({
+  expense,
+  accounts,
+  onClose,
+  onSave,
+}: {
+  expense: RecurringExpense
+  accounts: Account[]
+  onClose: () => void
+  onSave: (expenseId: number, accountId: number, amount: number) => void
+}) {
+  const [amount, setAmount] = useState(expense.amount.toString())
+  const [accountId, setAccountId] = useState(accounts[0]?.id.toString() ?? '')
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const parsedAmount = Number(amount)
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      alert('Please enter a valid payment amount.')
+      return
+    }
+
+    if (parsedAmount > expense.amount) {
+      alert('Payment is higher than the scheduled bill amount.')
+      return
+    }
+
+    onSave(expense.id, Number(accountId), parsedAmount)
+  }
+
+  return (
+    <ModalShell eyebrow="Bill Payment" title={`Pay ${expense.name}`} onClose={onClose}>
+      <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <label style={fieldStyle}>
+          <span style={labelStyle}>Pay from</span>
+          <select
+            value={accountId}
+            onChange={(event) => setAccountId(event.target.value)}
+            style={inputStyle}
+          >
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name} · {peso.format(account.balance)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <TextField
+          label="Payment amount"
+          type="number"
+          value={amount}
+          onChange={setAmount}
+          placeholder="0.00"
+          autoFocus
+        />
+
+        <button type="submit" style={submitButtonStyle}>
+          Mark as Paid
+        </button>
+      </form>
+    </ModalShell>
+  )
+}
+
+function CreditCardPaymentModal({
+  creditCard,
+  accounts,
+  onClose,
+  onSave,
+}: {
+  creditCard: CreditCardAccount
+  accounts: Account[]
+  onClose: () => void
+  onSave: (creditCardId: number, accountId: number, amount: number) => void
+}) {
+  const [amount, setAmount] = useState(creditCard.currentBalance.toString())
+  const [accountId, setAccountId] = useState(accounts[0]?.id.toString() ?? '')
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const parsedAmount = Number(amount)
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      alert('Please enter a valid payment amount.')
+      return
+    }
+
+    if (parsedAmount > creditCard.currentBalance) {
+      alert('Payment is higher than the current credit card balance.')
+      return
+    }
+
+    onSave(creditCard.id, Number(accountId), parsedAmount)
+  }
+
+  return (
+    <ModalShell
+      eyebrow="Credit Card Payment"
+      title={`Pay ${creditCard.name}`}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <label style={fieldStyle}>
+          <span style={labelStyle}>Pay from</span>
+          <select
+            value={accountId}
+            onChange={(event) => setAccountId(event.target.value)}
+            style={inputStyle}
+          >
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name} · {peso.format(account.balance)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <TextField
+          label="Payment amount"
+          type="number"
+          value={amount}
+          onChange={setAmount}
+          placeholder="0.00"
+          autoFocus
+        />
+
+        <button type="submit" style={submitButtonStyle}>
+          Record Payment
+        </button>
+      </form>
+    </ModalShell>
   )
 }
 
@@ -3225,7 +3538,7 @@ function normalizeCreditCards(rawCreditCards: unknown): CreditCardAccount[] {
     const creditLimit = Number(card.creditLimit ?? 1)
     const currentBalance = Number(card.currentBalance ?? 0)
 
-    return {
+    const normalizedCard: CreditCardAccount = {
       id: Number(card.id ?? index + 1),
       name: String(card.name ?? `Credit Card ${index + 1}`),
       currentBalance: Number.isFinite(currentBalance) ? currentBalance : 0,
@@ -3234,6 +3547,12 @@ function normalizeCreditCards(rawCreditCards: unknown): CreditCardAccount[] {
       cutOffDay: parseDayFromText(card.cutOffDay ?? card.cutOffDate, 1),
       dueDay: parseDayFromText(card.dueDay ?? card.dueDate, 15),
     }
+
+    if (typeof card.lastPaymentAt === 'string') {
+      normalizedCard.lastPaymentAt = card.lastPaymentAt
+    }
+
+    return normalizedCard
   })
 }
 
@@ -3369,6 +3688,13 @@ const dangerIconButtonStyle: CSSProperties = {
   ...iconButtonStyle,
   color: '#b64a46',
   background: '#f3dfdc',
+}
+
+const smallMutedLineStyle: CSSProperties = {
+  margin: '10px 0 0',
+  color: '#81786d',
+  fontSize: '0.72rem',
+  fontWeight: 700,
 }
 
 const modalBackdropStyle: CSSProperties = {
