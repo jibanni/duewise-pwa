@@ -36,6 +36,20 @@ type AccountAccent = 'green' | 'blue' | 'teal'
 
 type GoalMoneyMode = 'deposit' | 'withdraw'
 
+type DialogTone = 'default' | 'danger' | 'success'
+
+type MessageDialogState = {
+  type: 'alert' | 'confirm'
+  title: string
+  message: string
+  confirmLabel?: string
+  cancelLabel?: string
+  tone?: DialogTone
+  onConfirm?: () => void
+}
+
+type NotifyFunction = (title: string, message: string) => void
+
 type Account = {
   id: number
   name: string
@@ -88,6 +102,8 @@ type RecurringExpense = {
   amount: number
   frequency: string
   nextDue: string
+  remainingBalance?: number
+  periodKey?: string
   lastPaidAt?: string
 }
 
@@ -119,7 +135,7 @@ type AccountFormValues = Omit<Account, 'id'>
 type CreditCardFormValues = Omit<CreditCardAccount, 'id' | 'lastPaymentAt'>
 type RecurringExpenseFormValues = Omit<
   RecurringExpense,
-  'id' | 'lastPaidAt'
+  'id' | 'remainingBalance' | 'periodKey' | 'lastPaidAt'
 >
 type SavingsGoalFormValues = Omit<SavingsGoal, 'id'>
 type DebtFormValues = Omit<Debt, 'id'>
@@ -320,6 +336,8 @@ function App() {
     useState<RecurringExpense | null>(null)
   const [creditCardPaymentTarget, setCreditCardPaymentTarget] =
     useState<CreditCardAccount | null>(null)
+  const [messageDialog, setMessageDialog] =
+    useState<MessageDialogState | null>(null)
   const [financeData, setFinanceData] = useState<FinanceData>(loadFinanceData)
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem(THEME_KEY) === 'dark'
@@ -332,6 +350,14 @@ function App() {
   useEffect(() => {
     localStorage.setItem(THEME_KEY, darkMode ? 'dark' : 'light')
   }, [darkMode])
+
+  const activeRecurringExpenses = useMemo(
+    () =>
+      financeData.recurringExpenses.filter(
+        (expense) => getBillRemainingBalance(expense) > 0,
+      ),
+    [financeData.recurringExpenses],
+  )
 
   const totalCash = useMemo(
     () =>
@@ -369,17 +395,56 @@ function App() {
 
   const recurringTotal = useMemo(
     () =>
-      financeData.recurringExpenses.reduce(
-        (total, expense) => total + expense.amount,
+      activeRecurringExpenses.reduce(
+        (total, expense) => total + getBillRemainingBalance(expense),
         0,
       ),
-    [financeData.recurringExpenses],
+    [activeRecurringExpenses],
   )
 
   const creditCardInsights = useMemo(
     () => getCreditCardInsights(financeData.creditCards),
     [financeData.creditCards],
   )
+
+  function showAlert(title: string, message: string) {
+    setMessageDialog({
+      type: 'alert',
+      title,
+      message,
+      confirmLabel: 'Okay',
+      tone: 'default',
+    })
+  }
+
+  function showConfirm({
+    title,
+    message,
+    confirmLabel = 'Confirm',
+    cancelLabel = 'Cancel',
+    tone = 'danger',
+    onConfirm,
+  }: Omit<MessageDialogState, 'type'>) {
+    setMessageDialog({
+      type: 'confirm',
+      title,
+      message,
+      confirmLabel,
+      cancelLabel,
+      tone,
+      onConfirm,
+    })
+  }
+
+  function closeMessageDialog() {
+    setMessageDialog(null)
+  }
+
+  function confirmMessageDialog() {
+    const action = messageDialog?.onConfirm
+    setMessageDialog(null)
+    action?.()
+  }
 
   function changeTab(tab: TabKey) {
     setActiveTab(tab)
@@ -419,19 +484,26 @@ function App() {
 
   function handleDeleteAccount(accountId: number) {
     if (financeData.accounts.length <= 1) {
-      alert('At least one cash account is required.')
+      showAlert('Account Required', 'At least one cash account is required.')
       return
     }
 
     const account = financeData.accounts.find((item) => item.id === accountId)
-    const confirmed = confirm(`Delete ${account?.name ?? 'this account'}?`)
 
-    if (!confirmed) return
-
-    setFinanceData((current) => ({
-      ...current,
-      accounts: current.accounts.filter((item) => item.id !== accountId),
-    }))
+    showConfirm({
+      title: 'Delete Account?',
+      message: `This will remove ${
+        account?.name ?? 'this account'
+      } from your wallet.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+      onConfirm: () => {
+        setFinanceData((current) => ({
+          ...current,
+          accounts: current.accounts.filter((item) => item.id !== accountId),
+        }))
+      },
+    })
   }
 
   function handleSaveCreditCard(values: CreditCardFormValues) {
@@ -466,16 +538,21 @@ function App() {
     const creditCard = financeData.creditCards.find(
       (item) => item.id === creditCardId,
     )
-    const confirmed = confirm(`Delete ${creditCard?.name ?? 'this card'}?`)
 
-    if (!confirmed) return
-
-    setFinanceData((current) => ({
-      ...current,
-      creditCards: current.creditCards.filter(
-        (item) => item.id !== creditCardId,
-      ),
-    }))
+    showConfirm({
+      title: 'Delete Credit Card?',
+      message: `This will remove ${creditCard?.name ?? 'this card'} from your wallet.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+      onConfirm: () => {
+        setFinanceData((current) => ({
+          ...current,
+          creditCards: current.creditCards.filter(
+            (item) => item.id !== creditCardId,
+          ),
+        }))
+      },
+    })
   }
 
   function handlePayCreditCard(
@@ -489,17 +566,20 @@ function App() {
     const account = financeData.accounts.find((item) => item.id === accountId)
 
     if (!creditCard || !account) {
-      alert('Please select valid payment details.')
+      showAlert('Invalid Payment', 'Please select valid payment details.')
       return
     }
 
     if (amount > account.balance) {
-      alert('Insufficient account balance.')
+      showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
       return
     }
 
     if (amount > creditCard.currentBalance) {
-      alert('Payment is higher than the current credit card balance.')
+      showAlert(
+        'Invalid Amount',
+        'Payment is higher than the current credit card balance.',
+      )
       return
     }
 
@@ -537,14 +617,25 @@ function App() {
   }
 
   function handleSaveRecurringExpense(values: RecurringExpenseFormValues) {
+    const currentPeriodKey = getCurrentPeriodKey()
+
     if (recurringExpenseEditor?.mode === 'edit') {
       const recurringExpenseId = recurringExpenseEditor.recurringExpense.id
+      const oldExpense = recurringExpenseEditor.recurringExpense
+      const oldRemainingBalance = getBillRemainingBalance(oldExpense)
+      const alreadyPaid = Math.max(oldExpense.amount - oldRemainingBalance, 0)
+      const newRemainingBalance = Math.max(values.amount - alreadyPaid, 0)
 
       setFinanceData((current) => ({
         ...current,
         recurringExpenses: current.recurringExpenses.map((expense) =>
           expense.id === recurringExpenseId
-            ? { ...expense, ...values }
+            ? {
+                ...expense,
+                ...values,
+                remainingBalance: newRemainingBalance,
+                periodKey: currentPeriodKey,
+              }
             : expense,
         ),
       }))
@@ -556,6 +647,8 @@ function App() {
           {
             id: createNumericId(current.recurringExpenses),
             ...values,
+            remainingBalance: values.amount,
+            periodKey: currentPeriodKey,
           },
         ],
       }))
@@ -568,18 +661,23 @@ function App() {
     const recurringExpense = financeData.recurringExpenses.find(
       (item) => item.id === recurringExpenseId,
     )
-    const confirmed = confirm(
-      `Delete ${recurringExpense?.name ?? 'this recurring expense'}?`,
-    )
 
-    if (!confirmed) return
-
-    setFinanceData((current) => ({
-      ...current,
-      recurringExpenses: current.recurringExpenses.filter(
-        (item) => item.id !== recurringExpenseId,
-      ),
-    }))
+    showConfirm({
+      title: 'Delete Bill?',
+      message: `This will remove ${
+        recurringExpense?.name ?? 'this bill'
+      } from your monthly plan.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+      onConfirm: () => {
+        setFinanceData((current) => ({
+          ...current,
+          recurringExpenses: current.recurringExpenses.filter(
+            (item) => item.id !== recurringExpenseId,
+          ),
+        }))
+      },
+    })
   }
 
   function handlePayBill(
@@ -593,21 +691,27 @@ function App() {
     const account = financeData.accounts.find((item) => item.id === accountId)
 
     if (!recurringExpense || !account) {
-      alert('Please select valid payment details.')
+      showAlert('Invalid Payment', 'Please select valid payment details.')
       return
     }
+
+    const currentBalanceDue = getBillRemainingBalance(recurringExpense)
 
     if (amount > account.balance) {
-      alert('Insufficient account balance.')
+      showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
       return
     }
 
-    if (amount > recurringExpense.amount) {
-      alert('Payment is higher than the scheduled bill amount.')
+    if (amount > currentBalanceDue) {
+      showAlert(
+        'Invalid Amount',
+        'Payment is higher than the remaining bill balance.',
+      )
       return
     }
 
     const paidAt = new Date().toISOString()
+    const newBalanceDue = Math.max(currentBalanceDue - amount, 0)
 
     const transaction: Transaction = {
       id: createId(),
@@ -627,7 +731,12 @@ function App() {
       ),
       recurringExpenses: current.recurringExpenses.map((item) =>
         item.id === recurringExpenseId
-          ? { ...item, lastPaidAt: paidAt }
+          ? {
+              ...item,
+              remainingBalance: newBalanceDue,
+              periodKey: getCurrentPeriodKey(),
+              lastPaidAt: paidAt,
+            }
           : item,
       ),
       transactions: [transaction, ...current.transactions].slice(0, 50),
@@ -666,16 +775,21 @@ function App() {
     const goal = financeData.savingsGoals.find(
       (item) => item.id === savingsGoalId,
     )
-    const confirmed = confirm(`Delete ${goal?.name ?? 'this savings goal'}?`)
 
-    if (!confirmed) return
-
-    setFinanceData((current) => ({
-      ...current,
-      savingsGoals: current.savingsGoals.filter(
-        (item) => item.id !== savingsGoalId,
-      ),
-    }))
+    showConfirm({
+      title: 'Delete Savings Goal?',
+      message: `This will remove ${goal?.name ?? 'this savings goal'} from your plan.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+      onConfirm: () => {
+        setFinanceData((current) => ({
+          ...current,
+          savingsGoals: current.savingsGoals.filter(
+            (item) => item.id !== savingsGoalId,
+          ),
+        }))
+      },
+    })
   }
 
   function handleMoveGoalMoney(
@@ -688,22 +802,28 @@ function App() {
     const account = financeData.accounts.find((item) => item.id === accountId)
 
     if (!goal || !account) {
-      alert('Please select valid details.')
+      showAlert('Invalid Details', 'Please select valid details.')
       return
     }
 
     if (mode === 'deposit' && amount > account.balance) {
-      alert('Insufficient account balance.')
+      showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
       return
     }
 
     if (mode === 'deposit' && amount > goal.target - goal.current) {
-      alert('Deposit is higher than the remaining target amount.')
+      showAlert(
+        'Target Exceeded',
+        'Deposit is higher than the remaining target amount.',
+      )
       return
     }
 
     if (mode === 'withdraw' && amount > goal.current) {
-      alert('Withdrawal is higher than current saved amount.')
+      showAlert(
+        'Invalid Withdrawal',
+        'Withdrawal is higher than the current saved amount.',
+      )
       return
     }
 
@@ -780,14 +900,19 @@ function App() {
 
   function handleDeleteDebt(debtId: number) {
     const debt = financeData.debts.find((item) => item.id === debtId)
-    const confirmed = confirm(`Delete ${debt?.name ?? 'this debt'}?`)
 
-    if (!confirmed) return
-
-    setFinanceData((current) => ({
-      ...current,
-      debts: current.debts.filter((item) => item.id !== debtId),
-    }))
+    showConfirm({
+      title: 'Delete Debt?',
+      message: `This will remove ${debt?.name ?? 'this debt'} from your tracker.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+      onConfirm: () => {
+        setFinanceData((current) => ({
+          ...current,
+          debts: current.debts.filter((item) => item.id !== debtId),
+        }))
+      },
+    })
   }
 
   function handleRecordDebtPayment(
@@ -799,17 +924,20 @@ function App() {
     const account = financeData.accounts.find((item) => item.id === accountId)
 
     if (!debt || !account) {
-      alert('Please select valid details.')
+      showAlert('Invalid Payment', 'Please select valid details.')
       return
     }
 
     if (amount > account.balance) {
-      alert('Insufficient account balance.')
+      showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
       return
     }
 
     if (amount > debt.balance) {
-      alert('Payment is higher than remaining debt balance.')
+      showAlert(
+        'Invalid Amount',
+        'Payment is higher than the remaining debt balance.',
+      )
       return
     }
 
@@ -844,7 +972,7 @@ function App() {
     const account = financeData.accounts.find((item) => item.id === accountId)
 
     if (!account) {
-      alert('Please select a valid account.')
+      showAlert('Invalid Account', 'Please select a valid account.')
       return
     }
 
@@ -878,12 +1006,12 @@ function App() {
       const account = financeData.accounts.find((item) => item.id === sourceId)
 
       if (!account) {
-        alert('Please select a valid account.')
+        showAlert('Invalid Account', 'Please select a valid account.')
         return
       }
 
       if (amount > account.balance) {
-        alert('Insufficient balance for this expense.')
+        showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
         return
       }
 
@@ -914,14 +1042,17 @@ function App() {
       const card = financeData.creditCards.find((item) => item.id === sourceId)
 
       if (!card) {
-        alert('Please select a valid credit card.')
+        showAlert('Invalid Card', 'Please select a valid credit card.')
         return
       }
 
       const availableCredit = card.creditLimit - card.currentBalance
 
       if (amount > availableCredit) {
-        alert('Insufficient available credit for this expense.')
+        showAlert(
+          'Insufficient Credit',
+          'Your selected credit card has insufficient available credit.',
+        )
         return
       }
 
@@ -948,7 +1079,7 @@ function App() {
       return
     }
 
-    alert('Please select a payment method.')
+    showAlert('Payment Method Required', 'Please select a payment method.')
   }
 
   function handleTransfer(
@@ -958,7 +1089,10 @@ function App() {
     note: string,
   ) {
     if (sourceAccountId === destinationAccountId) {
-      alert('Source and destination accounts must be different.')
+      showAlert(
+        'Invalid Transfer',
+        'Source and destination accounts must be different.',
+      )
       return
     }
 
@@ -971,12 +1105,12 @@ function App() {
     )
 
     if (!sourceAccount || !destinationAccount) {
-      alert('Please select valid accounts.')
+      showAlert('Invalid Accounts', 'Please select valid accounts.')
       return
     }
 
     if (amount > sourceAccount.balance) {
-      alert('Insufficient balance for this transfer.')
+      showAlert('Insufficient Balance', 'Your source account has insufficient balance.')
       return
     }
 
@@ -1009,14 +1143,16 @@ function App() {
   }
 
   function resetLocalData() {
-    const confirmed = confirm(
-      'Reset all DueWise sample data? This will clear your local changes.',
-    )
-
-    if (!confirmed) return
-
-    localStorage.removeItem(STORAGE_KEY)
-    setFinanceData(initialFinanceData)
+    showConfirm({
+      title: 'Reset DueWise?',
+      message: 'This will clear your local changes and restore the sample data.',
+      confirmLabel: 'Reset',
+      tone: 'danger',
+      onConfirm: () => {
+        localStorage.removeItem(STORAGE_KEY)
+        setFinanceData(normalizeFinanceData(initialFinanceData))
+      },
+    })
   }
 
   return (
@@ -1066,7 +1202,7 @@ function App() {
               totalDebt={totalDebt}
               transactions={financeData.transactions}
               creditCardInsights={creditCardInsights}
-              recurringExpenses={financeData.recurringExpenses}
+              recurringExpenses={activeRecurringExpenses}
               onOpenPlan={() => changeTab('plan')}
               onOpenWallet={() => changeTab('wallet')}
             />
@@ -1093,7 +1229,7 @@ function App() {
 
           {activeTab === 'plan' && (
             <PlanPage
-              recurringExpenses={financeData.recurringExpenses}
+              recurringExpenses={activeRecurringExpenses}
               recurringTotal={recurringTotal}
               savingsGoals={financeData.savingsGoals}
               debts={financeData.debts}
@@ -1208,6 +1344,7 @@ function App() {
             onAddIncome={handleAddIncome}
             onAddExpense={handleAddExpense}
             onTransfer={handleTransfer}
+            onNotify={showAlert}
           />
         )}
 
@@ -1216,6 +1353,7 @@ function App() {
             editor={accountEditor}
             onClose={() => setAccountEditor(null)}
             onSave={handleSaveAccount}
+            onNotify={showAlert}
           />
         )}
 
@@ -1224,6 +1362,7 @@ function App() {
             editor={creditCardEditor}
             onClose={() => setCreditCardEditor(null)}
             onSave={handleSaveCreditCard}
+            onNotify={showAlert}
           />
         )}
 
@@ -1232,6 +1371,7 @@ function App() {
             editor={recurringExpenseEditor}
             onClose={() => setRecurringExpenseEditor(null)}
             onSave={handleSaveRecurringExpense}
+            onNotify={showAlert}
           />
         )}
 
@@ -1240,6 +1380,7 @@ function App() {
             editor={savingsGoalEditor}
             onClose={() => setSavingsGoalEditor(null)}
             onSave={handleSaveSavingsGoal}
+            onNotify={showAlert}
           />
         )}
 
@@ -1248,6 +1389,7 @@ function App() {
             editor={debtEditor}
             onClose={() => setDebtEditor(null)}
             onSave={handleSaveDebt}
+            onNotify={showAlert}
           />
         )}
 
@@ -1257,6 +1399,7 @@ function App() {
             accounts={financeData.accounts}
             onClose={() => setGoalMoneyAction(null)}
             onSave={handleMoveGoalMoney}
+            onNotify={showAlert}
           />
         )}
 
@@ -1266,6 +1409,7 @@ function App() {
             accounts={financeData.accounts}
             onClose={() => setDebtPaymentTarget(null)}
             onSave={handleRecordDebtPayment}
+            onNotify={showAlert}
           />
         )}
 
@@ -1275,6 +1419,7 @@ function App() {
             accounts={financeData.accounts}
             onClose={() => setBillPaymentTarget(null)}
             onSave={handlePayBill}
+            onNotify={showAlert}
           />
         )}
 
@@ -1284,6 +1429,15 @@ function App() {
             accounts={financeData.accounts}
             onClose={() => setCreditCardPaymentTarget(null)}
             onSave={handlePayCreditCard}
+            onNotify={showAlert}
+          />
+        )}
+
+        {messageDialog && (
+          <MessageDialogModal
+            dialog={messageDialog}
+            onClose={closeMessageDialog}
+            onConfirm={confirmMessageDialog}
           />
         )}
       </section>
@@ -1326,7 +1480,7 @@ function TodayPage({
       id: Number(`9${expense.id}`),
       title: expense.name,
       date: expense.nextDue,
-      amount: expense.amount,
+      amount: getBillRemainingBalance(expense),
       type: 'Recurring',
     }))
 
@@ -1352,10 +1506,10 @@ function TodayPage({
   const calendarItems = [...recurringCalendarItems, ...creditCardCalendarItems]
   const previewNote =
     recurringExpenses.length > 3
-      ? `${recurringExpenses.length - 3} more planned item${
+      ? `${recurringExpenses.length - 3} more unpaid planned item${
           recurringExpenses.length - 3 === 1 ? '' : 's'
         } hidden from this preview.`
-      : 'Showing your nearest planned items and top card events.'
+      : 'Showing your nearest unpaid bills and top card events.'
 
   return (
     <>
@@ -1391,14 +1545,14 @@ function TodayPage({
 
       <SectionTitle
         title="Next Money Events"
-        subtitle="Short preview only to keep Today clean"
+        subtitle="Paid bills are hidden until the next month"
       />
 
       <div className="card-list">
         {calendarItems.length === 0 && (
           <article className="account-card">
             <div className="card-main-content">
-              <h3>No events yet</h3>
+              <h3>No unpaid events yet</h3>
               <p>Add planned bills or credit cards to generate events.</p>
             </div>
           </article>
@@ -1955,7 +2109,7 @@ function RecurringPage({
     <>
       <section className="recurring-summary">
         <div>
-          <p>Monthly Plan Total</p>
+          <p>Unpaid Bills Balance</p>
           <h2>{peso.format(recurringTotal)}</h2>
         </div>
 
@@ -1975,70 +2129,78 @@ function RecurringPage({
 
       <SectionTitle
         title="Bills"
-        subtitle="Regular bills, subscriptions, and scheduled payments"
+        subtitle="Fully paid bills are hidden until the next month"
       />
 
       <div className="card-list">
         {recurringExpenses.length === 0 && (
           <article className="account-card">
             <div className="card-main-content">
-              <h3>No bills yet</h3>
-              <p>Add rent, utilities, subscriptions, or scheduled bills.</p>
+              <h3>No unpaid bills</h3>
+              <p>Fully paid monthly bills will reappear next month.</p>
             </div>
           </article>
         )}
 
-        {recurringExpenses.map((expense) => (
-          <article key={expense.id} className="recurring-card">
-            <div className="recurring-icon">
-              <Repeat2 size={20} />
-            </div>
+        {recurringExpenses.map((expense) => {
+          const balanceDue = getBillRemainingBalance(expense)
+          const hasPartialPayment = balanceDue < expense.amount
 
-            <div className="card-main-content">
-              <h3>{expense.name}</h3>
-              <p>
-                {expense.category} · {expense.frequency}
-              </p>
-              <span>Next due: {expense.nextDue}</span>
-              {expense.lastPaidAt && (
-                <span>Last paid: {formatShortDate(expense.lastPaidAt)}</span>
-              )}
-            </div>
-
-            <div style={amountActionColumnStyle}>
-              <strong>{peso.format(expense.amount)}</strong>
-
-              <div style={miniActionRowStyle}>
-                <button
-                  type="button"
-                  style={iconButtonStyle}
-                  onClick={() => onPayRecurringExpense(expense)}
-                  aria-label={`Pay ${expense.name}`}
-                >
-                  <ArrowDownLeft size={14} />
-                </button>
-
-                <button
-                  type="button"
-                  style={iconButtonStyle}
-                  onClick={() => onEditRecurringExpense(expense)}
-                  aria-label={`Edit ${expense.name}`}
-                >
-                  <Pencil size={14} />
-                </button>
-
-                <button
-                  type="button"
-                  style={dangerIconButtonStyle}
-                  onClick={() => onDeleteRecurringExpense(expense.id)}
-                  aria-label={`Delete ${expense.name}`}
-                >
-                  <Trash2 size={14} />
-                </button>
+          return (
+            <article key={expense.id} className="recurring-card">
+              <div className="recurring-icon">
+                <Repeat2 size={20} />
               </div>
-            </div>
-          </article>
-        ))}
+
+              <div className="card-main-content">
+                <h3>{expense.name}</h3>
+                <p>
+                  {expense.category} · {expense.frequency}
+                </p>
+                <span>Next due: {expense.nextDue}</span>
+                {hasPartialPayment && (
+                  <span>Original amount: {peso.format(expense.amount)}</span>
+                )}
+                {expense.lastPaidAt && (
+                  <span>Last paid: {formatShortDate(expense.lastPaidAt)}</span>
+                )}
+              </div>
+
+              <div style={amountActionColumnStyle}>
+                <strong>{peso.format(balanceDue)}</strong>
+
+                <div style={miniActionRowStyle}>
+                  <button
+                    type="button"
+                    style={iconButtonStyle}
+                    onClick={() => onPayRecurringExpense(expense)}
+                    aria-label={`Pay ${expense.name}`}
+                  >
+                    <ArrowDownLeft size={14} />
+                  </button>
+
+                  <button
+                    type="button"
+                    style={iconButtonStyle}
+                    onClick={() => onEditRecurringExpense(expense)}
+                    aria-label={`Edit ${expense.name}`}
+                  >
+                    <Pencil size={14} />
+                  </button>
+
+                  <button
+                    type="button"
+                    style={dangerIconButtonStyle}
+                    onClick={() => onDeleteRecurringExpense(expense.id)}
+                    aria-label={`Delete ${expense.name}`}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </article>
+          )
+        })}
       </div>
     </>
   )
@@ -2101,7 +2263,7 @@ function AnalysisPage({
 
       <SectionTitle
         title="Monthly Overview"
-        subtitle="Based on your locally recorded transactions and plan"
+        subtitle="Based on your locally recorded transactions and unpaid plan balance"
       />
 
       <div className="overview-list">
@@ -2124,7 +2286,7 @@ function AnalysisPage({
         />
 
         <OverviewRow
-          label="Planned Bills"
+          label="Unpaid Bills"
           value={peso.format(recurringTotal)}
           type="neutral"
         />
@@ -2193,13 +2355,16 @@ function BillPaymentModal({
   accounts,
   onClose,
   onSave,
+  onNotify,
 }: {
   expense: RecurringExpense
   accounts: Account[]
   onClose: () => void
   onSave: (expenseId: number, accountId: number, amount: number) => void
+  onNotify: NotifyFunction
 }) {
-  const [amount, setAmount] = useState(expense.amount.toString())
+  const balanceDue = getBillRemainingBalance(expense)
+  const [amount, setAmount] = useState(balanceDue.toString())
   const [accountId, setAccountId] = useState(accounts[0]?.id.toString() ?? '')
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -2208,12 +2373,15 @@ function BillPaymentModal({
     const parsedAmount = Number(amount)
 
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      alert('Please enter a valid payment amount.')
+      onNotify('Invalid Amount', 'Please enter a valid payment amount.')
       return
     }
 
-    if (parsedAmount > expense.amount) {
-      alert('Payment is higher than the scheduled bill amount.')
+    if (parsedAmount > balanceDue) {
+      onNotify(
+        'Invalid Amount',
+        'Payment is higher than the remaining bill balance.',
+      )
       return
     }
 
@@ -2223,6 +2391,11 @@ function BillPaymentModal({
   return (
     <ModalShell eyebrow="Bill Payment" title={`Pay ${expense.name}`} onClose={onClose}>
       <form onSubmit={handleSubmit} style={modalFormStyle}>
+        <section style={modalNoteStyle}>
+          <span>Remaining balance</span>
+          <strong>{peso.format(balanceDue)}</strong>
+        </section>
+
         <label style={fieldStyle}>
           <span style={labelStyle}>Pay from</span>
           <select
@@ -2248,7 +2421,7 @@ function BillPaymentModal({
         />
 
         <button type="submit" style={submitButtonStyle}>
-          Mark as Paid
+          Record Payment
         </button>
       </form>
     </ModalShell>
@@ -2260,11 +2433,13 @@ function CreditCardPaymentModal({
   accounts,
   onClose,
   onSave,
+  onNotify,
 }: {
   creditCard: CreditCardAccount
   accounts: Account[]
   onClose: () => void
   onSave: (creditCardId: number, accountId: number, amount: number) => void
+  onNotify: NotifyFunction
 }) {
   const [amount, setAmount] = useState(creditCard.currentBalance.toString())
   const [accountId, setAccountId] = useState(accounts[0]?.id.toString() ?? '')
@@ -2275,12 +2450,15 @@ function CreditCardPaymentModal({
     const parsedAmount = Number(amount)
 
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      alert('Please enter a valid payment amount.')
+      onNotify('Invalid Amount', 'Please enter a valid payment amount.')
       return
     }
 
     if (parsedAmount > creditCard.currentBalance) {
-      alert('Payment is higher than the current credit card balance.')
+      onNotify(
+        'Invalid Amount',
+        'Payment is higher than the current credit card balance.',
+      )
       return
     }
 
@@ -2330,10 +2508,12 @@ function SavingsGoalEditorModal({
   editor,
   onClose,
   onSave,
+  onNotify,
 }: {
   editor: SavingsGoalEditorState
   onClose: () => void
   onSave: (values: SavingsGoalFormValues) => void
+  onNotify: NotifyFunction
 }) {
   const [name, setName] = useState(editor.savingsGoal?.name ?? '')
   const [current, setCurrent] = useState(
@@ -2353,27 +2533,27 @@ function SavingsGoalEditorModal({
     const parsedTarget = Number(target)
 
     if (!name.trim()) {
-      alert('Please enter a savings goal name.')
+      onNotify('Goal Name Required', 'Please enter a savings goal name.')
       return
     }
 
     if (!Number.isFinite(parsedCurrent) || parsedCurrent < 0) {
-      alert('Please enter a valid saved amount.')
+      onNotify('Invalid Amount', 'Please enter a valid saved amount.')
       return
     }
 
     if (!Number.isFinite(parsedTarget) || parsedTarget <= 0) {
-      alert('Please enter a valid target amount.')
+      onNotify('Invalid Target', 'Please enter a valid target amount.')
       return
     }
 
     if (parsedCurrent > parsedTarget) {
-      alert('Saved amount cannot be higher than the target.')
+      onNotify('Invalid Goal', 'Saved amount cannot be higher than the target.')
       return
     }
 
     if (!targetDate.trim()) {
-      alert('Please enter a target date.')
+      onNotify('Target Date Required', 'Please enter a target date.')
       return
     }
 
@@ -2435,10 +2615,12 @@ function DebtEditorModal({
   editor,
   onClose,
   onSave,
+  onNotify,
 }: {
   editor: DebtEditorState
   onClose: () => void
   onSave: (values: DebtFormValues) => void
+  onNotify: NotifyFunction
 }) {
   const [name, setName] = useState(editor.debt?.name ?? '')
   const [balance, setBalance] = useState(editor.debt?.balance.toString() ?? '')
@@ -2452,22 +2634,22 @@ function DebtEditorModal({
     const parsedMonthly = Number(monthly)
 
     if (!name.trim()) {
-      alert('Please enter a debt name.')
+      onNotify('Debt Name Required', 'Please enter a debt name.')
       return
     }
 
     if (!Number.isFinite(parsedBalance) || parsedBalance < 0) {
-      alert('Please enter a valid debt balance.')
+      onNotify('Invalid Balance', 'Please enter a valid debt balance.')
       return
     }
 
     if (!Number.isFinite(parsedMonthly) || parsedMonthly <= 0) {
-      alert('Please enter a valid monthly payment.')
+      onNotify('Invalid Payment', 'Please enter a valid monthly payment.')
       return
     }
 
     if (!due.trim()) {
-      alert('Please enter a due schedule.')
+      onNotify('Due Schedule Required', 'Please enter a due schedule.')
       return
     }
 
@@ -2530,6 +2712,7 @@ function GoalMoneyModal({
   accounts,
   onClose,
   onSave,
+  onNotify,
 }: {
   action: GoalMoneyState
   accounts: Account[]
@@ -2540,6 +2723,7 @@ function GoalMoneyModal({
     amount: number,
     mode: GoalMoneyMode,
   ) => void
+  onNotify: NotifyFunction
 }) {
   const [amount, setAmount] = useState('')
   const [accountId, setAccountId] = useState(accounts[0]?.id.toString() ?? '')
@@ -2552,7 +2736,7 @@ function GoalMoneyModal({
     const parsedAmount = Number(amount)
 
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      alert('Please enter a valid amount.')
+      onNotify('Invalid Amount', 'Please enter a valid amount.')
       return
     }
 
@@ -2610,11 +2794,13 @@ function DebtPaymentModal({
   accounts,
   onClose,
   onSave,
+  onNotify,
 }: {
   debt: Debt
   accounts: Account[]
   onClose: () => void
   onSave: (debtId: number, accountId: number, amount: number) => void
+  onNotify: NotifyFunction
 }) {
   const [amount, setAmount] = useState(
     Math.min(debt.monthly, debt.balance).toString(),
@@ -2627,7 +2813,7 @@ function DebtPaymentModal({
     const parsedAmount = Number(amount)
 
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      alert('Please enter a valid payment amount.')
+      onNotify('Invalid Amount', 'Please enter a valid payment amount.')
       return
     }
 
@@ -2673,10 +2859,12 @@ function AccountEditorModal({
   editor,
   onClose,
   onSave,
+  onNotify,
 }: {
   editor: AccountEditorState
   onClose: () => void
   onSave: (values: AccountFormValues) => void
+  onNotify: NotifyFunction
 }) {
   const [name, setName] = useState(editor.account?.name ?? '')
   const [type, setType] = useState(editor.account?.type ?? 'Bank Account')
@@ -2693,12 +2881,12 @@ function AccountEditorModal({
     const parsedBalance = Number(balance)
 
     if (!name.trim()) {
-      alert('Please enter an account name.')
+      onNotify('Account Name Required', 'Please enter an account name.')
       return
     }
 
     if (!Number.isFinite(parsedBalance) || parsedBalance < 0) {
-      alert('Please enter a valid balance.')
+      onNotify('Invalid Balance', 'Please enter a valid balance.')
       return
     }
 
@@ -2773,10 +2961,12 @@ function CreditCardEditorModal({
   editor,
   onClose,
   onSave,
+  onNotify,
 }: {
   editor: CreditCardEditorState
   onClose: () => void
   onSave: (values: CreditCardFormValues) => void
+  onNotify: NotifyFunction
 }) {
   const [name, setName] = useState(editor.creditCard?.name ?? '')
   const [currentBalance, setCurrentBalance] = useState(
@@ -2801,12 +2991,12 @@ function CreditCardEditorModal({
     const parsedDueDay = Number(dueDay)
 
     if (!name.trim()) {
-      alert('Please enter a credit card name.')
+      onNotify('Card Name Required', 'Please enter a credit card name.')
       return
     }
 
     if (!Number.isFinite(parsedCreditLimit) || parsedCreditLimit <= 0) {
-      alert('Please enter a valid credit limit.')
+      onNotify('Invalid Credit Limit', 'Please enter a valid credit limit.')
       return
     }
 
@@ -2815,17 +3005,17 @@ function CreditCardEditorModal({
       parsedCurrentBalance < 0 ||
       parsedCurrentBalance > parsedCreditLimit
     ) {
-      alert('Please enter a valid current balance.')
+      onNotify('Invalid Balance', 'Please enter a valid current balance.')
       return
     }
 
     if (!isValidDayOfMonth(parsedCutOffDay)) {
-      alert('Please enter a valid cut-off day from 1 to 31.')
+      onNotify('Invalid Cut-off Day', 'Please enter a valid cut-off day from 1 to 31.')
       return
     }
 
     if (!isValidDayOfMonth(parsedDueDay)) {
-      alert('Please enter a valid due day from 1 to 31.')
+      onNotify('Invalid Due Day', 'Please enter a valid due day from 1 to 31.')
       return
     }
 
@@ -2897,10 +3087,12 @@ function RecurringExpenseEditorModal({
   editor,
   onClose,
   onSave,
+  onNotify,
 }: {
   editor: RecurringExpenseEditorState
   onClose: () => void
   onSave: (values: RecurringExpenseFormValues) => void
+  onNotify: NotifyFunction
 }) {
   const [name, setName] = useState(editor.recurringExpense?.name ?? '')
   const [category, setCategory] = useState(
@@ -2922,17 +3114,17 @@ function RecurringExpenseEditorModal({
     const parsedAmount = Number(amount)
 
     if (!name.trim()) {
-      alert('Please enter a bill name.')
+      onNotify('Bill Name Required', 'Please enter a bill name.')
       return
     }
 
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      alert('Please enter a valid amount.')
+      onNotify('Invalid Amount', 'Please enter a valid amount.')
       return
     }
 
     if (!nextDue.trim()) {
-      alert('Please enter the next due date.')
+      onNotify('Due Date Required', 'Please enter the next due date.')
       return
     }
 
@@ -3026,6 +3218,7 @@ function QuickActionModal({
   onAddIncome,
   onAddExpense,
   onTransfer,
+  onNotify,
 }: {
   action: QuickAction
   accounts: Account[]
@@ -3039,6 +3232,7 @@ function QuickActionModal({
     amount: number,
     note: string,
   ) => void
+  onNotify: NotifyFunction
 }) {
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
@@ -3067,7 +3261,7 @@ function QuickActionModal({
     const parsedAmount = Number(amount)
 
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      alert('Please enter a valid amount.')
+      onNotify('Invalid Amount', 'Please enter a valid amount.')
       return
     }
 
@@ -3229,6 +3423,53 @@ function ModalShell({
         </div>
 
         {children}
+      </section>
+    </div>
+  )
+}
+
+function MessageDialogModal({
+  dialog,
+  onClose,
+  onConfirm,
+}: {
+  dialog: MessageDialogState
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  const isConfirm = dialog.type === 'confirm'
+
+  return (
+    <div style={messageBackdropStyle}>
+      <section style={messagePanelStyle}>
+        <div style={messageGripStyle} />
+
+        <div style={messageIconWrapStyle(dialog.tone ?? 'default')}>
+          {dialog.tone === 'danger' ? <Trash2 size={22} /> : <CreditCard size={22} />}
+        </div>
+
+        <h2 style={messageTitleStyle}>{dialog.title}</h2>
+        <p style={messageTextStyle}>{dialog.message}</p>
+
+        <div style={messageActionRowStyle}>
+          {isConfirm && (
+            <button
+              type="button"
+              style={messageCancelButtonStyle}
+              onClick={onClose}
+            >
+              {dialog.cancelLabel ?? 'Cancel'}
+            </button>
+          )}
+
+          <button
+            type="button"
+            style={messageConfirmButtonStyle(dialog.tone ?? 'default')}
+            onClick={isConfirm ? onConfirm : onClose}
+          >
+            {dialog.confirmLabel ?? 'Okay'}
+          </button>
+        </div>
       </section>
     </div>
   )
@@ -3512,6 +3753,71 @@ function createNumericId<T extends { id: number }>(items: T[]) {
   return highestId + 1
 }
 
+function getCurrentPeriodKey() {
+  const today = new Date()
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(
+    2,
+    '0',
+  )}`
+}
+
+function getBillRemainingBalance(expense: RecurringExpense) {
+  const remaining =
+    typeof expense.remainingBalance === 'number'
+      ? expense.remainingBalance
+      : expense.amount
+
+  if (!Number.isFinite(remaining)) return expense.amount
+
+  return Math.max(Math.min(remaining, expense.amount), 0)
+}
+
+function normalizeRecurringExpenses(
+  rawRecurringExpenses: unknown,
+): RecurringExpense[] {
+  const currentPeriodKey = getCurrentPeriodKey()
+  const source = Array.isArray(rawRecurringExpenses)
+    ? rawRecurringExpenses
+    : initialFinanceData.recurringExpenses
+
+  return source.map((rawExpense, index) => {
+    const expense = rawExpense as Partial<RecurringExpense>
+
+    const amount = Number(expense.amount ?? 0)
+    const safeAmount = Number.isFinite(amount) && amount > 0 ? amount : 0
+    const savedPeriodKey =
+      typeof expense.periodKey === 'string' ? expense.periodKey : currentPeriodKey
+
+    const shouldResetForNewMonth = savedPeriodKey !== currentPeriodKey
+
+    const savedRemaining =
+      typeof expense.remainingBalance === 'number'
+        ? expense.remainingBalance
+        : safeAmount
+
+    const normalizedRemaining = shouldResetForNewMonth
+      ? safeAmount
+      : Math.max(Math.min(savedRemaining, safeAmount), 0)
+
+    const normalizedExpense: RecurringExpense = {
+      id: Number(expense.id ?? index + 1),
+      name: String(expense.name ?? `Bill ${index + 1}`),
+      category: String(expense.category ?? 'Other'),
+      amount: safeAmount,
+      frequency: String(expense.frequency ?? 'Monthly'),
+      nextDue: String(expense.nextDue ?? 'Every month'),
+      remainingBalance: normalizedRemaining,
+      periodKey: currentPeriodKey,
+    }
+
+    if (!shouldResetForNewMonth && typeof expense.lastPaidAt === 'string') {
+      normalizedExpense.lastPaidAt = expense.lastPaidAt
+    }
+
+    return normalizedExpense
+  })
+}
+
 function parseDayFromText(value: unknown, fallback: number) {
   if (typeof value === 'number' && isValidDayOfMonth(value)) return value
 
@@ -3556,25 +3862,28 @@ function normalizeCreditCards(rawCreditCards: unknown): CreditCardAccount[] {
   })
 }
 
+function normalizeFinanceData(data: Partial<FinanceData>): FinanceData {
+  return {
+    accounts: data.accounts ?? initialFinanceData.accounts,
+    creditCards: normalizeCreditCards(data.creditCards),
+    savingsGoals: data.savingsGoals ?? initialFinanceData.savingsGoals,
+    debts: data.debts ?? initialFinanceData.debts,
+    recurringExpenses: normalizeRecurringExpenses(data.recurringExpenses),
+    transactions: data.transactions ?? initialFinanceData.transactions,
+  }
+}
+
 function loadFinanceData(): FinanceData {
   try {
     const savedData = localStorage.getItem(STORAGE_KEY)
 
-    if (!savedData) return initialFinanceData
+    if (!savedData) return normalizeFinanceData(initialFinanceData)
 
     const parsedData = JSON.parse(savedData) as Partial<FinanceData>
 
-    return {
-      accounts: parsedData.accounts ?? initialFinanceData.accounts,
-      creditCards: normalizeCreditCards(parsedData.creditCards),
-      savingsGoals: parsedData.savingsGoals ?? initialFinanceData.savingsGoals,
-      debts: parsedData.debts ?? initialFinanceData.debts,
-      recurringExpenses:
-        parsedData.recurringExpenses ?? initialFinanceData.recurringExpenses,
-      transactions: parsedData.transactions ?? initialFinanceData.transactions,
-    }
+    return normalizeFinanceData(parsedData)
   } catch {
-    return initialFinanceData
+    return normalizeFinanceData(initialFinanceData)
   }
 }
 
@@ -3759,6 +4068,19 @@ const modalFormStyle: CSSProperties = {
   gap: 13,
 }
 
+const modalNoteStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  padding: '13px 14px',
+  borderRadius: 16,
+  color: '#171717',
+  background: '#eee9df',
+  fontSize: '0.82rem',
+  fontWeight: 800,
+}
+
 const fieldStyle: CSSProperties = {
   display: 'grid',
   gap: 7,
@@ -3791,6 +4113,103 @@ const submitButtonStyle: CSSProperties = {
   background: '#171717',
   fontSize: '0.92rem',
   fontWeight: 800,
+}
+
+const messageBackdropStyle: CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  zIndex: 220,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 22,
+  background: 'rgba(23, 23, 23, 0.36)',
+  backdropFilter: 'blur(10px)',
+}
+
+const messagePanelStyle: CSSProperties = {
+  width: 'min(100%, 338px)',
+  display: 'grid',
+  justifyItems: 'center',
+  padding: '22px 18px 18px',
+  borderRadius: 28,
+  background: '#faf8f3',
+  boxShadow: '0 28px 70px rgba(23, 23, 23, 0.28)',
+  textAlign: 'center',
+}
+
+const messageGripStyle: CSSProperties = {
+  width: 36,
+  height: 4,
+  borderRadius: 999,
+  background: 'rgba(23, 23, 23, 0.12)',
+  marginBottom: 18,
+}
+
+const messageTitleStyle: CSSProperties = {
+  margin: '14px 0 7px',
+  color: '#171717',
+  fontSize: '1.08rem',
+  lineHeight: 1.1,
+  letterSpacing: '-0.035em',
+}
+
+const messageTextStyle: CSSProperties = {
+  maxWidth: 270,
+  margin: 0,
+  color: '#70685f',
+  fontSize: '0.84rem',
+  lineHeight: 1.45,
+  fontWeight: 650,
+}
+
+const messageActionRowStyle: CSSProperties = {
+  width: '100%',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 9,
+  marginTop: 20,
+}
+
+const messageCancelButtonStyle: CSSProperties = {
+  minHeight: 46,
+  border: 0,
+  borderRadius: 16,
+  color: '#171717',
+  background: '#eee9df',
+  fontSize: '0.84rem',
+  fontWeight: 850,
+}
+
+function messageIconWrapStyle(tone: DialogTone): CSSProperties {
+  const isDanger = tone === 'danger'
+  const isSuccess = tone === 'success'
+
+  return {
+    width: 54,
+    height: 54,
+    display: 'grid',
+    placeItems: 'center',
+    borderRadius: '50%',
+    color: isDanger ? '#b64a46' : isSuccess ? '#245f4c' : '#171717',
+    background: isDanger ? '#f3dfdc' : isSuccess ? '#dcece5' : '#eee9df',
+  }
+}
+
+function messageConfirmButtonStyle(tone: DialogTone): CSSProperties {
+  const isDanger = tone === 'danger'
+  const isSuccess = tone === 'success'
+
+  return {
+    minHeight: 46,
+    gridColumn: tone === 'default' ? '1 / -1' : undefined,
+    border: 0,
+    borderRadius: 16,
+    color: '#ffffff',
+    background: isDanger ? '#b64a46' : isSuccess ? '#245f4c' : '#171717',
+    fontSize: '0.84rem',
+    fontWeight: 850,
+  }
 }
 
 export default App
