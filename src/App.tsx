@@ -1,5 +1,7 @@
 import './index.css'
 
+import { createClient, type Session } from '@supabase/supabase-js'
+
 import {
   useEffect,
   useMemo,
@@ -201,6 +203,26 @@ type SmartInsight = {
   tone: 'good' | 'watch' | 'risk'
 }
 
+type PaydayAllocationPlan = {
+  income: number
+  bills: number
+  creditCards: number
+  loanDebts: number
+  savings: number
+  flexibleCash: number
+  focusName: string
+  message: string
+  tone: 'good' | 'watch' | 'risk'
+}
+
+type AffordabilityResult = {
+  status: string
+  tone: 'good' | 'watch' | 'risk'
+  remainingCash: number
+  message: string
+  paymentAdvice: string
+}
+
 
 type MessageDialogState = {
   type: 'alert' | 'confirm'
@@ -221,6 +243,11 @@ type NavItem = {
 const STORAGE_KEY = 'duewise-local-data-v1'
 const THEME_KEY = 'duewise-theme'
 const DAY_IN_MS = 1000 * 60 * 60 * 24
+const CLOUD_SYNC_KEY = 'duewise-last-cloud-sync-at'
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+const supabase = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null
 
 const budgetCategories: BudgetCategory[] = [
   'Food',
@@ -292,6 +319,14 @@ function App() {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem(THEME_KEY) === 'dark')
   const [messageDialog, setMessageDialog] = useState<MessageDialogState | null>(null)
   const [transactionHistoryOpen, setTransactionHistoryOpen] = useState(false)
+  const [cloudSyncOpen, setCloudSyncOpen] = useState(false)
+  const [session, setSession] = useState<Session | null>(null)
+  const [cloudReady, setCloudReady] = useState(false)
+  const [cloudSyncBusy, setCloudSyncBusy] = useState(false)
+  const [syncStatus, setSyncStatus] = useState(
+    supabase ? 'Cloud sync ready to connect' : 'Missing cloud environment variables',
+  )
+  const [lastSyncedAt, setLastSyncedAt] = useState(() => localStorage.getItem(CLOUD_SYNC_KEY))
 
   const [accountEditor, setAccountEditor] = useState<Account | 'new' | null>(null)
   const [cardEditor, setCardEditor] = useState<CreditCardAccount | 'new' | null>(null)
@@ -306,11 +341,47 @@ function App() {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(financeData))
-  }, [financeData])
+
+    if (!supabase || !session || !cloudReady) return
+
+    const syncTimer = window.setTimeout(() => {
+      void syncDataToCloud(financeData, { silent: true })
+    }, 1200)
+
+    return () => window.clearTimeout(syncTimer)
+  }, [financeData, session, cloudReady])
 
   useEffect(() => {
     localStorage.setItem(THEME_KEY, darkMode ? 'dark' : 'light')
   }, [darkMode])
+
+  useEffect(() => {
+    if (!supabase) return
+
+    let mounted = true
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return
+      setSession(data.session)
+      if (data.session) setSyncStatus('Checking cloud backup...')
+    })
+
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
+      setCloudReady(false)
+      setSyncStatus(nextSession ? 'Checking cloud backup...' : 'Signed out from cloud sync')
+    })
+
+    return () => {
+      mounted = false
+      data.subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!supabase || !session) return
+    void initializeCloudSync()
+  }, [session?.user.id])
 
   const activeBills = useMemo(
     () => financeData.recurringExpenses.filter((expense) => getBillRemainingBalance(expense) > 0),
@@ -364,6 +435,198 @@ function App() {
       tone: 'danger',
       ...config,
     })
+  }
+
+  async function initializeCloudSync() {
+    if (!supabase || !session) return
+
+    setCloudSyncBusy(true)
+    setSyncStatus('Checking cloud backup...')
+
+    try {
+      const { data, error } = await supabase
+        .from('duewise_user_data')
+        .select('data, updated_at')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+
+      if (error) throw error
+
+      if (data?.data) {
+        const normalizedData = normalizeFinanceData(data.data as Partial<FinanceData>)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedData))
+        setFinanceData(normalizedData)
+        updateLastSyncedAt(data.updated_at ?? new Date().toISOString())
+        setSyncStatus('Restored from cloud')
+      } else {
+        await upsertFinanceDataToCloud(financeData)
+        setSyncStatus('Created cloud backup')
+      }
+
+      setCloudReady(true)
+    } catch (error) {
+      setCloudReady(false)
+      setSyncStatus('Cloud sync needs attention')
+      showAlert('Cloud Sync Error', getErrorMessage(error))
+    } finally {
+      setCloudSyncBusy(false)
+    }
+  }
+
+  function updateLastSyncedAt(value: string) {
+    setLastSyncedAt(value)
+    localStorage.setItem(CLOUD_SYNC_KEY, value)
+  }
+
+  async function upsertFinanceDataToCloud(dataToSync: FinanceData) {
+    if (!supabase || !session) throw new Error('Sign in to DueWise Cloud first.')
+
+    const syncedAt = new Date().toISOString()
+    const { error } = await supabase.from('duewise_user_data').upsert(
+      {
+        user_id: session.user.id,
+        data: dataToSync,
+        updated_at: syncedAt,
+      },
+      { onConflict: 'user_id' },
+    )
+
+    if (error) throw error
+    updateLastSyncedAt(syncedAt)
+    return syncedAt
+  }
+
+  async function syncDataToCloud(dataToSync: FinanceData = financeData, options: { silent?: boolean } = {}) {
+    if (!supabase) {
+      if (!options.silent) showAlert('Cloud Setup Needed', 'Add your cloud URL and anon key in .env.local first.')
+      return
+    }
+
+    if (!session) {
+      if (!options.silent) showAlert('Sign In Required', 'Sign in to DueWise Cloud before syncing.')
+      return
+    }
+
+    if (!options.silent) setCloudSyncBusy(true)
+    setSyncStatus(options.silent ? 'Auto syncing...' : 'Syncing to cloud...')
+
+    try {
+      await upsertFinanceDataToCloud(dataToSync)
+      setCloudReady(true)
+      setSyncStatus('Saved to cloud')
+      if (!options.silent) showAlert('Success', 'Saved to cloud.')
+    } catch (error) {
+      setSyncStatus('Cloud sync failed')
+      if (!options.silent) showAlert('Cloud Sync Error', getErrorMessage(error))
+    } finally {
+      if (!options.silent) setCloudSyncBusy(false)
+    }
+  }
+
+  async function restoreDataFromCloud(options: { silent?: boolean } = {}) {
+    if (!supabase || !session) {
+      if (!options.silent) showAlert('Sign In Required', 'Sign in to DueWise Cloud before restoring.')
+      return
+    }
+
+    if (!options.silent) setCloudSyncBusy(true)
+    setSyncStatus('Restoring from cloud...')
+
+    try {
+      const { data, error } = await supabase
+        .from('duewise_user_data')
+        .select('data, updated_at')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+
+      if (error) throw error
+
+      if (!data?.data) {
+        setSyncStatus('No cloud backup found')
+        if (!options.silent) showAlert('No Cloud Backup', 'No saved DueWise backup was found for this account.')
+        return
+      }
+
+      const normalizedData = normalizeFinanceData(data.data as Partial<FinanceData>)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedData))
+      setFinanceData(normalizedData)
+      updateLastSyncedAt(data.updated_at ?? new Date().toISOString())
+      setCloudReady(true)
+      setSyncStatus('Restored from cloud')
+      if (!options.silent) showAlert('Success', 'Restored from cloud.')
+    } catch (error) {
+      setSyncStatus('Restore failed')
+      if (!options.silent) showAlert('Cloud Restore Error', getErrorMessage(error))
+    } finally {
+      if (!options.silent) setCloudSyncBusy(false)
+    }
+  }
+
+  function confirmRestoreFromCloud() {
+    showConfirm({
+      title: 'Are you sure?',
+      message: 'This will replace the local DueWise data on this browser with your saved cloud backup.',
+      confirmLabel: 'Restore',
+      onConfirm: () => {
+        void restoreDataFromCloud()
+      },
+    })
+  }
+
+  async function signInToCloud(email: string, password: string) {
+    if (!supabase) return showAlert('Cloud Setup Needed', 'Add your cloud URL and anon key in .env.local first.')
+
+    setCloudSyncBusy(true)
+    setSyncStatus('Signing in...')
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+    setCloudSyncBusy(false)
+
+    if (error) {
+      setSyncStatus('Sign in failed')
+      showAlert('Sign In Failed', error.message)
+      return
+    }
+
+    setSyncStatus('Signed in. Checking cloud backup...')
+  }
+
+  async function signUpForCloud(email: string, password: string) {
+    if (!supabase) return showAlert('Cloud Setup Needed', 'Add your cloud URL and anon key in .env.local first.')
+
+    setCloudSyncBusy(true)
+    setSyncStatus('Creating account...')
+
+    const { error } = await supabase.auth.signUp({ email, password })
+
+    setCloudSyncBusy(false)
+
+    if (error) {
+      setSyncStatus('Sign up failed')
+      showAlert('Sign Up Failed', error.message)
+      return
+    }
+
+    setSyncStatus('Account created')
+    showAlert('Account Created', 'Check your email if confirmation is required. After signing in, DueWise will sync your data.')
+  }
+
+  async function signOutFromCloud() {
+    if (!supabase) return
+
+    setCloudSyncBusy(true)
+    const { error } = await supabase.auth.signOut()
+    setCloudSyncBusy(false)
+
+    if (error) {
+      showAlert('Sign Out Failed', error.message)
+      return
+    }
+
+    setSession(null)
+    setCloudReady(false)
+    setSyncStatus('Signed out from cloud sync')
   }
 
   function handleQuickIncome(accountId: number, amount: number, note: string) {
@@ -479,6 +742,19 @@ function App() {
       ].slice(0, 200),
     }))
     setActiveAction(null)
+  }
+
+  function clearTransactionHistory() {
+    showConfirm({
+      title: 'Are you sure?',
+      message: 'This will clear all transaction history. Current account, card, savings, and debt balances will stay the same.',
+      confirmLabel: 'Clear History',
+      onConfirm: () =>
+        setFinanceData((current) => ({
+          ...current,
+          transactions: [],
+        })),
+    })
   }
 
   function saveAccount(account: Omit<Account, 'id'>, id?: number) {
@@ -794,6 +1070,8 @@ function App() {
       message: 'This will clear local data and restore the sample records.',
       confirmLabel: 'Reset',
       onConfirm: () => {
+        setCloudReady(false)
+        setSyncStatus('Local sample data restored. Use Sync now if you want to overwrite cloud data.')
         localStorage.removeItem(STORAGE_KEY)
         setFinanceData(normalizeFinanceData(initialFinanceData))
       },
@@ -819,8 +1097,8 @@ function App() {
               {darkMode ? <Sun size={19} /> : <Moon size={19} />}
             </button>
 
-            <button className="profile-button" type="button" onClick={resetLocalData}>
-              JD
+            <button className="profile-button" type="button" onClick={() => setCloudSyncOpen(true)}>
+              {session ? getUserInitials(session.user.email) : '☁'}
             </button>
           </div>
         </header>
@@ -838,12 +1116,10 @@ function App() {
             <TodayPage
               totalCash={totalCash}
               totalDebt={totalDebt}
-              transactions={financeData.transactions}
               creditCardInsights={creditCardInsights}
               recurringExpenses={activeBills}
               onOpenPlan={() => setActiveTab('plan')}
               onOpenWallet={() => setActiveTab('wallet')}
-              onOpenTransactions={() => setTransactionHistoryOpen(true)}
             />
           )}
 
@@ -1062,10 +1338,31 @@ function App() {
           />
         )}
 
+        {cloudSyncOpen && (
+          <CloudSyncModal
+            isConfigured={Boolean(supabase)}
+            sessionEmail={session?.user.email ?? null}
+            syncStatus={syncStatus}
+            lastSyncedAt={lastSyncedAt}
+            busy={cloudSyncBusy}
+            onClose={() => setCloudSyncOpen(false)}
+            onSignIn={signInToCloud}
+            onSignUp={signUpForCloud}
+            onSignOut={signOutFromCloud}
+            onSyncNow={() => {
+              void syncDataToCloud()
+            }}
+            onRestore={confirmRestoreFromCloud}
+            onResetLocal={resetLocalData}
+            onNotify={showAlert}
+          />
+        )}
+
         {transactionHistoryOpen && (
           <TransactionHistoryModal
             transactions={financeData.transactions}
             onClose={() => setTransactionHistoryOpen(false)}
+            onClear={clearTransactionHistory}
           />
         )}
 
@@ -1088,21 +1385,17 @@ function App() {
 function TodayPage({
   totalCash,
   totalDebt,
-  transactions,
   creditCardInsights,
   recurringExpenses,
   onOpenPlan,
   onOpenWallet,
-  onOpenTransactions,
 }: {
   totalCash: number
   totalDebt: number
-  transactions: Transaction[]
   creditCardInsights: CreditCardInsight[]
   recurringExpenses: RecurringExpense[]
   onOpenPlan: () => void
   onOpenWallet: () => void
-  onOpenTransactions: () => void
 }) {
   const days = [
     { day: 'Mon', date: 22 },
@@ -1209,12 +1502,6 @@ function TodayPage({
         View wallet
       </button>
 
-      <SectionTitle title="Recent Activity" subtitle="Latest 3 quick transactions" />
-      <TransactionList transactions={transactions} limit={3} />
-
-      <button type="button" style={wideSoftButtonStyle} onClick={onOpenTransactions}>
-        View All Transactions
-      </button>
     </>
   )
 }
@@ -1818,7 +2105,7 @@ function BudgetSection({
   )
 }
 
-type InsightSectionKey = 'overview' | 'cashflow' | 'budget' | 'debt' | 'actions'
+type InsightSectionKey = 'overview' | 'cashflow' | 'budget' | 'debt' | 'tools' | 'actions'
 type BudgetInsightView = 'usage' | 'mix'
 
 function InsightsPage({
@@ -1847,6 +2134,8 @@ function InsightsPage({
   const [extraPayment, setExtraPayment] = useState(2000)
   const [activeSection, setActiveSection] = useState<InsightSectionKey>('overview')
   const [budgetView, setBudgetView] = useState<BudgetInsightView>('usage')
+  const [paydayAmount, setPaydayAmount] = useState('10000')
+  const [affordAmount, setAffordAmount] = useState('')
 
   const netWorth = totalCash + totalSavings - totalDebt
   const monthlyIncome = transactions
@@ -1933,6 +2222,33 @@ function InsightsPage({
     ],
   )
 
+  const parsedPaydayAmount = Math.max(0, Number(paydayAmount) || 0)
+  const parsedAffordAmount = Math.max(0, Number(affordAmount) || 0)
+
+  const paydayPlan = useMemo(
+    () =>
+      getPaydayAllocationPlan({
+        income: parsedPaydayAmount,
+        totalCash,
+        recurringTotal,
+        creditCardInsights,
+        debts,
+        debtPlan: debtComparison.recommended,
+      }),
+    [parsedPaydayAmount, totalCash, recurringTotal, creditCardInsights, debts, debtComparison.recommended],
+  )
+
+  const affordabilityResult = useMemo(
+    () =>
+      getAffordabilityResult({
+        amount: parsedAffordAmount,
+        totalCash,
+        recurringTotal,
+        creditCardInsights,
+      }),
+    [parsedAffordAmount, totalCash, recurringTotal, creditCardInsights],
+  )
+
   const forecastLowPoint = forecastData.reduce(
     (lowest, point) => (point.balance < lowest.balance ? point : lowest),
     forecastData[0],
@@ -1967,6 +2283,12 @@ function InsightsPage({
       label: 'Debt',
       value: monthsToText(debtComparison.recommended.months),
       detail: debtComparison.recommended.focusName,
+    },
+    {
+      key: 'tools',
+      label: 'AI Tools',
+      value: '2',
+      detail: 'Payday + afford',
     },
     {
       key: 'actions',
@@ -2197,6 +2519,24 @@ function InsightsPage({
         </>
       )}
 
+      {activeSection === 'tools' && (
+        <>
+          <SectionTitle title="AI Money Tools" subtitle="Plan the next payday and check purchases before spending" />
+
+          <PaydayAllocationTool
+            amount={paydayAmount}
+            onAmountChange={setPaydayAmount}
+            plan={paydayPlan}
+          />
+
+          <AffordabilityTool
+            amount={affordAmount}
+            onAmountChange={setAffordAmount}
+            result={affordabilityResult}
+          />
+        </>
+      )}
+
       {activeSection === 'actions' && (
         <>
           <SectionTitle title="Smart Action Cards" subtitle="Practical next steps based on your local data" />
@@ -2272,6 +2612,113 @@ function DebtPlanMiniCard({ plan }: { plan: DebtPayoffPlan }) {
   )
 }
 
+function PaydayAllocationTool({
+  amount,
+  onAmountChange,
+  plan,
+}: {
+  amount: string
+  onAmountChange: (value: string) => void
+  plan: PaydayAllocationPlan
+}) {
+  const rows = [
+    { label: 'Unpaid bills reserve', value: plan.bills },
+    { label: 'Credit card payment', value: plan.creditCards },
+    { label: 'Loan / installment payment', value: plan.loanDebts },
+    { label: 'Savings buffer', value: plan.savings },
+    { label: 'Flexible cash', value: plan.flexibleCash },
+  ]
+
+  return (
+    <section className={`ai-money-tool-card ${plan.tone}`}>
+      <header>
+        <div>
+          <p>Payday Allocation</p>
+          <h3>Where should the next income go?</h3>
+        </div>
+        <strong>{peso.format(plan.income)}</strong>
+      </header>
+
+      <label className="ai-tool-input-row">
+        <span>Income amount</span>
+        <input
+          type="number"
+          min="0"
+          step="500"
+          value={amount}
+          onChange={(event) => onAmountChange(event.target.value)}
+          placeholder="10000"
+        />
+      </label>
+
+      <div className="allocation-list">
+        {rows.map((row) => (
+          <article key={row.label} className="allocation-row">
+            <span>{row.label}</span>
+            <strong>{peso.format(row.value)}</strong>
+          </article>
+        ))}
+      </div>
+
+      <div className="ai-tool-result">
+        <span>Suggested focus</span>
+        <strong>{plan.focusName}</strong>
+        <p>{plan.message}</p>
+      </div>
+    </section>
+  )
+}
+
+function AffordabilityTool({
+  amount,
+  onAmountChange,
+  result,
+}: {
+  amount: string
+  onAmountChange: (value: string) => void
+  result: AffordabilityResult
+}) {
+  return (
+    <section className={`ai-money-tool-card ${result.tone}`}>
+      <header>
+        <div>
+          <p>Can I Afford This?</p>
+          <h3>Check before spending</h3>
+        </div>
+        <strong>{result.status}</strong>
+      </header>
+
+      <label className="ai-tool-input-row">
+        <span>Purchase amount</span>
+        <input
+          type="number"
+          min="0"
+          step="100"
+          value={amount}
+          onChange={(event) => onAmountChange(event.target.value)}
+          placeholder="3500"
+        />
+      </label>
+
+      <div className="affordability-result-grid">
+        <article>
+          <span>Cash after purchase</span>
+          <strong>{peso.format(result.remainingCash)}</strong>
+        </article>
+        <article>
+          <span>Payment advice</span>
+          <strong>{result.paymentAdvice}</strong>
+        </article>
+      </div>
+
+      <div className="ai-tool-result">
+        <span>DueWise check</span>
+        <p>{result.message}</p>
+      </div>
+    </section>
+  )
+}
+
 function CreditCardRanking({ insights }: { insights: CreditCardInsight[] }) {
   if (insights.length === 0) {
     return (
@@ -2304,27 +2751,6 @@ function CreditCardRanking({ insights }: { insights: CreditCardInsight[] }) {
   )
 }
 
-function TransactionList({ transactions, limit = 5 }: { transactions: Transaction[]; limit?: number }) {
-  if (transactions.length === 0) {
-    return (
-      <article className="account-card">
-        <div className="card-main-content">
-          <h3>No transactions yet</h3>
-          <p>Tap the plus button to add income, expense, or transfer.</p>
-        </div>
-      </article>
-    )
-  }
-
-  return (
-    <div className="card-list">
-      {transactions.slice(0, limit).map((transaction) => (
-        <TransactionRow key={transaction.id} transaction={transaction} />
-      ))}
-    </div>
-  )
-}
-
 function TransactionRow({ transaction }: { transaction: Transaction }) {
   return (
     <article className="account-card">
@@ -2352,9 +2778,11 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
 function TransactionHistoryModal({
   transactions,
   onClose,
+  onClear,
 }: {
   transactions: Transaction[]
   onClose: () => void
+  onClear: () => void
 }) {
   const [filter, setFilter] = useState<TransactionFilter>('all')
   const [query, setQuery] = useState('')
@@ -2388,7 +2816,7 @@ function TransactionHistoryModal({
 
   return (
     <div style={historyBackdropStyle}>
-      <section style={historyPanelStyle}>
+      <section className="transaction-history-panel" style={historyPanelStyle}>
         <header style={historyHeaderStyle}>
           <div>
             <p style={modalEyebrowStyle}>Transactions</p>
@@ -2400,22 +2828,46 @@ function TransactionHistoryModal({
           </button>
         </header>
 
-        <section style={historySummaryGridStyle}>
+        <section className="history-summary-grid" style={historySummaryGridStyle}>
           <HistoryMetric label="Income" value={peso.format(incomeTotal)} />
           <HistoryMetric label="Expenses" value={peso.format(expenseTotal)} />
           <HistoryMetric label="Transfers" value={peso.format(transferTotal)} />
           <HistoryMetric label="Net" value={peso.format(netTotal)} />
         </section>
 
-        <label style={historySearchWrapStyle}>
+        <label className="history-search-wrap" style={historySearchWrapStyle}>
           <Search size={17} />
           <input
+            className="history-search-input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search note, account, bill, category..."
             style={historySearchInputStyle}
           />
+          {query.trim().length > 0 && (
+            <button
+              type="button"
+              className="history-search-clear"
+              aria-label="Clear search"
+              onClick={() => setQuery('')}
+            >
+              <X size={16} />
+            </button>
+          )}
         </label>
+
+        <div className="history-actions-row">
+          <span>{filteredTransactions.length} shown</span>
+          <button
+            type="button"
+            className="history-clear-button"
+            onClick={onClear}
+            disabled={transactions.length === 0}
+          >
+            <Trash2 size={15} />
+            Clear History
+          </button>
+        </div>
 
         <div style={historyFilterGridStyle}>
           {(['all', 'income', 'expense', 'transfer'] as TransactionFilter[]).map((item) => (
@@ -2451,7 +2903,7 @@ function TransactionHistoryModal({
 
 function HistoryMetric({ label, value }: { label: string; value: string }) {
   return (
-    <article style={historyMetricStyle}>
+    <article className="history-metric" style={historyMetricStyle}>
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
@@ -3080,6 +3532,129 @@ function ModalShell({
   )
 }
 
+
+function CloudSyncModal({
+  isConfigured,
+  sessionEmail,
+  syncStatus,
+  lastSyncedAt,
+  busy,
+  onClose,
+  onSignIn,
+  onSignUp,
+  onSignOut,
+  onSyncNow,
+  onRestore,
+  onResetLocal,
+  onNotify,
+}: {
+  isConfigured: boolean
+  sessionEmail: string | null
+  syncStatus: string
+  lastSyncedAt: string | null
+  busy: boolean
+  onClose: () => void
+  onSignIn: (email: string, password: string) => void
+  onSignUp: (email: string, password: string) => void
+  onSignOut: () => void
+  onSyncNow: () => void
+  onRestore: () => void
+  onResetLocal: () => void
+  onNotify: (title: string, message: string) => void
+}) {
+  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const cleanEmail = email.trim()
+    if (!cleanEmail) return onNotify('Email Required', 'Enter your email address.')
+    if (password.length < 6) return onNotify('Password Too Short', 'Use at least 6 characters for your password.')
+
+    if (mode === 'sign-in') onSignIn(cleanEmail, password)
+    else onSignUp(cleanEmail, password)
+  }
+
+  return (
+    <ModalShell eyebrow="DueWise Cloud" title={sessionEmail ? 'Cloud Sync' : 'Sign in to sync'} onClose={onClose}>
+      {!isConfigured ? (
+        <section className="cloud-sync-panel warning">
+          <p>Cloud sync is not configured.</p>
+          <span>Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local, then restart the dev server.</span>
+        </section>
+      ) : sessionEmail ? (
+        <section className="cloud-sync-panel">
+          <div className="cloud-sync-status-card">
+            <p>Signed in as</p>
+            <h3>{sessionEmail}</h3>
+            <span>{syncStatus}</span>
+            <small>{lastSyncedAt ? `Last synced ${formatShortDate(lastSyncedAt)}` : 'No successful cloud sync yet'}</small>
+          </div>
+
+          <div className="cloud-sync-action-grid">
+            <button type="button" onClick={onSyncNow} disabled={busy}>
+              {busy ? 'Syncing...' : 'Sync now'}
+            </button>
+            <button type="button" onClick={onRestore} disabled={busy}>
+              Restore cloud
+            </button>
+          </div>
+
+          <button type="button" className="cloud-sync-secondary-button" onClick={onSignOut} disabled={busy}>
+            Sign out
+          </button>
+
+          <button type="button" className="cloud-sync-danger-button" onClick={onResetLocal} disabled={busy}>
+            Reset local sample data
+          </button>
+        </section>
+      ) : (
+        <form className="cloud-sync-panel" onSubmit={handleSubmit}>
+          <p className="cloud-sync-note">
+            Sign in so DueWise can restore your data after clearing browser storage.
+          </p>
+
+          <label className="cloud-sync-field">
+            <span>Email</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              autoFocus
+            />
+          </label>
+
+          <label className="cloud-sync-field">
+            <span>Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="At least 6 characters"
+            />
+          </label>
+
+          <button type="submit" className="cloud-sync-primary-button" disabled={busy}>
+            {busy ? 'Please wait...' : mode === 'sign-in' ? 'Sign in and restore' : 'Create account'}
+          </button>
+
+          <button
+            type="button"
+            className="cloud-sync-secondary-button"
+            onClick={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
+            disabled={busy}
+          >
+            {mode === 'sign-in' ? 'Create new DueWise Cloud account' : 'I already have an account'}
+          </button>
+        </form>
+      )}
+    </ModalShell>
+  )
+}
+
 function MessageDialogModal({
   dialog,
   onClose,
@@ -3247,20 +3822,41 @@ function getFinancialHealthSummary({
   creditCardInsights: CreditCardInsight[]
   netCashflow: number
 }): FinancialHealthSummary {
-  const cashBufferScore = recurringTotal <= 0 ? 22 : clamp((totalCash / recurringTotal) * 12, 0, 24)
+  const cashBufferScore =
+    recurringTotal <= 0
+      ? totalCash > 0
+        ? 16
+        : 0
+      : clamp((totalCash / recurringTotal) * 8, 0, 20)
+
   const budgetProgress = totalBudget > 0 ? (totalBudgetSpent / totalBudget) * 100 : 0
-  const budgetScore = clamp(24 - Math.max(0, budgetProgress - 75) * 0.35 - overBudgetCount * 5, 0, 24)
+  const budgetScore =
+    totalBudget > 0
+      ? clamp(20 - Math.max(0, budgetProgress - 70) * 0.5 - overBudgetCount * 6, 0, 20)
+      : 12
+
   const debtLoad = totalCash + totalSavings > 0 ? totalDebt / (totalCash + totalSavings) : totalDebt > 0 ? 3 : 0
-  const debtScore = clamp(24 - debtLoad * 8, 0, 24)
+  const debtScore = clamp(20 - debtLoad * 10, 0, 20)
+
   const averageUtilization =
     creditCardInsights.length > 0
       ? creditCardInsights.reduce((total, insight) => total + insight.utilization, 0) / creditCardInsights.length
       : 0
-  const creditScore = clamp(18 - Math.max(0, averageUtilization - 30) * 0.22, 0, 18)
-  const cashflowScore = netCashflow >= 0 ? 10 : clamp(10 + netCashflow / 2000, 0, 10)
-  const score = Math.round(cashBufferScore + budgetScore + debtScore + creditScore + cashflowScore)
+  const creditScore = clamp(15 - Math.max(0, averageUtilization - 30) * 0.25, 0, 15)
 
-  if (score >= 78) {
+  const cashflowScore = netCashflow >= 0 ? 25 : clamp(25 + netCashflow / 1500, 0, 25)
+
+  let score = Math.round(cashBufferScore + budgetScore + debtScore + creditScore + cashflowScore)
+
+  // Guardrails: a bad cashflow month should not still look "strong"
+  // just because debt and budget indicators are currently clean.
+  if (netCashflow < 0) score = Math.min(score, 72)
+  if (netCashflow < -5000) score = Math.min(score, 62)
+  if (netCashflow < -10000) score = Math.min(score, 54)
+  if (totalCash <= 0) score = Math.min(score, 45)
+  if (recurringTotal > 0 && totalCash < recurringTotal) score = Math.min(score, 58)
+
+  if (score >= 80) {
     return {
       score,
       status: 'Strong position',
@@ -3269,12 +3865,21 @@ function getFinancialHealthSummary({
     }
   }
 
-  if (score >= 55) {
+  if (score >= 60) {
     return {
       score,
       status: 'Watch cashflow',
-      message: 'You are okay, but debt, bills, or budget usage need attention before the next payday.',
+      message: 'You are okay, but cashflow, bills, or budget usage need attention before the next payday.',
       tone: 'watch',
+    }
+  }
+
+  if (netCashflow < -10000) {
+    return {
+      score,
+      status: 'Needs action',
+      message: 'Expenses are much higher than income this month. Pause non-essential spending and review transactions.',
+      tone: 'risk',
     }
   }
 
@@ -3570,6 +4175,168 @@ function getSmartInsightCards({
   return cards.slice(0, 5)
 }
 
+function getPaydayAllocationPlan({
+  income,
+  totalCash,
+  recurringTotal,
+  creditCardInsights,
+  debts,
+  debtPlan,
+}: {
+  income: number
+  totalCash: number
+  recurringTotal: number
+  creditCardInsights: CreditCardInsight[]
+  debts: Debt[]
+  debtPlan: DebtPayoffPlan
+}): PaydayAllocationPlan {
+  const cleanIncome = Math.max(0, Math.round(income))
+  const creditCardDebt = creditCardInsights.reduce((total, insight) => total + insight.card.currentBalance, 0)
+  const loanBalance = debts.reduce((total, debt) => total + debt.balance, 0)
+  const monthlyLoanDue = debts.reduce((total, debt) => total + Math.min(debt.monthly, debt.balance), 0)
+  const riskyCard = creditCardInsights.find((insight) => insight.status === 'avoid')
+  const watchCard = creditCardInsights.find((insight) => insight.status === 'watch')
+
+  let remaining = cleanIncome
+  const bills = Math.min(remaining, recurringTotal)
+  remaining -= bills
+
+  const creditCardTarget = creditCardDebt > 0 ? Math.min(remaining, Math.round(cleanIncome * 0.28), creditCardDebt) : 0
+  remaining -= creditCardTarget
+
+  const loanTarget = loanBalance > 0 ? Math.min(remaining, monthlyLoanDue || Math.round(cleanIncome * 0.18), loanBalance) : 0
+  remaining -= loanTarget
+
+  const savingsTarget = Math.min(remaining, Math.round(cleanIncome * (creditCardDebt + loanBalance > 0 ? 0.10 : 0.25)))
+  remaining -= savingsTarget
+
+  const flexibleCash = Math.max(0, remaining)
+  const focusName =
+    riskyCard?.card.name ??
+    watchCard?.card.name ??
+    (debtPlan.focusName !== 'No active debt' ? debtPlan.focusName : recurringTotal > 0 ? 'Unpaid bills' : 'Savings buffer')
+
+  if (cleanIncome <= 0) {
+    return {
+      income: cleanIncome,
+      bills: 0,
+      creditCards: 0,
+      loanDebts: 0,
+      savings: 0,
+      flexibleCash: 0,
+      focusName: 'Enter an income amount',
+      message: 'Add your expected payday amount to generate an allocation plan.',
+      tone: 'watch',
+    }
+  }
+
+  if (cleanIncome < recurringTotal) {
+    return {
+      income: cleanIncome,
+      bills,
+      creditCards: 0,
+      loanDebts: 0,
+      savings: 0,
+      flexibleCash,
+      focusName: 'Unpaid bills',
+      message: `This income is not enough to fully cover unpaid bills. Add ${peso.format(recurringTotal - cleanIncome)} more or delay non-essential spending.`,
+      tone: 'risk',
+    }
+  }
+
+  const projectedCash = totalCash + cleanIncome - bills - creditCardTarget - loanTarget - savingsTarget
+  const tone: PaydayAllocationPlan['tone'] = projectedCash >= recurringTotal * 1.5 ? 'good' : 'watch'
+  const message =
+    creditCardDebt + loanBalance > 0
+      ? `Reserve bills first, then send extra money to ${focusName}. Keep flexible cash for food, transport, and small emergencies.`
+      : 'Bills are covered. Build your savings buffer and keep flexible cash for the rest of the pay period.'
+
+  return {
+    income: cleanIncome,
+    bills,
+    creditCards: creditCardTarget,
+    loanDebts: loanTarget,
+    savings: savingsTarget,
+    flexibleCash,
+    focusName,
+    message,
+    tone,
+  }
+}
+
+function getAffordabilityResult({
+  amount,
+  totalCash,
+  recurringTotal,
+  creditCardInsights,
+}: {
+  amount: number
+  totalCash: number
+  recurringTotal: number
+  creditCardInsights: CreditCardInsight[]
+}): AffordabilityResult {
+  const cleanAmount = Math.max(0, Math.round(amount))
+  const remainingCash = totalCash - cleanAmount
+  const safeBuffer = Math.max(3000, recurringTotal * 1.25)
+  const recommendedCard = creditCardInsights.find((insight) => insight.status === 'recommended')
+  const riskyCard = creditCardInsights.find((insight) => insight.status === 'avoid')
+  const availableRecommendedCredit = recommendedCard
+    ? recommendedCard.card.creditLimit - recommendedCard.card.currentBalance
+    : 0
+
+  if (cleanAmount <= 0) {
+    return {
+      status: 'Ready',
+      tone: 'watch',
+      remainingCash: totalCash,
+      message: 'Enter a purchase amount to check if it fits your current cash, bills, and card risk.',
+      paymentAdvice: 'Check first',
+    }
+  }
+
+  if (cleanAmount > totalCash) {
+    const canUseRecommendedCard = Boolean(recommendedCard && availableRecommendedCredit >= cleanAmount)
+    const recommendedCardName = recommendedCard?.card.name ?? 'the recommended card'
+    return {
+      status: 'Not enough cash',
+      tone: 'risk',
+      remainingCash,
+      message: canUseRecommendedCard
+        ? `Cash is not enough for this purchase. If it is necessary, ${recommendedCardName} is the safer card option, but avoid adding card debt for wants.`
+        : 'Cash is not enough for this purchase and no safer card option is available right now.',
+      paymentAdvice: canUseRecommendedCard ? recommendedCardName : 'Delay purchase',
+    }
+  }
+
+  if (remainingCash < recurringTotal) {
+    return {
+      status: 'Not recommended',
+      tone: 'risk',
+      remainingCash,
+      message: `This purchase may leave you short for unpaid bills. Keep at least ${peso.format(recurringTotal)} reserved before spending on wants.`,
+      paymentAdvice: 'Do not buy now',
+    }
+  }
+
+  if (remainingCash < safeBuffer) {
+    return {
+      status: 'Use caution',
+      tone: 'watch',
+      remainingCash,
+      message: `You can pay for it, but your buffer will be thin. Try to keep at least ${peso.format(safeBuffer)} available after the purchase.`,
+      paymentAdvice: riskyCard ? 'Use cash only' : 'Prefer cash',
+    }
+  }
+
+  return {
+    status: 'Looks safe',
+    tone: 'good',
+    remainingCash,
+    message: 'This purchase appears affordable based on your current cash and known unpaid bills. Still avoid it if it is not a priority.',
+    paymentAdvice: recommendedCard ? `Cash or ${recommendedCard.card.name}` : 'Cash is okay',
+  }
+}
+
 function getCreditCardMinimumPayment(card: CreditCardAccount) {
   return Math.min(card.currentBalance, Math.max(500, Math.round(card.currentBalance * 0.04)))
 }
@@ -3824,6 +4591,23 @@ function getPageTitle(activeTab: TabKey) {
   }
 
   return titles[activeTab]
+}
+
+
+function getUserInitials(email?: string) {
+  if (!email) return '☁'
+  const name = email.split('@')[0].replace(/[^a-zA-Z0-9]+/g, ' ').trim()
+  if (!name) return 'DW'
+
+  const parts = name.split(' ').filter(Boolean)
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  return 'Please check your internet connection and cloud setup.'
 }
 
 function formatShortDate(value: string) {

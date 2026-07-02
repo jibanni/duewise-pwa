@@ -4996,3 +4996,1017 @@ button[style*="min-height: 45"] {
     font-size: 0.84rem !important;
   }
 }
+/* =========================================================
+   DueWise AI Payday + Affordability Tools
+   Paste at the very bottom of src/index.css.
+   Adds compact cards for Payday Allocation and Can I Afford This.
+   ========================================================= */
+
+.ai-money-tool-card {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+  border-radius: 24px;
+  color: var(--duewise-text, #171717);
+  background: var(--duewise-card, #fffdf8);
+  border: 1px solid var(--duewise-border, rgba(23, 23, 23, 0.11));
+  box-shadow: var(--duewise-shadow, 0 18px 42px rgba(45, 37, 24, 0.11));
+  overflow: hidden;
+}
+
+.ai-money-tool-card.good {
+  border-color: rgba(47, 125, 90, 0.34);
+  background:
+    radial-gradient(circle at top left, rgba(47, 125, 90, 0.12), transparent 34%),
+    var(--duewise-card, #fffdf8);
+}
+
+.ai-money-tool-card.watch {
+  border-color: rgba(249, 115, 22, 0.36);
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.12), transparent 34%),
+    var(--duewise-card, #fffdf8);
+}
+
+.ai-money-tool-card.risk {
+  border-color: rgba(190, 68, 64, 0.36);
+  background:
+    radial-gradient(circle at top left, rgba(190, 68, 64, 0.12), transparent 34%),
+    var(--duewise-card, #fffdf8);
+}
+
+.theme-dark .ai-money-tool-card {
+  background: var(--duewise-card, #242824);
+}
+
+.theme-dark .ai-money-tool-card.good {
+  background:
+    radial-gradient(circle at top left, rgba(126, 224, 169, 0.13), transparent 34%),
+    var(--duewise-card, #242824);
+}
+
+.theme-dark .ai-money-tool-card.watch {
+  background:
+    radial-gradient(circle at top left, rgba(251, 146, 60, 0.14), transparent 34%),
+    var(--duewise-card, #242824);
+}
+
+.theme-dark .ai-money-tool-card.risk {
+  background:
+    radial-gradient(circle at top left, rgba(255, 155, 149, 0.13), transparent 34%),
+    var(--duewise-card, #242824);
+}
+
+.ai-money-tool-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ai-money-tool-card header p {
+  margin: 0 0 4px;
+  color: var(--duewise-brand, #f97316) !important;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.ai-money-tool-card header h3 {
+  margin: 0;
+  color: var(--duewise-text, #171717) !important;
+  font-size: 1rem;
+  line-height: 1.14;
+  letter-spacing: -0.035em;
+}
+
+.ai-money-tool-card header > strong {
+  max-width: 44%;
+  color: var(--duewise-text, #171717) !important;
+  font-size: 0.95rem;
+  line-height: 1.08;
+  text-align: right;
+  word-break: break-word;
+}
+
+.ai-tool-input-row {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  border-radius: 18px;
+  background: rgba(23, 23, 23, 0.045);
+  border: 1px solid var(--duewise-border, rgba(23, 23, 23, 0.11));
+}
+
+.theme-dark .ai-tool-input-row {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ai-tool-input-row span {
+  color: var(--duewise-subtext, #5f5a52) !important;
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.ai-tool-input-row input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 14px;
+  color: var(--duewise-text, #171717) !important;
+  background: var(--duewise-card, #fffdf8) !important;
+  border: 1px solid var(--duewise-border, rgba(23, 23, 23, 0.11)) !important;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-align: right;
+}
+
+.allocation-list {
+  display: grid;
+  gap: 7px;
+}
+
+.allocation-row,
+.affordability-result-grid article {
+  min-height: 44px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(23, 23, 23, 0.06);
+}
+
+.theme-dark .allocation-row,
+.theme-dark .affordability-result-grid article {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.allocation-row span,
+.affordability-result-grid span {
+  color: var(--duewise-subtext, #5f5a52) !important;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.allocation-row strong,
+.affordability-result-grid strong {
+  color: var(--duewise-text, #171717) !important;
+  font-size: 0.84rem;
+  text-align: right;
+}
+
+.affordability-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.affordability-result-grid article {
+  display: grid;
+  align-content: center;
+  justify-content: stretch;
+  min-height: 66px;
+}
+
+.affordability-result-grid span,
+.affordability-result-grid strong {
+  text-align: left;
+}
+
+.ai-tool-result {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(47, 125, 90, 0.08);
+  border: 1px solid rgba(47, 125, 90, 0.14);
+}
+
+.ai-money-tool-card.watch .ai-tool-result {
+  background: rgba(249, 115, 22, 0.08);
+  border-color: rgba(249, 115, 22, 0.16);
+}
+
+.ai-money-tool-card.risk .ai-tool-result {
+  background: rgba(190, 68, 64, 0.08);
+  border-color: rgba(190, 68, 64, 0.16);
+}
+
+.ai-tool-result span {
+  color: var(--duewise-muted, #7b756c) !important;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.ai-tool-result strong {
+  color: var(--duewise-text, #171717) !important;
+  font-size: 0.92rem;
+}
+
+.ai-tool-result p {
+  margin: 0;
+  color: var(--duewise-subtext, #5f5a52) !important;
+  font-size: 0.76rem;
+  line-height: 1.34;
+}
+
+/* Make six Insights selector cards fit as a clean 2-column grid */
+.insights-section-switcher {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.insights-section-card {
+  min-height: 72px !important;
+}
+
+.insights-section-card:last-child:nth-child(odd) {
+  grid-column: auto !important;
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .ai-money-tool-card {
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .ai-tool-input-row {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .ai-tool-input-row input {
+    text-align: left;
+  }
+
+  .affordability-result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-money-tool-card header {
+    align-items: start;
+  }
+
+  .ai-money-tool-card header > strong {
+    max-width: 46%;
+    font-size: 0.84rem;
+  }
+}
+/* =========================================================
+   DueWise Insights Page Fix
+   Paste at the very bottom of src/index.css.
+   Fixes the Insights header overlap, tightens Overview content,
+   and keeps the page clean while keeping AI Tools unchanged.
+   ========================================================= */
+
+/* ---------- Prevent Insights content from hiding behind the header ---------- */
+.mobile-app:has(.insights-section-switcher) .app-header {
+  margin-bottom: 14px !important;
+  padding-bottom: 10px !important;
+}
+
+.mobile-app:has(.insights-section-switcher) .app-header::before {
+  opacity: 1 !important;
+}
+
+.mobile-app:has(.insights-section-switcher) .financial-health-card {
+  margin-top: 12px !important;
+}
+
+/* ---------- Financial Health card: readable, compact, not hidden ---------- */
+.financial-health-card {
+  width: 100% !important;
+  min-height: 118px !important;
+  display: grid !important;
+  grid-template-columns: 82px 1fr !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 16px !important;
+  border-radius: 26px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.financial-health-card p {
+  margin: 0 0 3px !important;
+  color: var(--duewise-brand, #f97316) !important;
+  font-size: 0.7rem !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.03em !important;
+}
+
+.financial-health-card h3 {
+  margin: 0 0 4px !important;
+  color: var(--duewise-text, #171717) !important;
+  font-size: 1rem !important;
+  line-height: 1.12 !important;
+}
+
+.financial-health-card span {
+  display: block !important;
+  color: var(--duewise-subtext, #5f5a52) !important;
+  font-size: 0.75rem !important;
+  line-height: 1.26 !important;
+}
+
+.financial-health-card small {
+  display: block !important;
+  margin-top: 6px !important;
+  color: var(--duewise-muted, #7b756c) !important;
+  font-size: 0.72rem !important;
+  font-weight: 850 !important;
+}
+
+.health-score-ring {
+  width: 76px !important;
+  height: 76px !important;
+  min-width: 76px !important;
+  border-radius: 999px !important;
+}
+
+.health-score-ring strong {
+  font-size: 1.45rem !important;
+  line-height: 1 !important;
+}
+
+.health-score-ring span {
+  font-size: 0.68rem !important;
+}
+
+/* ---------- Insights section cards: smaller and more balanced ---------- */
+.insights-section-switcher {
+  gap: 8px !important;
+  margin: 0 0 12px !important;
+}
+
+.insights-section-card {
+  min-height: 68px !important;
+  padding: 10px 12px !important;
+  border-radius: 20px !important;
+}
+
+.insights-section-card span {
+  font-size: 0.68rem !important;
+  line-height: 1 !important;
+}
+
+.insights-section-card strong {
+  margin-top: 1px !important;
+  font-size: 0.95rem !important;
+  line-height: 1.05 !important;
+}
+
+.insights-section-card small {
+  margin-top: 1px !important;
+  font-size: 0.64rem !important;
+  line-height: 1.1 !important;
+}
+
+/* ---------- Overview section: make it feel like an overview, not a long report ---------- */
+.compact-insight-metrics {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.compact-insight-metrics .info-card {
+  min-height: 64px !important;
+  padding: 11px 12px !important;
+  border-radius: 19px !important;
+}
+
+.compact-insight-metrics .info-card p {
+  margin-bottom: 5px !important;
+  font-size: 0.68rem !important;
+}
+
+.compact-insight-metrics .info-card strong {
+  font-size: 0.92rem !important;
+}
+
+/* AI Cashflow card in Overview */
+.compact-ai-card {
+  padding: 14px !important;
+  border-radius: 22px !important;
+  min-height: auto !important;
+}
+
+.compact-ai-card p {
+  margin-bottom: 4px !important;
+  font-size: 0.68rem !important;
+}
+
+.compact-ai-card h3 {
+  margin-bottom: 5px !important;
+  font-size: 0.98rem !important;
+  line-height: 1.16 !important;
+}
+
+.compact-ai-card span {
+  font-size: 0.74rem !important;
+  line-height: 1.28 !important;
+}
+
+/* Smart cards in Overview: compact alerts */
+.compact-smart-list {
+  gap: 8px !important;
+}
+
+.compact-smart-list .smart-insight-card {
+  padding: 12px 13px !important;
+  border-radius: 20px !important;
+}
+
+.compact-smart-list .smart-insight-card p {
+  margin-bottom: 4px !important;
+  font-size: 0.65rem !important;
+}
+
+.compact-smart-list .smart-insight-card h3 {
+  margin-bottom: 4px !important;
+  font-size: 0.9rem !important;
+  line-height: 1.15 !important;
+}
+
+.compact-smart-list .smart-insight-card span {
+  font-size: 0.72rem !important;
+  line-height: 1.26 !important;
+}
+
+/* Transaction history preview card: make it smaller */
+.mobile-app:has(.insights-section-switcher) section[style*="previewCardStyle"],
+.mobile-app:has(.insights-section-switcher) section[style*="Review income"] {
+  min-height: auto !important;
+}
+
+/* Fallback target for the transaction history card */
+.mobile-app:has(.insights-section-switcher) .page-content > section:last-child {
+  max-width: 100% !important;
+}
+
+/* ---------- Chart sections: avoid huge card feel ---------- */
+.insights-chart-card {
+  padding: 14px !important;
+  border-radius: 23px !important;
+}
+
+.insights-chart-card header {
+  margin-bottom: 8px !important;
+}
+
+.insights-chart-card h3 {
+  font-size: 0.96rem !important;
+  line-height: 1.15 !important;
+}
+
+.insights-chart-card p {
+  font-size: 0.73rem !important;
+  line-height: 1.28 !important;
+}
+
+/* ---------- FAB should not cover Insights content ---------- */
+.mobile-app:has(.insights-section-switcher) {
+  padding-bottom: 138px !important;
+}
+
+.mobile-app:has(.insights-section-switcher) .main-fab {
+  bottom: 112px !important;
+}
+
+/* ---------- Small phones ---------- */
+@media (max-width: 390px) {
+  .mobile-app:has(.insights-section-switcher) .financial-health-card {
+    margin-top: 10px !important;
+  }
+
+  .financial-health-card {
+    grid-template-columns: 70px 1fr !important;
+    min-height: 108px !important;
+    padding: 14px !important;
+    gap: 12px !important;
+    border-radius: 24px !important;
+  }
+
+  .health-score-ring {
+    width: 68px !important;
+    height: 68px !important;
+    min-width: 68px !important;
+  }
+
+  .health-score-ring strong {
+    font-size: 1.32rem !important;
+  }
+
+  .financial-health-card h3 {
+    font-size: 0.92rem !important;
+  }
+
+  .financial-health-card span,
+  .financial-health-card small {
+    font-size: 0.68rem !important;
+  }
+
+  .insights-section-card {
+    min-height: 64px !important;
+    padding: 9px 10px !important;
+    border-radius: 18px !important;
+  }
+
+  .insights-section-card span {
+    font-size: 0.64rem !important;
+  }
+
+  .insights-section-card strong {
+    font-size: 0.86rem !important;
+  }
+
+  .insights-section-card small {
+    font-size: 0.6rem !important;
+  }
+}
+/* =========================================================
+   DueWise Insights Hero Gap Fix
+   Paste at the very bottom of src/index.css.
+   Reduces the excessive space between Available Cash and
+   Financial Health on the Insights page.
+   ========================================================= */
+
+/* Insights page only */
+.mobile-app:has(.insights-section-switcher) .balance-hero {
+  margin-bottom: 14px !important;
+}
+
+.mobile-app:has(.insights-section-switcher) .financial-health-card {
+  margin-top: 0 !important;
+  margin-bottom: 12px !important;
+}
+
+/* Reduce the page flow gap only on Insights */
+.mobile-app:has(.insights-section-switcher) .page-content {
+  gap: 12px !important;
+}
+
+/* Keep section selector close after Financial Health */
+.mobile-app:has(.insights-section-switcher) .insights-section-switcher {
+  margin-top: 0 !important;
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .mobile-app:has(.insights-section-switcher) .balance-hero {
+    margin-bottom: 12px !important;
+  }
+
+  .mobile-app:has(.insights-section-switcher) .financial-health-card {
+    margin-bottom: 10px !important;
+  }
+
+  .mobile-app:has(.insights-section-switcher) .page-content {
+    gap: 10px !important;
+  }
+}
+/* =========================================================
+   DueWise Transaction History Search + Clear Fix
+   Paste at the very bottom of src/index.css.
+   Cleans the search bar and adds styling for Clear History.
+   ========================================================= */
+
+/* Transaction History panel */
+.transaction-history-panel {
+  color: var(--duewise-text, #171717) !important;
+  background: var(--duewise-card, #fffdf8) !important;
+  border: 1px solid var(--duewise-border, rgba(23, 23, 23, 0.11)) !important;
+}
+
+.theme-dark .transaction-history-panel {
+  background: #242424 !important;
+}
+
+/* Summary boxes */
+.history-summary-grid {
+  gap: 8px !important;
+}
+
+.history-metric {
+  color: var(--duewise-text, #171717) !important;
+  background: rgba(23, 23, 23, 0.045) !important;
+  border: 1px solid var(--duewise-border, rgba(23, 23, 23, 0.11)) !important;
+  box-shadow: none !important;
+}
+
+.theme-dark .history-metric {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.history-metric span {
+  color: var(--duewise-subtext, #5f5a52) !important;
+}
+
+.history-metric strong {
+  color: var(--duewise-text, #171717) !important;
+}
+
+/* Search bar fix */
+.history-search-wrap {
+  min-height: 48px !important;
+  display: grid !important;
+  grid-template-columns: 22px 1fr auto !important;
+  align-items: center !important;
+  gap: 9px !important;
+  padding: 0 12px !important;
+  border-radius: 18px !important;
+  color: var(--duewise-subtext, #5f5a52) !important;
+  background: rgba(23, 23, 23, 0.045) !important;
+  border: 1px solid var(--duewise-border, rgba(23, 23, 23, 0.11)) !important;
+  box-shadow: none !important;
+  margin-bottom: 10px !important;
+}
+
+.theme-dark .history-search-wrap {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.history-search-wrap svg {
+  color: var(--duewise-muted, #7b756c) !important;
+}
+
+.history-search-input,
+.history-search-wrap input,
+input.history-search-input {
+  width: 100% !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--duewise-text, #171717) !important;
+  font-size: 0.84rem !important;
+  font-weight: 800 !important;
+}
+
+.history-search-input::placeholder {
+  color: var(--duewise-muted, #7b756c) !important;
+  opacity: 1 !important;
+}
+
+.history-search-clear {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  color: var(--duewise-subtext, #5f5a52) !important;
+  background: rgba(23, 23, 23, 0.07) !important;
+}
+
+.theme-dark .history-search-clear {
+  background: rgba(255, 255, 255, 0.09) !important;
+}
+
+/* Clear History row */
+.history-actions-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin: 0 0 11px !important;
+}
+
+.history-actions-row span {
+  color: var(--duewise-muted, #7b756c) !important;
+  font-size: 0.72rem !important;
+  font-weight: 850 !important;
+}
+
+.history-clear-button {
+  min-height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  color: var(--duewise-red, #be4440) !important;
+  background: rgba(190, 68, 64, 0.10) !important;
+  font-size: 0.72rem !important;
+  font-weight: 950 !important;
+}
+
+.history-clear-button:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+}
+
+.theme-dark .history-clear-button {
+  color: var(--duewise-red, #ff9b95) !important;
+  background: rgba(255, 155, 149, 0.11) !important;
+}
+
+/* Keep filters compact */
+.transaction-history-panel div[style*="repeat(4"] button {
+  min-height: 38px !important;
+  border-radius: 15px !important;
+}
+
+/* Small phone */
+@media (max-width: 390px) {
+  .history-search-wrap {
+    min-height: 46px !important;
+    border-radius: 16px !important;
+  }
+
+  .history-actions-row {
+    align-items: stretch !important;
+  }
+
+  .history-clear-button {
+    min-height: 34px !important;
+    padding: 0 10px !important;
+    font-size: 0.68rem !important;
+  }
+}
+/* =========================================================
+   DueWise Today Compact + History Placement Fix
+   Paste at the very bottom of src/index.css.
+   Keeps Transaction History only in Insights and removes ugly
+   spacing on the Today page.
+   ========================================================= */
+
+/* Today page only: identified by the date strip */
+.mobile-app:has(.date-strip) .page-content {
+  gap: 12px !important;
+}
+
+/* Reduce space under the main cash card on Today */
+.mobile-app:has(.date-strip) .balance-hero {
+  margin-bottom: 12px !important;
+}
+
+/* Date row closer and cleaner */
+.mobile-app:has(.date-strip) .date-strip {
+  margin: 0 0 14px !important;
+}
+
+/* Recommendation card should sit closer to the date row */
+.mobile-app:has(.date-strip) .recommendation-card {
+  margin: 0 0 10px !important;
+}
+
+/* Mini cards should not create a large block */
+.mobile-app:has(.date-strip) .mini-grid {
+  margin: 0 !important;
+  gap: 10px !important;
+}
+
+.mobile-app:has(.date-strip) .mini-grid .info-card {
+  min-height: 72px !important;
+  padding: 12px 14px !important;
+}
+
+/* Section titles on Today */
+.mobile-app:has(.date-strip) .section-heading {
+  margin: 2px 0 0 !important;
+}
+
+.mobile-app:has(.date-strip) .section-heading h2 {
+  margin-bottom: 3px !important;
+}
+
+.mobile-app:has(.date-strip) .section-heading p {
+  margin: 0 !important;
+}
+
+/* Event and card lists should be tighter */
+.mobile-app:has(.date-strip) .card-list {
+  gap: 9px !important;
+}
+
+.mobile-app:has(.date-strip) .event-card,
+.mobile-app:has(.date-strip) .account-card {
+  min-height: 74px !important;
+}
+
+/* Compact the "View full plan" and "View wallet" buttons/cards */
+.mobile-app:has(.date-strip) section[style*="Review"],
+.mobile-app:has(.date-strip) section[style*="Showing your nearest"],
+.mobile-app:has(.date-strip) .page-content > section[style*="border-radius"] {
+  margin: 0 !important;
+}
+
+.mobile-app:has(.date-strip) button[style*="width: 100%"] {
+  min-height: 48px !important;
+  border-radius: 20px !important;
+}
+
+/* Safety: if an old Today transaction-history button remains cached, hide it. */
+.mobile-app:has(.date-strip) button {
+  max-width: 100% !important;
+}
+
+/* Keep Transaction History access visually intended for Insights only */
+.mobile-app:has(.date-strip) button[style*="View All Transactions"] {
+  display: none !important;
+}
+
+/* Bottom clearance */
+.mobile-app:has(.date-strip) {
+  padding-bottom: 118px !important;
+}
+
+@media (max-width: 390px) {
+  .mobile-app:has(.date-strip) .page-content {
+    gap: 10px !important;
+  }
+
+  .mobile-app:has(.date-strip) .balance-hero {
+    margin-bottom: 10px !important;
+  }
+
+  .mobile-app:has(.date-strip) .date-strip {
+    margin-bottom: 12px !important;
+  }
+
+  .mobile-app:has(.date-strip) .recommendation-card {
+    margin-bottom: 8px !important;
+  }
+}
+/* =========================================================
+   DueWise Supabase Cloud Sync V1
+   Paste at the very bottom of src/index.css.
+   Styles the DueWise Cloud sign-in, sync, restore, and status panel.
+   ========================================================= */
+
+.cloud-sync-panel {
+  display: grid;
+  gap: 12px;
+  color: var(--duewise-text, #171717);
+}
+
+.cloud-sync-panel.warning {
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
+.cloud-sync-panel.warning p,
+.cloud-sync-note {
+  margin: 0;
+  color: var(--duewise-brand, #f97316) !important;
+  font-size: 0.78rem;
+  font-weight: 950;
+  line-height: 1.3;
+}
+
+.cloud-sync-panel.warning span {
+  color: var(--duewise-subtext, #5f5a52) !important;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.cloud-sync-status-card {
+  display: grid;
+  gap: 4px;
+  padding: 15px;
+  border-radius: 22px;
+  color: var(--duewise-text, #171717);
+  background:
+    radial-gradient(circle at top left, rgba(47, 125, 90, 0.13), transparent 34%),
+    var(--duewise-card, #fffdf8);
+  border: 1px solid rgba(47, 125, 90, 0.2);
+}
+
+.theme-dark .cloud-sync-status-card {
+  background:
+    radial-gradient(circle at top left, rgba(126, 224, 169, 0.13), transparent 34%),
+    var(--duewise-card, #242824);
+  border-color: rgba(126, 224, 169, 0.22);
+}
+
+.cloud-sync-status-card p {
+  margin: 0;
+  color: var(--duewise-brand, #f97316) !important;
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cloud-sync-status-card h3 {
+  margin: 0;
+  color: var(--duewise-text, #171717) !important;
+  font-size: 1.05rem;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.cloud-sync-status-card span {
+  color: var(--duewise-subtext, #5f5a52) !important;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.cloud-sync-status-card small {
+  color: var(--duewise-muted, #7b756c) !important;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.cloud-sync-field {
+  display: grid;
+  gap: 7px;
+}
+
+.cloud-sync-field span {
+  color: var(--duewise-subtext, #5f5a52) !important;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.cloud-sync-field input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  border-radius: 17px;
+  color: var(--duewise-text, #171717) !important;
+  background: var(--duewise-card, #fffdf8) !important;
+  border: 1px solid var(--duewise-border, rgba(23, 23, 23, 0.11)) !important;
+  font-size: 0.9rem;
+  font-weight: 850;
+  outline: 0;
+}
+
+.cloud-sync-field input::placeholder {
+  color: var(--duewise-muted, #7b756c) !important;
+}
+
+.cloud-sync-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.cloud-sync-action-grid button,
+.cloud-sync-primary-button,
+.cloud-sync-secondary-button,
+.cloud-sync-danger-button {
+  min-height: 46px;
+  display: grid;
+  place-items: center;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 18px;
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.cloud-sync-primary-button,
+.cloud-sync-action-grid button:first-child {
+  color: #ffffff !important;
+  background: #171717 !important;
+}
+
+.theme-dark .cloud-sync-primary-button,
+.theme-dark .cloud-sync-action-grid button:first-child {
+  color: #171717 !important;
+  background: #f8f5ee !important;
+}
+
+.cloud-sync-action-grid button:last-child,
+.cloud-sync-secondary-button {
+  color: var(--duewise-text, #171717) !important;
+  background: var(--duewise-card-soft, #f6f0e6) !important;
+  border: 1px solid var(--duewise-border, rgba(23, 23, 23, 0.11)) !important;
+}
+
+.cloud-sync-danger-button {
+  color: var(--duewise-red, #be4440) !important;
+  background: rgba(190, 68, 64, 0.10) !important;
+}
+
+button:disabled.cloud-sync-primary-button,
+button:disabled.cloud-sync-secondary-button,
+button:disabled.cloud-sync-danger-button,
+.cloud-sync-action-grid button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Make the profile/cloud button readable with either initials or cloud symbol */
+.profile-button {
+  font-size: 0.82rem !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.02em !important;
+}
