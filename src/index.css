@@ -6883,3 +6883,146 @@ body,
     padding: 14px !important;
   }
 }
+/* =========================================================
+   DueWise Bottom Nav Compact Fix
+   Paste at the very bottom of src/index.css.
+   Fixes stretched bottom navigation and keeps it app-like.
+   ========================================================= */
+
+.bottom-nav {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: max(10px, env(safe-area-inset-bottom)) !important;
+  transform: translateX(-50%) !important;
+
+  width: min(calc(100vw - 32px), 398px) !important;
+  max-width: 398px !important;
+  min-width: 0 !important;
+
+  height: 78px !important;
+  min-height: 78px !important;
+  max-height: 78px !important;
+
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  align-items: center !important;
+  gap: 6px !important;
+
+  padding: 8px !important;
+  border-radius: 28px !important;
+  overflow: hidden !important;
+
+  background: rgba(255, 253, 248, 0.96) !important;
+  border: 1px solid rgba(23, 23, 23, 0.10) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+
+  z-index: 80 !important;
+}
+
+.theme-dark .bottom-nav {
+  background: rgba(34, 38, 34, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: none !important;
+}
+
+.bottom-nav button {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 60px !important;
+  min-height: 60px !important;
+  max-height: 60px !important;
+
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  gap: 4px !important;
+
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 22px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.bottom-nav button.active {
+  background: rgba(249, 115, 22, 0.13) !important;
+  box-shadow: none !important;
+}
+
+.theme-dark .bottom-nav button.active {
+  background: rgba(251, 146, 60, 0.15) !important;
+}
+
+.bottom-nav svg {
+  width: 22px !important;
+  height: 22px !important;
+  margin: 0 !important;
+}
+
+.bottom-nav span {
+  margin: 0 !important;
+  font-size: 0.64rem !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+
+/* Active underline should be short and centered */
+.bottom-nav button.active::after {
+  width: 24px !important;
+  height: 3px !important;
+  border-radius: 999px !important;
+  margin-top: 1px !important;
+}
+
+/* Keep page content from hiding behind the compact nav */
+.mobile-app {
+  padding-bottom: 108px !important;
+}
+
+/* Keep FAB above nav without touching it */
+.main-fab {
+  bottom: 100px !important;
+  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
+  box-shadow: none !important;
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .bottom-nav {
+    width: calc(100vw - 24px) !important;
+    height: 74px !important;
+    min-height: 74px !important;
+    max-height: 74px !important;
+    padding: 7px !important;
+    border-radius: 26px !important;
+  }
+
+  .bottom-nav button {
+    height: 58px !important;
+    min-height: 58px !important;
+    max-height: 58px !important;
+    border-radius: 20px !important;
+  }
+
+  .bottom-nav svg {
+    width: 21px !important;
+    height: 21px !important;
+  }
+
+  .bottom-nav span {
+    font-size: 0.61rem !important;
+  }
+
+  .mobile-app {
+    padding-bottom: 104px !important;
+  }
+
+  .main-fab {
+    bottom: 96px !important;
+    right: 14px !important;
+  }
+}
