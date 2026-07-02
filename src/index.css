@@ -7026,3 +7026,52 @@ body,
     right: 14px !important;
   }
 }
+/* =========================================================
+   DueWise FAB Higher Position Fix
+   Paste at the very bottom of src/index.css.
+   Moves the floating plus button higher so it does not crowd
+   the bottom navigation.
+   ========================================================= */
+
+.main-fab {
+  bottom: 126px !important;
+  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  z-index: 90 !important;
+}
+
+/* Move opened quick-action buttons together with the FAB */
+.fab-actions {
+  bottom: 194px !important;
+  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
+  z-index: 95 !important;
+}
+
+/* Add extra bottom breathing room so content is not hidden */
+.mobile-app {
+  padding-bottom: 132px !important;
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .main-fab {
+    bottom: 120px !important;
+    right: 14px !important;
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px !important;
+    min-height: 54px !important;
+  }
+
+  .fab-actions {
+    bottom: 184px !important;
+    right: 14px !important;
+  }
+
+  .mobile-app {
+    padding-bottom: 128px !important;
+  }
+}
