@@ -52,15 +52,7 @@ type TransactionFilter = 'all' | QuickAction
 type AccountAccent = 'green' | 'blue' | 'teal'
 type DialogTone = 'default' | 'danger'
 
-type BudgetCategory =
-  | 'Food'
-  | 'Transportation'
-  | 'Bills'
-  | 'Subscriptions'
-  | 'Shopping'
-  | 'Savings'
-  | 'Debt Payment'
-  | 'Other'
+type BudgetCategory = string
 
 type Account = {
   id: number
@@ -266,16 +258,18 @@ const peso = new Intl.NumberFormat('en-PH', {
   maximumFractionDigits: 0,
 })
 
-const initialMonthlyBudgets: MonthlyBudget[] = [
-  { id: 1, category: 'Food', limit: 8000 },
-  { id: 2, category: 'Transportation', limit: 4000 },
-  { id: 3, category: 'Bills', limit: 7000 },
-  { id: 4, category: 'Subscriptions', limit: 1500 },
-  { id: 5, category: 'Shopping', limit: 5000 },
-  { id: 6, category: 'Savings', limit: 10000 },
-  { id: 7, category: 'Debt Payment', limit: 8500 },
-  { id: 8, category: 'Other', limit: 3000 },
-]
+const initialMonthlyBudgets: MonthlyBudget[] = []
+
+const legacyDefaultBudgetLimits: Record<string, number> = {
+  Food: 8000,
+  Transportation: 4000,
+  Bills: 7000,
+  Subscriptions: 1500,
+  Shopping: 5000,
+  Savings: 10000,
+  'Debt Payment': 8500,
+  Other: 3000,
+}
 
 const initialFinanceData: FinanceData = {
   accounts: [
@@ -331,7 +325,7 @@ function App() {
   const [accountEditor, setAccountEditor] = useState<Account | 'new' | null>(null)
   const [cardEditor, setCardEditor] = useState<CreditCardAccount | 'new' | null>(null)
   const [billEditor, setBillEditor] = useState<RecurringExpense | 'new' | null>(null)
-  const [budgetEditor, setBudgetEditor] = useState<MonthlyBudget | null>(null)
+  const [budgetEditor, setBudgetEditor] = useState<MonthlyBudget | 'new' | null>(null)
   const [goalEditor, setGoalEditor] = useState<SavingsGoal | 'new' | null>(null)
   const [debtEditor, setDebtEditor] = useState<Debt | 'new' | null>(null)
   const [billPaymentTarget, setBillPaymentTarget] = useState<RecurringExpense | null>(null)
@@ -421,6 +415,21 @@ function App() {
   const budgetMetrics = useMemo(
     () => getBudgetMetrics(financeData.monthlyBudgets, financeData.transactions),
     [financeData.monthlyBudgets, financeData.transactions],
+  )
+
+  const expenseCategoryOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            ...budgetCategories,
+            ...financeData.monthlyBudgets
+              .map((budget) => budget.category.trim())
+              .filter((category) => category.length > 0),
+          ],
+        ),
+      ),
+    [financeData.monthlyBudgets],
   )
 
   function showAlert(title: string, message: string) {
@@ -932,18 +941,48 @@ function App() {
     setBillPaymentTarget(null)
   }
 
-  function saveBudget(budgetId: number, limit: number) {
+  function saveBudget(budget: Omit<MonthlyBudget, 'id'>, id?: number) {
+    const category = budget.category.trim()
+    const limit = Number(budget.limit)
+
+    if (!category) {
+      showAlert('Budget Name Required', 'Please enter a budget name or category.')
+      return
+    }
+
     if (!Number.isFinite(limit) || limit < 0) {
       showAlert('Invalid Budget', 'Please enter a valid monthly budget amount.')
       return
     }
 
-    setFinanceData((current) => ({
-      ...current,
-      monthlyBudgets: current.monthlyBudgets.map((budget) =>
-        budget.id === budgetId ? { ...budget, limit } : budget,
-      ),
-    }))
+    setFinanceData((current) => {
+      const duplicate = current.monthlyBudgets.find(
+        (item) => item.category.trim().toLowerCase() === category.toLowerCase() && item.id !== id,
+      )
+
+      if (duplicate) {
+        showAlert('Budget Already Exists', `${duplicate.category} already has a budget. Edit the existing budget instead.`)
+        return current
+      }
+
+      return {
+        ...current,
+        monthlyBudgets:
+          typeof id === 'number'
+            ? current.monthlyBudgets.map((item) =>
+                item.id === id ? { ...item, category, limit } : item,
+              )
+            : [
+                ...current.monthlyBudgets,
+                {
+                  id: createNumericId(current.monthlyBudgets),
+                  category,
+                  limit,
+                },
+              ],
+      }
+    })
+
     setBudgetEditor(null)
   }
 
@@ -1149,6 +1188,7 @@ function App() {
               onEditBill={setBillEditor}
               onDeleteBill={deleteBill}
               onPayBill={setBillPaymentTarget}
+              onAddBudget={() => setBudgetEditor('new')}
               onEditBudget={setBudgetEditor}
               onAddGoal={() => setGoalEditor('new')}
               onEditGoal={setGoalEditor}
@@ -1200,6 +1240,41 @@ function App() {
           </button>
         </div>
 
+        {activeTab === 'plan' && !fabOpen && (
+          <div className="plan-fab-actions" aria-label="Plan quick add actions">
+            <button
+              type="button"
+              className="plan-mini-fab budget"
+              aria-label="Add budget"
+              title="Add budget"
+              onClick={() => setBudgetEditor('new')}
+            >
+              <ClipboardList size={22} />
+              <span>Budget</span>
+            </button>
+            <button
+              type="button"
+              className="plan-mini-fab savings"
+              aria-label="Add savings goal"
+              title="Add savings goal"
+              onClick={() => setGoalEditor('new')}
+            >
+              <WalletCards size={22} />
+              <span>Savings</span>
+            </button>
+            <button
+              type="button"
+              className="plan-mini-fab debt"
+              aria-label="Add debt"
+              title="Add debt"
+              onClick={() => setDebtEditor('new')}
+            >
+              <Landmark size={22} />
+              <span>Debt</span>
+            </button>
+          </div>
+        )}
+
         <button
           className={`main-fab ${fabOpen ? 'open' : ''}`}
           type="button"
@@ -1236,6 +1311,7 @@ function App() {
             action={activeAction}
             accounts={financeData.accounts}
             creditCards={financeData.creditCards}
+            expenseCategories={expenseCategoryOptions}
             onClose={() => setActiveAction(null)}
             onAddIncome={handleQuickIncome}
             onAddExpense={handleQuickExpense}
@@ -1273,7 +1349,7 @@ function App() {
 
         {budgetEditor && (
           <BudgetEditorModal
-            budget={budgetEditor}
+            budget={budgetEditor === 'new' ? undefined : budgetEditor}
             onClose={() => setBudgetEditor(null)}
             onSave={saveBudget}
             onNotify={showAlert}
@@ -1651,6 +1727,7 @@ function PlanPage({
   onEditBill,
   onDeleteBill,
   onPayBill,
+  onAddBudget,
   onEditBudget,
   onAddGoal,
   onEditGoal,
@@ -1670,6 +1747,7 @@ function PlanPage({
   onEditBill: (bill: RecurringExpense) => void
   onDeleteBill: (id: number) => void
   onPayBill: (bill: RecurringExpense) => void
+  onAddBudget: () => void
   onEditBudget: (budget: MonthlyBudget) => void
   onAddGoal: () => void
   onEditGoal: (goal: SavingsGoal) => void
@@ -1741,6 +1819,7 @@ function PlanPage({
           <button
             key={item.key}
             type="button"
+            className={`plan-summary-card ${activePlanSection === item.key ? 'active' : ''}`}
             style={planSummaryButtonStyle(activePlanSection === item.key)}
             onClick={() => setActivePlanSection(item.key)}
           >
@@ -1839,6 +1918,7 @@ function PlanPage({
       {activePlanSection === 'budget' && (
         <BudgetSection
           budgetMetrics={budgetMetrics}
+          onAddBudget={onAddBudget}
           onEditBudget={onEditBudget}
         />
       )}
@@ -2037,70 +2117,91 @@ function PlanPage({
 
 function BudgetSection({
   budgetMetrics,
+  onAddBudget,
   onEditBudget,
 }: {
   budgetMetrics: BudgetMetric[]
+  onAddBudget: () => void
   onEditBudget: (budget: MonthlyBudget) => void
 }) {
   const totalBudget = budgetMetrics.reduce((total, metric) => total + metric.budget.limit, 0)
   const totalSpent = budgetMetrics.reduce((total, metric) => total + metric.spent, 0)
   const remaining = totalBudget - totalSpent
   const progress = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0
+  const visibleBudgetMetrics = budgetMetrics.filter((metric) => metric.budget.limit > 0 || metric.spent > 0)
 
   return (
     <>
-      <SectionTitle title="Monthly Budget" subtitle="Track spending by category for this month" />
+      <SectionTitle title="Monthly Budget" subtitle="Create only the budgets you want to track" />
 
       <section className="recurring-summary">
         <div>
           <p>Budget Used</p>
           <h2>{peso.format(totalSpent)}</h2>
           <span>
-            {remaining >= 0
-              ? `${peso.format(remaining)} remaining`
-              : `${peso.format(Math.abs(remaining))} over budget`}
+            {totalBudget <= 0
+              ? 'No monthly budgets yet'
+              : remaining >= 0
+                ? `${peso.format(remaining)} remaining`
+                : `${peso.format(Math.abs(remaining))} over budget`}
           </span>
         </div>
-        <strong>{Math.min(progress, 999)}%</strong>
+        <strong>{totalBudget <= 0 ? '—' : `${Math.min(progress, 999)}%`}</strong>
       </section>
 
-      <div className="card-list" style={{ marginTop: 14 }}>
-        {budgetMetrics.map((metric) => (
-          <article key={metric.budget.id} className="goal-card">
-            <div className="goal-header">
-              <div>
-                <h3>{metric.budget.category}</h3>
-                <p>Monthly limit: {peso.format(metric.budget.limit)}</p>
-              </div>
-              <strong style={metric.overBudget ? dangerTextStyle : undefined}>{metric.progress}%</strong>
-            </div>
-
-            <div className="progress-track">
-              <div
-                className={`progress-fill ${metric.overBudget ? 'warning' : 'savings'}`}
-                style={{ width: `${Math.min(metric.progress, 100)}%` }}
-              />
-            </div>
-
-            <div className="goal-values">
-              <span>
-                Spent
-                <strong>{peso.format(metric.spent)}</strong>
-              </span>
-              <span>
-                {metric.overBudget ? 'Over' : 'Remaining'}
-                <strong>{peso.format(Math.abs(metric.remaining))}</strong>
-              </span>
-            </div>
-
-            <div style={budgetActionRowStyle}>
-              <button type="button" style={compactButtonStyle} onClick={() => onEditBudget(metric.budget)}>
-                Set Budget
-              </button>
-            </div>
-          </article>
-        ))}
+      <div className="plan-inline-actions">
+        <button type="button" onClick={onAddBudget}>
+          <Plus size={16} />
+          Add Budget
+        </button>
       </div>
+
+      {visibleBudgetMetrics.length > 0 ? (
+        <div className="card-list" style={{ marginTop: 12 }}>
+          {visibleBudgetMetrics.map((metric) => (
+            <article key={metric.budget.id} className="goal-card">
+              <div className="goal-header">
+                <div>
+                  <h3>{metric.budget.category}</h3>
+                  <p>Monthly limit: {peso.format(metric.budget.limit)}</p>
+                </div>
+                <strong style={metric.overBudget ? dangerTextStyle : undefined}>{metric.progress}%</strong>
+              </div>
+
+              <div className="progress-track">
+                <div
+                  className={`progress-fill ${metric.overBudget ? 'warning' : 'savings'}`}
+                  style={{ width: `${Math.min(metric.progress, 100)}%` }}
+                />
+              </div>
+
+              <div className="goal-values">
+                <span>
+                  Spent
+                  <strong>{peso.format(metric.spent)}</strong>
+                </span>
+                <span>
+                  {metric.overBudget ? 'Over' : 'Remaining'}
+                  <strong>{peso.format(Math.abs(metric.remaining))}</strong>
+                </span>
+              </div>
+
+              <div style={budgetActionRowStyle}>
+                <button type="button" style={compactButtonStyle} onClick={() => onEditBudget(metric.budget)}>
+                  Edit Budget
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <article className="account-card budget-empty-card">
+          <div className="card-main-content">
+            <h3>No budgets yet</h3>
+            <p>Tap Add Budget and create your own categories, like Grocery, Fuel, Coffee, or Family Support.</p>
+          </div>
+        </article>
+      )}
     </>
   )
 }
@@ -2914,6 +3015,7 @@ function QuickActionModal({
   action,
   accounts,
   creditCards,
+  expenseCategories,
   onClose,
   onAddIncome,
   onAddExpense,
@@ -2923,6 +3025,7 @@ function QuickActionModal({
   action: QuickAction
   accounts: Account[]
   creditCards: CreditCardAccount[]
+  expenseCategories: BudgetCategory[]
   onClose: () => void
   onAddIncome: (accountId: number, amount: number, note: string) => void
   onAddExpense: (paymentSource: string, amount: number, note: string, category: BudgetCategory) => void
@@ -2931,7 +3034,7 @@ function QuickActionModal({
 }) {
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
-  const [category, setCategory] = useState<BudgetCategory>('Food')
+  const [category, setCategory] = useState<BudgetCategory>(expenseCategories[0] ?? 'Other')
   const [incomeAccountId, setIncomeAccountId] = useState(accounts[0]?.id.toString() ?? '')
   const [paymentSource, setPaymentSource] = useState(accounts[0] ? `account:${accounts[0].id}` : '')
   const [sourceAccountId, setSourceAccountId] = useState(accounts[0]?.id.toString() ?? '')
@@ -2977,7 +3080,7 @@ function QuickActionModal({
         {action === 'expense' && (
           <>
             <SelectField label="Category" value={category} onChange={(value) => setCategory(value as BudgetCategory)}>
-              {budgetCategories.map((item) => (
+              {expenseCategories.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
@@ -3209,30 +3312,43 @@ function BudgetEditorModal({
   onSave,
   onNotify,
 }: {
-  budget: MonthlyBudget
+  budget?: MonthlyBudget
   onClose: () => void
-  onSave: (budgetId: number, limit: number) => void
+  onSave: (budget: Omit<MonthlyBudget, 'id'>, id?: number) => void
   onNotify: (title: string, message: string) => void
 }) {
-  const [limit, setLimit] = useState(budget.limit.toString())
+  const [category, setCategory] = useState(budget?.category ?? '')
+  const [limit, setLimit] = useState(budget?.limit.toString() ?? '')
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const parsedLimit = Number(limit)
+
+    if (!category.trim()) {
+      onNotify('Budget Name Required', 'Please enter a budget name or category.')
+      return
+    }
 
     if (!Number.isFinite(parsedLimit) || parsedLimit < 0) {
       onNotify('Invalid Budget', 'Please enter a valid monthly budget amount.')
       return
     }
 
-    onSave(budget.id, parsedLimit)
+    onSave({ category: category.trim(), limit: parsedLimit }, budget?.id)
   }
 
   return (
-    <ModalShell eyebrow="Monthly Budget" title={budget.category} onClose={onClose}>
+    <ModalShell eyebrow="Monthly Budget" title={budget ? 'Edit Budget' : 'Add Budget'} onClose={onClose}>
       <form onSubmit={submit} style={modalFormStyle}>
-        <TextField label="Monthly budget limit" type="number" value={limit} onChange={setLimit} placeholder="0.00" autoFocus />
-        <button type="submit" style={submitButtonStyle}>Save Budget</button>
+        <TextField
+          label="Budget name or category"
+          value={category}
+          onChange={setCategory}
+          placeholder="Example: Grocery, Fuel, Coffee"
+          autoFocus
+        />
+        <TextField label="Monthly budget limit" type="number" value={limit} onChange={setLimit} placeholder="0.00" />
+        <button type="submit" style={submitButtonStyle}>{budget ? 'Save Budget' : 'Add Budget'}</button>
       </form>
     </ModalShell>
   )
@@ -4642,7 +4758,7 @@ function getBillRemainingBalance(expense: RecurringExpense) {
 }
 
 function isBudgetCategory(value: unknown): value is BudgetCategory {
-  return typeof value === 'string' && budgetCategories.includes(value as BudgetCategory)
+  return typeof value === 'string' && value.trim().length > 0
 }
 
 function normalizeTransactions(rawTransactions: unknown): Transaction[] {
@@ -4674,23 +4790,30 @@ function normalizeTransactions(rawTransactions: unknown): Transaction[] {
 }
 
 function normalizeMonthlyBudgets(rawBudgets: unknown): MonthlyBudget[] {
-  const source = Array.isArray(rawBudgets) ? rawBudgets : []
+  const source = Array.isArray(rawBudgets) ? rawBudgets : initialMonthlyBudgets
+  const seenCategories = new Set<string>()
 
-  return budgetCategories.map((category, index) => {
-    const savedBudget = source.find((rawBudget) => {
+  return source
+    .map((rawBudget, index) => {
       const budget = rawBudget as Partial<MonthlyBudget>
-      return budget.category === category
-    }) as Partial<MonthlyBudget> | undefined
+      const category = String(budget.category ?? '').trim()
+      const savedLimit = Number(budget.limit ?? 0)
+      const legacyDefaultLimit = legacyDefaultBudgetLimits[category]
+      const cleanedLimit = savedLimit === legacyDefaultLimit ? 0 : savedLimit
 
-    const fallbackBudget = initialMonthlyBudgets.find((budget) => budget.category === category)
-    const savedLimit = Number(savedBudget?.limit ?? fallbackBudget?.limit ?? 0)
-
-    return {
-      id: index + 1,
-      category,
-      limit: Number.isFinite(savedLimit) && savedLimit >= 0 ? savedLimit : 0,
-    }
-  })
+      return {
+        id: Number.isFinite(Number(budget.id)) ? Number(budget.id) : index + 1,
+        category,
+        limit: Number.isFinite(cleanedLimit) && cleanedLimit >= 0 ? cleanedLimit : 0,
+      }
+    })
+    .filter((budget) => {
+      if (!budget.category) return false
+      const key = budget.category.toLowerCase()
+      if (seenCategories.has(key)) return false
+      seenCategories.add(key)
+      return true
+    })
 }
 
 function normalizeRecurringExpenses(rawRecurringExpenses: unknown): RecurringExpense[] {
