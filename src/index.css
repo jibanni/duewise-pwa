@@ -8624,3 +8624,83 @@ div[style*="position: fixed"] input {
     animation: none !important;
   }
 }
+/* =========================================================
+   DueWise Dynamic Calendar + Transparent FAB Polish
+   Paste at the very bottom of src/index.css.
+   - Today calendar now uses the real browser date from App.tsx.
+   - FAB stack is slightly transparent so content behind is visible.
+   - Keeps FABs synchronized and readable.
+   ========================================================= */
+
+/* Make FABs translucent but still clear */
+.main-fab,
+.plan-mini-fab,
+.plan-fab-actions button {
+  opacity: 0.86 !important;
+  background: rgba(17, 17, 17, 0.88) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    background 160ms ease !important;
+}
+
+/* Fully visible while tapping/hovering/focused */
+.main-fab:hover,
+.main-fab:active,
+.main-fab:focus-visible,
+.plan-mini-fab:hover,
+.plan-mini-fab:active,
+.plan-mini-fab:focus-visible,
+.plan-fab-actions button:hover,
+.plan-fab-actions button:active,
+.plan-fab-actions button:focus-visible {
+  opacity: 1 !important;
+  background: #111111 !important;
+}
+
+/* Keep icons centered and fully visible */
+.main-fab > svg,
+.plan-mini-fab > svg,
+.plan-fab-actions button > svg {
+  opacity: 1 !important;
+  color: #ffffff !important;
+}
+
+/* Slightly lighter border so transparent black does not look heavy */
+.main-fab,
+.plan-mini-fab,
+.plan-fab-actions button {
+  border-color: rgba(247, 242, 232, 0.92) !important;
+}
+
+.theme-dark .main-fab,
+.theme-dark .plan-mini-fab,
+.theme-dark .plan-fab-actions button {
+  border-color: rgba(17, 20, 17, 0.92) !important;
+}
+
+/* Date strip selected day: make the real today obvious */
+.date-strip button.selected {
+  background: #111111 !important;
+  color: #ffffff !important;
+  border-color: #111111 !important;
+  opacity: 1 !important;
+}
+
+.date-strip button.selected span,
+.date-strip button.selected strong {
+  color: #ffffff !important;
+}
+
+.theme-dark .date-strip button.selected {
+  background: #f8f5ee !important;
+  color: #111111 !important;
+  border-color: #f8f5ee !important;
+}
+
+.theme-dark .date-strip button.selected span,
+.theme-dark .date-strip button.selected strong {
+  color: #111111 !important;
+}

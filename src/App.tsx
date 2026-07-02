@@ -1473,15 +1473,22 @@ function TodayPage({
   onOpenPlan: () => void
   onOpenWallet: () => void
 }) {
-  const days = [
-    { day: 'Mon', date: 22 },
-    { day: 'Tue', date: 23 },
-    { day: 'Wed', date: 24 },
-    { day: 'Thu', date: 25 },
-    { day: 'Fri', date: 26 },
-    { day: 'Sat', date: 27 },
-    { day: 'Sun', date: 28 },
-  ]
+  const today = new Date()
+  const mondayOffset = today.getDay() === 0 ? -6 : 1 - today.getDay()
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today)
+    date.setHours(0, 0, 0, 0)
+    date.setDate(today.getDate() + mondayOffset + index)
+
+    return {
+      day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      date: date.getDate(),
+      isToday:
+        date.getFullYear() === today.getFullYear() &&
+        date.getMonth() === today.getMonth() &&
+        date.getDate() === today.getDate(),
+    }
+  })
 
   const dailyRecommendation = getDailyRecommendation(creditCardInsights)
 
@@ -1515,8 +1522,8 @@ function TodayPage({
   return (
     <>
       <section className="date-strip" aria-label="Calendar dates">
-        {days.map((item, index) => (
-          <button key={`${item.day}-${item.date}`} type="button" className={index === 3 ? 'selected' : ''}>
+        {days.map((item) => (
+          <button key={`${item.day}-${item.date}`} type="button" className={item.isToday ? 'selected' : ''}>
             <span>{item.day}</span>
             <strong>{item.date}</strong>
           </button>
