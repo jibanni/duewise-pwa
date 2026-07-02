@@ -7075,3 +7075,90 @@ body,
     padding-bottom: 128px !important;
   }
 }
+/* =========================================================
+   DueWise FAB Subtle Radar Ripple
+   Paste at the very bottom of src/index.css.
+   Adds a calm radar-like ripple around the floating plus button.
+   ========================================================= */
+
+.main-fab {
+  position: fixed !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+}
+
+/* Outer ripple */
+.main-fab::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -10px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(249, 115, 22, 0.34) !important;
+  background: rgba(249, 115, 22, 0.08) !important;
+  z-index: -1 !important;
+  opacity: 0 !important;
+  transform: scale(0.86) !important;
+  animation: duewiseFabRadar 2.8s ease-out infinite !important;
+  pointer-events: none !important;
+}
+
+/* Inner delayed ripple */
+.main-fab::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -5px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(47, 125, 90, 0.28) !important;
+  background: rgba(47, 125, 90, 0.06) !important;
+  z-index: -1 !important;
+  opacity: 0 !important;
+  transform: scale(0.88) !important;
+  animation: duewiseFabRadar 2.8s ease-out infinite 1.15s !important;
+  pointer-events: none !important;
+}
+
+.theme-dark .main-fab::before {
+  border-color: rgba(251, 146, 60, 0.38) !important;
+  background: rgba(251, 146, 60, 0.08) !important;
+}
+
+.theme-dark .main-fab::after {
+  border-color: rgba(126, 224, 169, 0.30) !important;
+  background: rgba(126, 224, 169, 0.06) !important;
+}
+
+@keyframes duewiseFabRadar {
+  0% {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+
+  18% {
+    opacity: 0.55;
+  }
+
+  72% {
+    opacity: 0.08;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.62);
+  }
+}
+
+/* Pause ripple when the FAB menu is open so it does not look busy */
+.main-fab.open::before,
+.main-fab.open::after {
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .main-fab::before,
+  .main-fab::after {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}
