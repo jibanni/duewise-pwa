@@ -6010,3 +6010,876 @@ button:disabled.cloud-sync-danger-button,
   font-weight: 950 !important;
   letter-spacing: -0.02em !important;
 }
+
+/* =========================================================
+   DueWise Disable Accidental Zoom
+   Reduces accidental double-tap zoom and iOS input zoom.
+   ========================================================= */
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Prevent iPhone Safari from zooming when tapping inputs */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+/* Prevent accidental text selection while tapping app controls */
+button,
+.bottom-nav,
+.main-fab,
+.fab-action,
+.date-strip,
+.insights-section-card {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* =========================================================
+   DueWise Clean UI Reset
+   Paste at the very bottom of src/index.css.
+   Purpose:
+   - removes dirty/heavy shadows across pages
+   - fixes side overflow/cut-off views
+   - normalizes card spacing, width, and surfaces
+   - keeps the DueWise warm/orange + green identity
+   ========================================================= */
+
+/* ---------- Clean design tokens ---------- */
+:root {
+  --dw-clean-bg: #f7f2e8;
+  --dw-clean-bg-2: #fffaf1;
+  --dw-clean-card: #fffdf8;
+  --dw-clean-card-soft: #f8f3ea;
+  --dw-clean-text: #171717;
+  --dw-clean-muted: #676159;
+  --dw-clean-muted-2: #8a8378;
+  --dw-clean-border: rgba(23, 23, 23, 0.10);
+  --dw-clean-shadow: 0 8px 20px rgba(45, 37, 24, 0.075);
+  --dw-clean-shadow-soft: 0 4px 12px rgba(45, 37, 24, 0.055);
+  --dw-clean-brand: #f97316;
+  --dw-clean-green: #2f7d5a;
+  --dw-clean-green-soft: #e9f7ef;
+  --dw-clean-danger: #be4440;
+}
+
+.theme-dark {
+  --dw-clean-bg: #111411;
+  --dw-clean-bg-2: #151815;
+  --dw-clean-card: #222622;
+  --dw-clean-card-soft: #2a2e2a;
+  --dw-clean-text: #f8f5ee;
+  --dw-clean-muted: #c1baaf;
+  --dw-clean-muted-2: #948d83;
+  --dw-clean-border: rgba(255, 255, 255, 0.11);
+  --dw-clean-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  --dw-clean-shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.18);
+  --dw-clean-brand: #fb923c;
+  --dw-clean-green: #7ee0a9;
+  --dw-clean-green-soft: rgba(126, 224, 169, 0.12);
+  --dw-clean-danger: #ff9b95;
+}
+
+/* ---------- Stop ugly side overflow and clipped page views ---------- */
+html,
+body,
+#root {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  margin: 0 !important;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box !important;
+}
+
+.app-shell,
+.theme-dark.app-shell {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  color: var(--dw-clean-text) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(249, 115, 22, 0.08), transparent 26%),
+    linear-gradient(180deg, var(--dw-clean-bg-2) 0%, var(--dw-clean-bg) 100%) !important;
+}
+
+.theme-dark.app-shell {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(251, 146, 60, 0.08), transparent 26%),
+    linear-gradient(180deg, var(--dw-clean-bg-2) 0%, var(--dw-clean-bg) 100%) !important;
+}
+
+.mobile-app {
+  width: min(100%, 430px) !important;
+  max-width: 430px !important;
+  min-width: 0 !important;
+  margin: 0 auto !important;
+  padding: 12px 16px 116px !important;
+  overflow-x: hidden !important;
+  color: var(--dw-clean-text) !important;
+  background: transparent !important;
+}
+
+/* ---------- Header: remove dirty black slab and normalize ---------- */
+.app-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 60 !important;
+  width: 100% !important;
+  margin: 0 0 10px !important;
+  padding: 8px 0 10px !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+.app-header::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 -16px !important;
+  z-index: -1 !important;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 250, 241, 0.96) 0%,
+    rgba(255, 250, 241, 0.86) 76%,
+    rgba(255, 250, 241, 0) 100%
+  ) !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+.theme-dark .app-header::before {
+  background: linear-gradient(
+    180deg,
+    rgba(17, 20, 17, 0.96) 0%,
+    rgba(17, 20, 17, 0.86) 76%,
+    rgba(17, 20, 17, 0) 100%
+  ) !important;
+}
+
+.brand-name {
+  color: var(--dw-clean-brand) !important;
+  font-size: 0.7rem !important;
+  line-height: 1 !important;
+  letter-spacing: 0.24em !important;
+  font-weight: 950 !important;
+  opacity: 1 !important;
+}
+
+.app-header h1 {
+  margin: 2px 0 0 !important;
+  color: var(--dw-clean-text) !important;
+  font-size: clamp(2.4rem, 10vw, 3.15rem) !important;
+  line-height: 0.92 !important;
+  letter-spacing: -0.07em !important;
+}
+
+.theme-toggle-button,
+.profile-button {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  border-radius: 999px !important;
+  color: var(--dw-clean-text) !important;
+  background: var(--dw-clean-card) !important;
+  border: 1px solid var(--dw-clean-border) !important;
+  box-shadow: var(--dw-clean-shadow-soft) !important;
+}
+
+.theme-dark .theme-toggle-button,
+.theme-dark .profile-button {
+  background: var(--dw-clean-card-soft) !important;
+}
+
+/* ---------- General surfaces: softer, cleaner, no muddy heavy shadows ---------- */
+.balance-hero,
+.recommendation-card,
+.info-card,
+.account-card,
+.event-card,
+.recurring-card,
+.credit-card,
+.goal-card,
+.debt-card,
+.strategy-card,
+.insight-card,
+.recurring-summary,
+.debt-summary,
+.overview-row,
+.financial-health-card,
+.insights-chart-card,
+.debt-coach-card,
+.compact-debt-coach-card,
+.ai-money-tool-card,
+.smart-insight-card,
+.compact-ai-card,
+.history-metric,
+.transaction-history-panel,
+.cloud-sync-status-card,
+.page-content > section[style*="border-radius"],
+.card-list > article {
+  color: var(--dw-clean-text) !important;
+  background: var(--dw-clean-card) !important;
+  border: 1px solid var(--dw-clean-border) !important;
+  box-shadow: var(--dw-clean-shadow) !important;
+  filter: none !important;
+}
+
+/* Keep charts/cards from creating side overflow */
+.page-content,
+.card-list,
+.mini-grid,
+.analysis-grid,
+.overview-list,
+.insights-section-switcher,
+.date-strip,
+.insights-chart-card,
+.transaction-history-panel,
+.cloud-sync-panel {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/* ---------- Text readability ---------- */
+p,
+span,
+small,
+label {
+  color: var(--dw-clean-muted) !important;
+  opacity: 1 !important;
+}
+
+h1,
+h2,
+h3,
+strong {
+  color: var(--dw-clean-text) !important;
+  opacity: 1 !important;
+}
+
+/* ---------- Hero card: compact, clean ---------- */
+.balance-hero {
+  min-height: 145px !important;
+  margin: 4px 0 14px !important;
+  padding: 20px !important;
+  border-radius: 28px !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(249, 115, 22, 0.06), transparent 34%),
+    linear-gradient(145deg, var(--dw-clean-card), rgba(47, 125, 90, 0.045)) !important;
+}
+
+.theme-dark .balance-hero {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(251, 146, 60, 0.08), transparent 34%),
+    linear-gradient(145deg, var(--dw-clean-card), rgba(126, 224, 169, 0.06)) !important;
+}
+
+.balance-hero h2 {
+  margin: 8px 0 7px !important;
+  font-size: clamp(2.5rem, 11vw, 3.15rem) !important;
+  line-height: 0.94 !important;
+  letter-spacing: -0.065em !important;
+}
+
+.hero-label {
+  color: var(--dw-clean-muted) !important;
+  font-size: 0.84rem !important;
+}
+
+.hero-description {
+  max-width: 295px !important;
+  color: var(--dw-clean-muted) !important;
+  font-size: 0.86rem !important;
+  line-height: 1.34 !important;
+}
+
+/* ---------- Date strip: no side scroll, no ugly cut edges ---------- */
+.date-strip {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+  margin: 0 0 14px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.date-strip button {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 64px !important;
+  padding: 8px 2px !important;
+  border-radius: 18px !important;
+  color: var(--dw-clean-text) !important;
+  background: var(--dw-clean-card) !important;
+  border: 1px solid var(--dw-clean-border) !important;
+  box-shadow: var(--dw-clean-shadow-soft) !important;
+}
+
+.date-strip button span {
+  color: var(--dw-clean-muted) !important;
+  font-size: 0.65rem !important;
+}
+
+.date-strip button strong {
+  color: var(--dw-clean-text) !important;
+  font-size: 0.98rem !important;
+}
+
+.date-strip button.selected {
+  color: #ffffff !important;
+  background: var(--dw-clean-text) !important;
+  border-color: transparent !important;
+}
+
+.date-strip button.selected span,
+.date-strip button.selected strong {
+  color: #ffffff !important;
+}
+
+.theme-dark .date-strip button.selected {
+  color: #141614 !important;
+  background: #f8f5ee !important;
+}
+
+.theme-dark .date-strip button.selected span,
+.theme-dark .date-strip button.selected strong {
+  color: #141614 !important;
+}
+
+/* ---------- Recommendation: less glow, cleaner green ---------- */
+.recommendation-card {
+  margin: 0 0 12px !important;
+  padding: 16px !important;
+  gap: 13px !important;
+  border-radius: 26px !important;
+  background:
+    radial-gradient(circle at top left, rgba(47, 125, 90, 0.12), transparent 34%),
+    var(--dw-clean-card) !important;
+  border-color: rgba(47, 125, 90, 0.20) !important;
+}
+
+.theme-dark .recommendation-card {
+  background:
+    radial-gradient(circle at top left, rgba(126, 224, 169, 0.12), transparent 34%),
+    var(--dw-clean-card) !important;
+  border-color: rgba(126, 224, 169, 0.22) !important;
+}
+
+.recommendation-icon {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 18px !important;
+  color: var(--dw-clean-green) !important;
+  background: rgba(47, 125, 90, 0.10) !important;
+  border: 1px solid rgba(47, 125, 90, 0.16) !important;
+  box-shadow: none !important;
+}
+
+.theme-dark .recommendation-icon {
+  background: rgba(126, 224, 169, 0.10) !important;
+  border-color: rgba(126, 224, 169, 0.18) !important;
+}
+
+.recommendation-card p {
+  color: var(--dw-clean-green) !important;
+  font-weight: 950 !important;
+}
+
+.recommendation-card h2 {
+  font-size: 1.08rem !important;
+}
+
+.recommendation-card span {
+  font-size: 0.8rem !important;
+  line-height: 1.32 !important;
+}
+
+/* ---------- Small cards and lists ---------- */
+.page-content {
+  gap: 12px !important;
+}
+
+.mini-grid,
+.analysis-grid,
+.compact-insight-metrics {
+  gap: 9px !important;
+}
+
+.info-card {
+  min-height: 72px !important;
+  padding: 12px 14px !important;
+  border-radius: 21px !important;
+}
+
+.account-card,
+.event-card,
+.recurring-card,
+.debt-card {
+  min-height: 72px !important;
+  padding: 11px 12px !important;
+  border-radius: 21px !important;
+}
+
+.goal-card,
+.credit-card,
+.strategy-card,
+.insight-card,
+.recurring-summary,
+.debt-summary,
+.smart-insight-card,
+.compact-ai-card,
+.ai-money-tool-card,
+.insights-chart-card,
+.financial-health-card {
+  border-radius: 24px !important;
+}
+
+/* ---------- Insights selector no dirty shadows ---------- */
+.insights-section-switcher {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin: 0 0 12px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.insights-section-card {
+  min-width: 0 !important;
+  min-height: 66px !important;
+  padding: 10px 12px !important;
+  border-radius: 19px !important;
+  background: var(--dw-clean-card) !important;
+  border: 1px solid var(--dw-clean-border) !important;
+  box-shadow: var(--dw-clean-shadow-soft) !important;
+}
+
+.insights-section-card.active {
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.12), transparent 34%),
+    var(--dw-clean-card) !important;
+  border-color: rgba(249, 115, 22, 0.48) !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.08), var(--dw-clean-shadow-soft) !important;
+}
+
+/* ---------- Buttons: clean and consistent ---------- */
+button {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+button[style*="width: 100%"],
+.cloud-sync-primary-button,
+.cloud-sync-secondary-button,
+.cloud-sync-danger-button,
+.history-clear-button {
+  box-shadow: var(--dw-clean-shadow-soft) !important;
+}
+
+button[style*="rgba(255, 255, 255"],
+button[style*="#eee9df"],
+button[style*="#dcece5"] {
+  background: var(--dw-clean-card) !important;
+  color: var(--dw-clean-text) !important;
+  border: 1px solid var(--dw-clean-border) !important;
+  box-shadow: var(--dw-clean-shadow-soft) !important;
+}
+
+/* ---------- Bottom nav and FAB: less dirty glow ---------- */
+.bottom-nav {
+  width: min(calc(100% - 32px), 398px) !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: 8px !important;
+  transform: translateX(-50%) !important;
+  padding: 8px !important;
+  border-radius: 30px !important;
+  background: rgba(255, 253, 248, 0.90) !important;
+  border: 1px solid var(--dw-clean-border) !important;
+  box-shadow: 0 10px 28px rgba(45, 37, 24, 0.12) !important;
+  backdrop-filter: blur(18px) !important;
+  overflow: hidden !important;
+}
+
+.theme-dark .bottom-nav {
+  background: rgba(34, 38, 34, 0.92) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28) !important;
+}
+
+.bottom-nav button {
+  min-height: 56px !important;
+  border-radius: 20px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.bottom-nav button.active {
+  background: rgba(249, 115, 22, 0.12) !important;
+}
+
+.theme-dark .bottom-nav button.active {
+  background: rgba(251, 146, 60, 0.14) !important;
+}
+
+.main-fab {
+  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
+  bottom: 106px !important;
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 999px !important;
+  border: 4px solid var(--dw-clean-bg) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* ---------- Modal panels cleaner ---------- */
+div[style*="position: fixed"] section[style*="border-radius"] {
+  color: var(--dw-clean-text) !important;
+  background: var(--dw-clean-card) !important;
+  border: 1px solid var(--dw-clean-border) !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24) !important;
+}
+
+/* ---------- Small phone tuning ---------- */
+@media (max-width: 390px) {
+  .mobile-app {
+    padding-inline: 12px !important;
+  }
+
+  .app-header h1 {
+    font-size: clamp(2.25rem, 10vw, 2.85rem) !important;
+  }
+
+  .balance-hero {
+    min-height: 138px !important;
+    padding: 18px !important;
+    border-radius: 26px !important;
+  }
+
+  .date-strip {
+    gap: 5px !important;
+  }
+
+  .date-strip button {
+    min-height: 60px !important;
+    border-radius: 16px !important;
+  }
+
+  .recommendation-card {
+    padding: 14px !important;
+  }
+
+  .main-fab {
+    right: 14px !important;
+    bottom: 102px !important;
+    width: 54px !important;
+    height: 54px !important;
+  }
+}
+/* =========================================================
+   DueWise No-Shadow UI Fix
+   Paste at the very bottom of src/index.css.
+   This removes the remaining dirty card shadows completely and
+   replaces depth with clean borders and subtle surface contrast.
+   ========================================================= */
+
+/* ---------- Global no-shadow rule for app UI ---------- */
+.mobile-app *,
+.mobile-app *::before,
+.mobile-app *::after {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* ---------- Clean page background ---------- */
+.app-shell,
+.theme-dark.app-shell {
+  overflow-x: hidden !important;
+}
+
+.mobile-app {
+  overflow-x: hidden !important;
+}
+
+/* ---------- Main surfaces: border-only clean cards ---------- */
+.balance-hero,
+.recommendation-card,
+.info-card,
+.account-card,
+.event-card,
+.recurring-card,
+.credit-card,
+.goal-card,
+.debt-card,
+.strategy-card,
+.insight-card,
+.recurring-summary,
+.debt-summary,
+.overview-row,
+.financial-health-card,
+.insights-chart-card,
+.debt-coach-card,
+.compact-debt-coach-card,
+.ai-money-tool-card,
+.smart-insight-card,
+.compact-ai-card,
+.history-metric,
+.transaction-history-panel,
+.cloud-sync-status-card,
+.page-content > section,
+.card-list > article,
+section[style],
+article[style],
+button[style] {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* ---------- Light mode card surfaces ---------- */
+.balance-hero,
+.recommendation-card,
+.info-card,
+.account-card,
+.event-card,
+.recurring-card,
+.credit-card,
+.goal-card,
+.debt-card,
+.strategy-card,
+.insight-card,
+.recurring-summary,
+.debt-summary,
+.overview-row,
+.financial-health-card,
+.insights-chart-card,
+.debt-coach-card,
+.compact-debt-coach-card,
+.ai-money-tool-card,
+.smart-insight-card,
+.compact-ai-card,
+.history-metric,
+.cloud-sync-status-card,
+.card-list > article {
+  background: #fffdf8 !important;
+  border: 1px solid rgba(23, 23, 23, 0.10) !important;
+}
+
+/* ---------- Dark mode card surfaces ---------- */
+.theme-dark .balance-hero,
+.theme-dark .recommendation-card,
+.theme-dark .info-card,
+.theme-dark .account-card,
+.theme-dark .event-card,
+.theme-dark .recurring-card,
+.theme-dark .credit-card,
+.theme-dark .goal-card,
+.theme-dark .debt-card,
+.theme-dark .strategy-card,
+.theme-dark .insight-card,
+.theme-dark .recurring-summary,
+.theme-dark .debt-summary,
+.theme-dark .overview-row,
+.theme-dark .financial-health-card,
+.theme-dark .insights-chart-card,
+.theme-dark .debt-coach-card,
+.theme-dark .compact-debt-coach-card,
+.theme-dark .ai-money-tool-card,
+.theme-dark .smart-insight-card,
+.theme-dark .compact-ai-card,
+.theme-dark .history-metric,
+.theme-dark .cloud-sync-status-card,
+.theme-dark .card-list > article {
+  background: #222622 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ---------- Hero: remove glow but keep premium gradient ---------- */
+.balance-hero {
+  background:
+    linear-gradient(145deg, #fffdf8 0%, #f6fbf7 100%) !important;
+}
+
+.theme-dark .balance-hero {
+  background:
+    linear-gradient(145deg, #222622 0%, #18221c 100%) !important;
+}
+
+/* ---------- Today's recommendation: calm green, no glow ---------- */
+.recommendation-card {
+  background:
+    linear-gradient(145deg, #f2fbf6 0%, #fffdf8 100%) !important;
+  border-color: rgba(47, 125, 90, 0.24) !important;
+}
+
+.theme-dark .recommendation-card {
+  background:
+    linear-gradient(145deg, rgba(47, 125, 90, 0.18) 0%, #222622 100%) !important;
+  border-color: rgba(126, 224, 169, 0.26) !important;
+}
+
+.recommendation-icon {
+  background: rgba(47, 125, 90, 0.10) !important;
+  border: 1px solid rgba(47, 125, 90, 0.16) !important;
+  box-shadow: none !important;
+}
+
+.theme-dark .recommendation-icon {
+  background: rgba(126, 224, 169, 0.10) !important;
+  border-color: rgba(126, 224, 169, 0.18) !important;
+}
+
+/* ---------- Smaller, cleaner empty-state cards ---------- */
+.card-list > article,
+.event-card,
+.account-card,
+.recurring-card,
+.debt-card {
+  min-height: 72px !important;
+  padding: 12px 14px !important;
+  border-radius: 22px !important;
+}
+
+/* Specifically compact the Today empty explanation card */
+.mobile-app:has(.date-strip) .page-content > section {
+  border-radius: 22px !important;
+}
+
+.mobile-app:has(.date-strip) .page-content > section[style] {
+  padding: 16px !important;
+}
+
+/* Reduce excessive text card height on Today */
+.mobile-app:has(.date-strip) .page-content > section p,
+.mobile-app:has(.date-strip) .page-content > section span {
+  line-height: 1.34 !important;
+}
+
+/* ---------- Mini cards: no floating effect ---------- */
+.mini-grid {
+  gap: 10px !important;
+}
+
+.info-card {
+  min-height: 72px !important;
+  padding: 12px 14px !important;
+  border-radius: 22px !important;
+}
+
+/* ---------- Header should not look like a black block ---------- */
+.app-header {
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.app-header::before {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* ---------- Buttons: flat, bordered ---------- */
+button,
+.fab-action,
+.cloud-sync-primary-button,
+.cloud-sync-secondary-button,
+.cloud-sync-danger-button,
+.history-clear-button {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* ---------- Bottom nav: no dirty shadow ---------- */
+.bottom-nav {
+  box-shadow: none !important;
+  border: 1px solid rgba(23, 23, 23, 0.10) !important;
+  background: rgba(255, 253, 248, 0.94) !important;
+}
+
+.theme-dark .bottom-nav {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(34, 38, 34, 0.94) !important;
+}
+
+/* ---------- FAB: keep visible but remove dirty glow ---------- */
+.main-fab {
+  box-shadow: none !important;
+  border: 4px solid #f7f2e8 !important;
+}
+
+.theme-dark .main-fab {
+  border-color: #111411 !important;
+}
+
+/* ---------- Side overflow protection ---------- */
+html,
+body,
+#root,
+.app-shell,
+.mobile-app,
+.page-content {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+/* ---------- Consistent spacing on Today ---------- */
+.mobile-app:has(.date-strip) .page-content {
+  gap: 11px !important;
+}
+
+.mobile-app:has(.date-strip) .balance-hero {
+  margin-bottom: 12px !important;
+}
+
+.mobile-app:has(.date-strip) .date-strip {
+  margin-bottom: 13px !important;
+}
+
+.mobile-app:has(.date-strip) .recommendation-card {
+  margin-bottom: 10px !important;
+}
+
+.mobile-app:has(.date-strip) .section-heading {
+  margin-top: 2px !important;
+}
+
+/* ---------- Small phone polish ---------- */
+@media (max-width: 390px) {
+  .mobile-app:has(.date-strip) .page-content {
+    gap: 10px !important;
+  }
+
+  .card-list > article,
+  .event-card,
+  .account-card,
+  .recurring-card,
+  .debt-card {
+    border-radius: 20px !important;
+  }
+
+  .mobile-app:has(.date-strip) .page-content > section[style] {
+    padding: 14px !important;
+  }
+}
