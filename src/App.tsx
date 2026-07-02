@@ -10,6 +10,20 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import {
   ArrowDownLeft,
   ArrowRightLeft,
   ArrowUpRight,
@@ -136,6 +150,57 @@ type BudgetMetric = {
   progress: number
   overBudget: boolean
 }
+
+type FinancialHealthSummary = {
+  score: number
+  status: string
+  message: string
+  tone: 'good' | 'watch' | 'risk'
+}
+
+type CashflowPoint = {
+  day: string
+  balance: number
+}
+
+type SpendingMixPoint = {
+  category: string
+  amount: number
+}
+
+type DebtPlanningItem = {
+  id: string
+  name: string
+  balance: number
+  minimumPayment: number
+  annualRate: number
+  kind: 'Credit card' | 'Debt'
+}
+
+type DebtPayoffPlan = {
+  method: 'Avalanche' | 'Snowball' | 'Hybrid'
+  months: number
+  totalInterest: number
+  focusName: string
+  reason: string
+  schedule: { month: string; balance: number }[]
+}
+
+type DebtPlanComparison = {
+  avalanche: DebtPayoffPlan
+  snowball: DebtPayoffPlan
+  hybrid: DebtPayoffPlan
+  recommended: DebtPayoffPlan
+  interestSaved: number
+}
+
+type SmartInsight = {
+  label: string
+  title: string
+  message: string
+  tone: 'good' | 'watch' | 'risk'
+}
+
 
 type MessageDialogState = {
   type: 'alert' | 'confirm'
@@ -829,6 +894,8 @@ function App() {
               transactions={financeData.transactions}
               creditCardInsights={creditCardInsights}
               budgetMetrics={budgetMetrics}
+              recurringExpenses={activeBills}
+              debts={financeData.debts}
               onOpenTransactions={() => setTransactionHistoryOpen(true)}
             />
           )}
@@ -1665,14 +1732,16 @@ function PlanPage({
             ))}
           </div>
 
-          <section className="strategy-card">
-            <p>Suggested Strategy</p>
-            <h3>Snowball Method</h3>
-            <span>
-              Pay the smallest balance first while maintaining minimum payments
-              on other debts.
-            </span>
-          </section>
+          {debts.length > 0 && (
+            <section className="strategy-card">
+              <p>Suggested Strategy</p>
+              <h3>Snowball Method</h3>
+              <span>
+                Pay the smallest balance first while maintaining minimum payments
+                on other debts.
+              </span>
+            </section>
+          )}
         </>
       )}
     </>
@@ -1749,6 +1818,9 @@ function BudgetSection({
   )
 }
 
+type InsightSectionKey = 'overview' | 'cashflow' | 'budget' | 'debt' | 'actions'
+type BudgetInsightView = 'usage' | 'mix'
+
 function InsightsPage({
   totalCash,
   totalSavings,
@@ -1757,6 +1829,8 @@ function InsightsPage({
   transactions,
   creditCardInsights,
   budgetMetrics,
+  recurringExpenses,
+  debts,
   onOpenTransactions,
 }: {
   totalCash: number
@@ -1766,8 +1840,14 @@ function InsightsPage({
   transactions: Transaction[]
   creditCardInsights: CreditCardInsight[]
   budgetMetrics: BudgetMetric[]
+  recurringExpenses: RecurringExpense[]
+  debts: Debt[]
   onOpenTransactions: () => void
 }) {
+  const [extraPayment, setExtraPayment] = useState(2000)
+  const [activeSection, setActiveSection] = useState<InsightSectionKey>('overview')
+  const [budgetView, setBudgetView] = useState<BudgetInsightView>('usage')
+
   const netWorth = totalCash + totalSavings - totalDebt
   const monthlyIncome = transactions
     .filter((transaction) => transaction.type === 'income')
@@ -1776,75 +1856,419 @@ function InsightsPage({
     .filter((transaction) => transaction.type === 'expense')
     .reduce((total, transaction) => total + transaction.amount, 0)
   const netCashflow = monthlyIncome - monthlyExpenses
-  const bestCard = creditCardInsights.find((insight) => insight.status === 'recommended')
 
   const totalBudget = budgetMetrics.reduce((total, metric) => total + metric.budget.limit, 0)
   const totalBudgetSpent = budgetMetrics.reduce((total, metric) => total + metric.spent, 0)
   const overBudgetCount = budgetMetrics.filter((metric) => metric.overBudget).length
+  const budgetUsage = totalBudget > 0 ? Math.round((totalBudgetSpent / totalBudget) * 100) : 0
+  const budgetRemaining = totalBudget - totalBudgetSpent
+
+  const debtItems = useMemo(
+    () => getDebtPlanningItems(creditCardInsights, debts),
+    [creditCardInsights, debts],
+  )
+
+  const healthSummary = useMemo(
+    () =>
+      getFinancialHealthSummary({
+        totalCash,
+        totalSavings,
+        totalDebt,
+        recurringTotal,
+        totalBudget,
+        totalBudgetSpent,
+        overBudgetCount,
+        creditCardInsights,
+        netCashflow,
+      }),
+    [
+      totalCash,
+      totalSavings,
+      totalDebt,
+      recurringTotal,
+      totalBudget,
+      totalBudgetSpent,
+      overBudgetCount,
+      creditCardInsights,
+      netCashflow,
+    ],
+  )
+
+  const forecastData = useMemo(
+    () =>
+      getCashflowForecast({
+        totalCash,
+        recurringExpenses,
+        creditCardInsights,
+        debts,
+      }),
+    [totalCash, recurringExpenses, creditCardInsights, debts],
+  )
+
+  const spendingMixData = useMemo(() => getSpendingMixData(transactions), [transactions])
+  const budgetChartData = useMemo(() => getBudgetChartData(budgetMetrics), [budgetMetrics])
+
+  const debtComparison = useMemo(
+    () => getDebtPlanComparison(debtItems, extraPayment),
+    [debtItems, extraPayment],
+  )
+
+  const smartInsights = useMemo(
+    () =>
+      getSmartInsightCards({
+        totalCash,
+        recurringTotal,
+        netCashflow,
+        budgetMetrics,
+        creditCardInsights,
+        debtPlan: debtComparison.recommended,
+      }),
+    [
+      totalCash,
+      recurringTotal,
+      netCashflow,
+      budgetMetrics,
+      creditCardInsights,
+      debtComparison.recommended,
+    ],
+  )
+
+  const forecastLowPoint = forecastData.reduce(
+    (lowest, point) => (point.balance < lowest.balance ? point : lowest),
+    forecastData[0],
+  )
+
+  const sectionCards: Array<{
+    key: InsightSectionKey
+    label: string
+    value: string
+    detail: string
+  }> = [
+    {
+      key: 'overview',
+      label: 'Overview',
+      value: `${healthSummary.score}/100`,
+      detail: healthSummary.status,
+    },
+    {
+      key: 'cashflow',
+      label: 'Cashflow',
+      value: peso.format(forecastLowPoint.balance),
+      detail: `Lowest on ${forecastLowPoint.day}`,
+    },
+    {
+      key: 'budget',
+      label: 'Budget',
+      value: `${Math.min(budgetUsage, 999)}%`,
+      detail: budgetRemaining >= 0 ? `${peso.format(budgetRemaining)} left` : `${peso.format(Math.abs(budgetRemaining))} over`,
+    },
+    {
+      key: 'debt',
+      label: 'Debt',
+      value: monthsToText(debtComparison.recommended.months),
+      detail: debtComparison.recommended.focusName,
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      value: String(smartInsights.length),
+      detail: 'Smart next steps',
+    },
+  ]
 
   return (
     <>
-      <section className="analysis-grid">
-        <InfoCard label="Total Cash" value={peso.format(totalCash)} />
-        <InfoCard label="Savings" value={peso.format(totalSavings)} />
-        <InfoCard label="Total Debt" value={peso.format(totalDebt)} />
-        <InfoCard label="Net Worth" value={peso.format(netWorth)} />
-      </section>
+      <FinancialHealthCard summary={healthSummary} netWorth={netWorth} />
 
-      <section className="insight-card">
-        <p>Cashflow Insight</p>
-        <h3>
-          {bestCard
-            ? `Best card today: ${bestCard.card.name}`
-            : netCashflow >= 0
-              ? 'Your recorded cashflow is positive.'
-              : 'Your recorded expenses are higher than income.'}
-        </h3>
-        <span>{bestCard ? bestCard.reason : 'This insight is based on your locally recorded quick transactions.'}</span>
-      </section>
-
-      <SectionTitle title="Monthly Overview" subtitle="Based on your local transactions and unpaid plan balance" />
-
-      <div className="overview-list">
-        <OverviewRow label="Recorded Income" value={peso.format(monthlyIncome)} type="positive" />
-        <OverviewRow label="Recorded Expenses" value={peso.format(monthlyExpenses)} type="negative" />
-        <OverviewRow label="Net Cashflow" value={peso.format(netCashflow)} type={netCashflow >= 0 ? 'positive' : 'negative'} />
-        <OverviewRow label="Unpaid Bills" value={peso.format(recurringTotal)} type="neutral" />
-        <OverviewRow label="Transactions" value={`${transactions.length}`} type="neutral" />
-      </div>
-
-      <SectionTitle title="Budget Summary" subtitle="Spending progress for this month" />
-
-      <div className="overview-list">
-        <OverviewRow label="Monthly Budget" value={peso.format(totalBudget)} type="neutral" />
-        <OverviewRow label="Budget Used" value={peso.format(totalBudgetSpent)} type={totalBudgetSpent > totalBudget ? 'negative' : 'neutral'} />
-        <OverviewRow label="Over Budget Categories" value={`${overBudgetCount}`} type={overBudgetCount > 0 ? 'negative' : 'positive'} />
-      </div>
-
-      <div className="card-list" style={{ marginTop: 14 }}>
-        {budgetMetrics.slice(0, 3).map((metric) => (
-          <article key={metric.budget.id} className="account-card">
-            <div className={`account-icon ${metric.overBudget ? 'blue' : 'green'}`}>
-              <BarChart3 size={20} />
-            </div>
-
-            <div className="card-main-content">
-              <h3>{metric.budget.category}</h3>
-              <p>{peso.format(metric.spent)} used of {peso.format(metric.budget.limit)}</p>
-            </div>
-
-            <strong>{metric.progress}%</strong>
-          </article>
+      <section className="insights-section-switcher" aria-label="Insights sections">
+        {sectionCards.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className={`insights-section-card ${activeSection === item.key ? 'active' : ''}`}
+            onClick={() => setActiveSection(item.key)}
+          >
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            <small>{item.detail}</small>
+          </button>
         ))}
+      </section>
+
+      {activeSection === 'overview' && (
+        <>
+          <section className="analysis-grid compact-insight-metrics">
+            <InfoCard label="Total Cash" value={peso.format(totalCash)} />
+            <InfoCard label="Savings" value={peso.format(totalSavings)} />
+            <InfoCard label="Total Debt" value={peso.format(totalDebt)} />
+            <InfoCard label="Net Worth" value={peso.format(netWorth)} />
+          </section>
+
+          <section className="insight-card ai-insight-card compact-ai-card">
+            <p>AI Cashflow Insight</p>
+            <h3>
+              {forecastLowPoint.balance < recurringTotal
+                ? `Cash may get tight around ${forecastLowPoint.day}.`
+                : netCashflow >= 0
+                  ? 'Your current cashflow is stable.'
+                  : 'Expenses are moving faster than income.'}
+            </h3>
+            <span>
+              Lowest projected balance in the next 30 days is {peso.format(forecastLowPoint.balance)}.
+            </span>
+          </section>
+
+          <div className="smart-insight-list compact-smart-list">
+            {smartInsights.slice(0, 3).map((item) => (
+              <article key={item.title} className={`smart-insight-card ${item.tone}`}>
+                <p>{item.label}</p>
+                <h3>{item.title}</h3>
+                <span>{item.message}</span>
+              </article>
+            ))}
+          </div>
+
+          <section style={previewCardStyle}>
+            <p>Review income, expenses, transfers, savings movements, and payments.</p>
+            <button type="button" style={textLinkButtonStyle} onClick={onOpenTransactions}>
+              Open transaction history
+            </button>
+          </section>
+        </>
+      )}
+
+      {activeSection === 'cashflow' && (
+        <>
+          <SectionTitle title="Cashflow Forecast" subtitle="Projected balance for the next 30 days based on known payables" />
+
+          <ChartCard
+            title="Projected cash balance"
+            subtitle="Watch the low points before paying extra debt or spending on wants."
+          >
+            <ResponsiveContainer width="100%" height={208}>
+              <LineChart data={forecastData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(120, 113, 108, 0.18)" />
+                <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#8a857d' }} />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={46}
+                  tick={{ fontSize: 10, fill: '#8a857d' }}
+                  tickFormatter={(value) => compactPeso(Number(value))}
+                />
+                <Tooltip formatter={(value) => peso.format(Number(value))} labelFormatter={(label) => `Date: ${label}`} />
+                <Line type="monotone" dataKey="balance" stroke="#2f7d5a" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </>
+      )}
+
+      {activeSection === 'budget' && (
+        <>
+          <SectionTitle title="Budget Intelligence" subtitle="Switch between category usage and spending mix" />
+
+          <div className="insight-chart-toggle" role="group" aria-label="Budget chart view">
+            <button
+              type="button"
+              className={budgetView === 'usage' ? 'active' : ''}
+              onClick={() => setBudgetView('usage')}
+            >
+              Budget usage
+            </button>
+            <button
+              type="button"
+              className={budgetView === 'mix' ? 'active' : ''}
+              onClick={() => setBudgetView('mix')}
+            >
+              Spending mix
+            </button>
+          </div>
+
+          {budgetView === 'usage' ? (
+            <ChartCard title="Budget used by category" subtitle={`${overBudgetCount} categor${overBudgetCount === 1 ? 'y is' : 'ies are'} over budget.`}>
+              <ResponsiveContainer width="100%" height={238}>
+                <BarChart data={budgetChartData} layout="vertical" margin={{ top: 4, right: 10, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(120, 113, 108, 0.16)" />
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="category"
+                    width={92}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 11, fill: '#6f685f' }}
+                  />
+                  <Tooltip formatter={(value) => peso.format(Number(value))} />
+                  <Bar dataKey="limit" name="Budget" fill="rgba(47, 125, 90, 0.16)" radius={[0, 12, 12, 0]} />
+                  <Bar dataKey="spent" name="Spent" fill="#2f7d5a" radius={[0, 12, 12, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          ) : (
+            <ChartCard title="Spending mix" subtitle="This month’s recorded expenses by category.">
+              {spendingMixData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={218}>
+                  <PieChart>
+                    <Pie
+                      data={spendingMixData}
+                      dataKey="amount"
+                      nameKey="category"
+                      innerRadius={54}
+                      outerRadius={84}
+                      paddingAngle={3}
+                    >
+                      {spendingMixData.map((item, index) => (
+                        <Cell key={item.category} fill={spendingMixColors[index % spendingMixColors.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => peso.format(Number(value))} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyInsightState title="No expense mix yet" message="Add categorized expenses to see where your money is going." />
+              )}
+            </ChartCard>
+          )}
+        </>
+      )}
+
+      {activeSection === 'debt' && (
+        <>
+          <SectionTitle title="Debt Freedom Coach" subtitle="Compare payoff strategies without crowding the whole page" />
+
+          <section className="debt-coach-card compact-debt-coach-card">
+            <div className="debt-coach-header">
+              <div>
+                <p>Recommended Strategy</p>
+                <h3>{debtComparison.recommended.method}</h3>
+                <span>{debtComparison.recommended.reason}</span>
+              </div>
+              <strong>{monthsToText(debtComparison.recommended.months)}</strong>
+            </div>
+
+            <label className="extra-payment-field">
+              <span>Extra debt payment per month</span>
+              <input
+                type="number"
+                min="0"
+                step="500"
+                value={extraPayment}
+                onChange={(event) => setExtraPayment(Math.max(0, Number(event.target.value) || 0))}
+              />
+            </label>
+
+            <div className="debt-plan-grid compact-debt-plan-grid">
+              <DebtPlanMiniCard plan={debtComparison.avalanche} />
+              <DebtPlanMiniCard plan={debtComparison.snowball} />
+              <DebtPlanMiniCard plan={debtComparison.hybrid} />
+            </div>
+
+            <div className="debt-focus-card">
+              <span>Focus payment first</span>
+              <strong>{debtComparison.recommended.focusName}</strong>
+              <p>
+                Estimated debt-free date: {getDebtFreeDateLabel(debtComparison.recommended.months)} · Interest saved: {peso.format(debtComparison.interestSaved)}
+              </p>
+            </div>
+          </section>
+
+          <ChartCard title="Debt-free projection" subtitle="Projected total debt balance using the recommended strategy.">
+            {debtComparison.recommended.schedule.length > 0 ? (
+              <ResponsiveContainer width="100%" height={208}>
+                <LineChart data={debtComparison.recommended.schedule} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(120, 113, 108, 0.18)" />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#8a857d' }} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={46}
+                    tick={{ fontSize: 10, fill: '#8a857d' }}
+                    tickFormatter={(value) => compactPeso(Number(value))}
+                  />
+                  <Tooltip formatter={(value) => peso.format(Number(value))} />
+                  <Line type="monotone" dataKey="balance" stroke="#f97316" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyInsightState title="No active debt" message="Add credit cards or debts to generate a payoff plan." />
+            )}
+          </ChartCard>
+        </>
+      )}
+
+      {activeSection === 'actions' && (
+        <>
+          <SectionTitle title="Smart Action Cards" subtitle="Practical next steps based on your local data" />
+
+          <div className="smart-insight-list compact-smart-list">
+            {smartInsights.map((item) => (
+              <article key={item.title} className={`smart-insight-card ${item.tone}`}>
+                <p>{item.label}</p>
+                <h3>{item.title}</h3>
+                <span>{item.message}</span>
+              </article>
+            ))}
+          </div>
+
+          <section style={previewCardStyle}>
+            <p>Review income, expenses, transfers, savings movements, and payments.</p>
+            <button type="button" style={textLinkButtonStyle} onClick={onOpenTransactions}>
+              Open transaction history
+            </button>
+          </section>
+        </>
+      )}
+    </>
+  )
+}
+
+function FinancialHealthCard({ summary, netWorth }: { summary: FinancialHealthSummary; netWorth: number }) {
+  return (
+    <section className={`financial-health-card ${summary.tone}`}>
+      <div className="health-score-ring">
+        <strong>{summary.score}</strong>
+        <span>/100</span>
       </div>
 
-      <section style={previewCardStyle}>
-        <p>Review income, expenses, transfers, savings movements, and payments.</p>
-        <button type="button" style={textLinkButtonStyle} onClick={onOpenTransactions}>
-          Open transaction history
-        </button>
-      </section>
-    </>
+      <div>
+        <p>Financial Health</p>
+        <h3>{summary.status}</h3>
+        <span>{summary.message}</span>
+        <small>Net worth: {peso.format(netWorth)}</small>
+      </div>
+    </section>
+  )
+}
+
+function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+  return (
+    <section className="insights-chart-card">
+      <header>
+        <h3>{title}</h3>
+        <p>{subtitle}</p>
+      </header>
+      {children}
+    </section>
+  )
+}
+
+function EmptyInsightState({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="empty-insight-state">
+      <strong>{title}</strong>
+      <span>{message}</span>
+    </div>
+  )
+}
+
+function DebtPlanMiniCard({ plan }: { plan: DebtPayoffPlan }) {
+  return (
+    <article className="debt-plan-mini-card">
+      <span>{plan.method}</span>
+      <strong>{monthsToText(plan.months)}</strong>
+      <p>{peso.format(plan.totalInterest)} interest</p>
+    </article>
   )
 }
 
@@ -2767,23 +3191,6 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
   )
 }
 
-function OverviewRow({
-  label,
-  value,
-  type,
-}: {
-  label: string
-  value: string
-  type: 'positive' | 'negative' | 'neutral'
-}) {
-  return (
-    <article className="overview-row">
-      <span>{label}</span>
-      <strong className={type}>{value}</strong>
-    </article>
-  )
-}
-
 function IconButton({
   children,
   label,
@@ -2805,6 +3212,427 @@ function IconButton({
       {children}
     </button>
   )
+}
+
+const spendingMixColors = ['#2f7d5a', '#f97316', '#2563eb', '#a855f7', '#dc2626', '#0f766e', '#ca8a04', '#64748b']
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(Math.max(value, minimum), maximum)
+}
+
+function compactPeso(value: number) {
+  if (Math.abs(value) >= 1_000_000) return `₱${Math.round(value / 1_000_000)}M`
+  if (Math.abs(value) >= 1_000) return `₱${Math.round(value / 1_000)}k`
+  return `₱${Math.round(value)}`
+}
+
+function getFinancialHealthSummary({
+  totalCash,
+  totalSavings,
+  totalDebt,
+  recurringTotal,
+  totalBudget,
+  totalBudgetSpent,
+  overBudgetCount,
+  creditCardInsights,
+  netCashflow,
+}: {
+  totalCash: number
+  totalSavings: number
+  totalDebt: number
+  recurringTotal: number
+  totalBudget: number
+  totalBudgetSpent: number
+  overBudgetCount: number
+  creditCardInsights: CreditCardInsight[]
+  netCashflow: number
+}): FinancialHealthSummary {
+  const cashBufferScore = recurringTotal <= 0 ? 22 : clamp((totalCash / recurringTotal) * 12, 0, 24)
+  const budgetProgress = totalBudget > 0 ? (totalBudgetSpent / totalBudget) * 100 : 0
+  const budgetScore = clamp(24 - Math.max(0, budgetProgress - 75) * 0.35 - overBudgetCount * 5, 0, 24)
+  const debtLoad = totalCash + totalSavings > 0 ? totalDebt / (totalCash + totalSavings) : totalDebt > 0 ? 3 : 0
+  const debtScore = clamp(24 - debtLoad * 8, 0, 24)
+  const averageUtilization =
+    creditCardInsights.length > 0
+      ? creditCardInsights.reduce((total, insight) => total + insight.utilization, 0) / creditCardInsights.length
+      : 0
+  const creditScore = clamp(18 - Math.max(0, averageUtilization - 30) * 0.22, 0, 18)
+  const cashflowScore = netCashflow >= 0 ? 10 : clamp(10 + netCashflow / 2000, 0, 10)
+  const score = Math.round(cashBufferScore + budgetScore + debtScore + creditScore + cashflowScore)
+
+  if (score >= 78) {
+    return {
+      score,
+      status: 'Strong position',
+      message: 'Cash, debt, and budget signals look healthy. Keep using the plan before spending extra.',
+      tone: 'good',
+    }
+  }
+
+  if (score >= 55) {
+    return {
+      score,
+      status: 'Watch cashflow',
+      message: 'You are okay, but debt, bills, or budget usage need attention before the next payday.',
+      tone: 'watch',
+    }
+  }
+
+  return {
+    score,
+    status: 'Needs action',
+    message: 'Prioritize unpaid bills and minimum debt payments before adding new spending.',
+    tone: 'risk',
+  }
+}
+
+function getCashflowForecast({
+  totalCash,
+  recurringExpenses,
+  creditCardInsights,
+  debts,
+}: {
+  totalCash: number
+  recurringExpenses: RecurringExpense[]
+  creditCardInsights: CreditCardInsight[]
+  debts: Debt[]
+}): CashflowPoint[] {
+  const today = startOfDay(new Date())
+  const outflows = [
+    ...recurringExpenses.map((expense) => ({
+      dueDate: parseUpcomingMonthDay(expense.nextDue),
+      amount: getBillRemainingBalance(expense),
+    })),
+    ...creditCardInsights.map((insight) => ({
+      dueDate: addDays(today, insight.daysToDue),
+      amount: getCreditCardMinimumPayment(insight.card),
+    })),
+    ...debts.map((debt) => ({
+      dueDate: parseRecurringDay(debt.due),
+      amount: Math.min(debt.monthly, debt.balance),
+    })),
+  ].filter((item): item is { dueDate: Date; amount: number } => Boolean(item.dueDate) && item.amount > 0)
+
+  const checkpoints = [0, 5, 10, 15, 20, 25, 30]
+
+  return checkpoints.map((dayOffset) => {
+    const checkpointDate = addDays(today, dayOffset)
+    const scheduledOutflow = outflows
+      .filter((outflow) => outflow.dueDate <= checkpointDate)
+      .reduce((total, outflow) => total + outflow.amount, 0)
+
+    return {
+      day: dayOffset === 0 ? 'Today' : formatChartDate(checkpointDate),
+      balance: Math.max(0, totalCash - scheduledOutflow),
+    }
+  })
+}
+
+function getBudgetChartData(budgetMetrics: BudgetMetric[]) {
+  return [...budgetMetrics]
+    .sort((a, b) => b.progress - a.progress)
+    .slice(0, 8)
+    .map((metric) => ({
+      category: metric.budget.category,
+      spent: metric.spent,
+      limit: metric.budget.limit,
+    }))
+}
+
+function getSpendingMixData(transactions: Transaction[]): SpendingMixPoint[] {
+  const totals = new Map<string, number>()
+
+  transactions
+    .filter(isCurrentMonthTransaction)
+    .filter((transaction) => transaction.type === 'expense')
+    .forEach((transaction) => {
+      const category = transaction.category ?? 'Other'
+      totals.set(category, (totals.get(category) ?? 0) + transaction.amount)
+    })
+
+  return [...totals.entries()]
+    .map(([category, amount]) => ({ category, amount }))
+    .filter((item) => item.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
+}
+
+function getDebtPlanningItems(creditCardInsights: CreditCardInsight[], debts: Debt[]): DebtPlanningItem[] {
+  const cardItems = creditCardInsights.map((insight) => ({
+    id: `card-${insight.card.id}`,
+    name: insight.card.name,
+    balance: Math.max(0, insight.card.currentBalance),
+    minimumPayment: getCreditCardMinimumPayment(insight.card),
+    annualRate: 0.36,
+    kind: 'Credit card' as const,
+  }))
+
+  const debtItems = debts.map((debt) => ({
+    id: `debt-${debt.id}`,
+    name: debt.name,
+    balance: Math.max(0, debt.balance),
+    minimumPayment: Math.max(1, debt.monthly),
+    annualRate: 0.12,
+    kind: 'Debt' as const,
+  }))
+
+  return [...cardItems, ...debtItems].filter((item) => item.balance > 0)
+}
+
+function getDebtPlanComparison(items: DebtPlanningItem[], extraPayment: number): DebtPlanComparison {
+  const avalanche = simulateDebtPayoff(items, extraPayment, 'Avalanche')
+  const snowball = simulateDebtPayoff(items, extraPayment, 'Snowball')
+  const hybrid = simulateDebtPayoff(items, extraPayment, 'Hybrid')
+  const minimumOnly = simulateDebtPayoff(items, 0, 'Avalanche')
+  const recommended = [avalanche, snowball, hybrid].sort((a, b) => {
+    if (a.months !== b.months) return a.months - b.months
+    return a.totalInterest - b.totalInterest
+  })[0]
+
+  return {
+    avalanche,
+    snowball,
+    hybrid,
+    recommended,
+    interestSaved: Math.max(0, minimumOnly.totalInterest - recommended.totalInterest),
+  }
+}
+
+function simulateDebtPayoff(
+  items: DebtPlanningItem[],
+  extraPayment: number,
+  method: DebtPayoffPlan['method'],
+): DebtPayoffPlan {
+  if (items.length === 0) {
+    return {
+      method,
+      months: 0,
+      totalInterest: 0,
+      focusName: 'No active debt',
+      reason: 'Add credit cards or debts to generate a payoff strategy.',
+      schedule: [],
+    }
+  }
+
+  const balances = items.map((item) => item.balance)
+  let totalInterest = 0
+  const schedule: { month: string; balance: number }[] = [
+    { month: 'Now', balance: Math.round(sumNumbers(balances)) },
+  ]
+  let months = 0
+
+  while (sumNumbers(balances) > 1 && months < 240) {
+    months += 1
+
+    balances.forEach((balance, index) => {
+      if (balance <= 0) return
+      const monthlyInterest = balance * (items[index].annualRate / 12)
+      balances[index] += monthlyInterest
+      totalInterest += monthlyInterest
+    })
+
+    balances.forEach((balance, index) => {
+      if (balance <= 0) return
+      const minimumPayment = Math.min(items[index].minimumPayment, balances[index])
+      balances[index] -= minimumPayment
+    })
+
+    let remainingExtra = extraPayment
+    const orderedIndexes = getDebtPaymentOrder(items, balances, method)
+
+    orderedIndexes.forEach((index) => {
+      if (remainingExtra <= 0 || balances[index] <= 0) return
+      const payment = Math.min(remainingExtra, balances[index])
+      balances[index] -= payment
+      remainingExtra -= payment
+    })
+
+    if (months <= 12 || months % 3 === 0 || sumNumbers(balances) <= 1) {
+      schedule.push({ month: `M${months}`, balance: Math.round(Math.max(0, sumNumbers(balances))) })
+    }
+  }
+
+  const focusIndex = getDebtPaymentOrder(items, items.map((item) => item.balance), method)[0]
+  const focusName = typeof focusIndex === 'number' ? items[focusIndex].name : 'No active debt'
+
+  return {
+    method,
+    months,
+    totalInterest: Math.round(totalInterest),
+    focusName,
+    reason: getDebtMethodReason(method),
+    schedule: schedule.slice(0, 14),
+  }
+}
+
+function getDebtPaymentOrder(
+  items: DebtPlanningItem[],
+  balances: number[],
+  method: DebtPayoffPlan['method'],
+): number[] {
+  return items
+    .map((item, index) => ({ item, index, balance: balances[index] }))
+    .filter((entry) => entry.balance > 1)
+    .sort((a, b) => {
+      if (method === 'Snowball') return a.balance - b.balance
+      if (method === 'Avalanche') return b.item.annualRate - a.item.annualRate || b.balance - a.balance
+      const aScore = a.item.annualRate * 100000 - a.balance * 0.08
+      const bScore = b.item.annualRate * 100000 - b.balance * 0.08
+      return bScore - aScore
+    })
+    .map((entry) => entry.index)
+}
+
+function getDebtMethodReason(method: DebtPayoffPlan['method']) {
+  if (method === 'Avalanche') return 'Targets the highest-interest debt first to reduce interest cost.'
+  if (method === 'Snowball') return 'Targets the smallest balance first to create quick wins.'
+  return 'Balances interest savings and motivation by prioritizing costly debts with manageable balances.'
+}
+
+function getSmartInsightCards({
+  totalCash,
+  recurringTotal,
+  netCashflow,
+  budgetMetrics,
+  creditCardInsights,
+  debtPlan,
+}: {
+  totalCash: number
+  recurringTotal: number
+  netCashflow: number
+  budgetMetrics: BudgetMetric[]
+  creditCardInsights: CreditCardInsight[]
+  debtPlan: DebtPayoffPlan
+}): SmartInsight[] {
+  const cards: SmartInsight[] = []
+  const overBudget = budgetMetrics.find((metric) => metric.overBudget)
+  const riskyCard = creditCardInsights.find((insight) => insight.status === 'avoid')
+  const recommendedCard = creditCardInsights.find((insight) => insight.status === 'recommended')
+
+  if (recurringTotal > 0) {
+    cards.push({
+      label: 'Bills first',
+      title: `Reserve ${peso.format(recurringTotal)}`,
+      message: `Keep this amount untouched for unpaid bills. Current cash after reservation: ${peso.format(totalCash - recurringTotal)}.`,
+      tone: totalCash >= recurringTotal ? 'watch' : 'risk',
+    })
+  }
+
+  if (overBudget) {
+    cards.push({
+      label: 'Budget alert',
+      title: `Reduce ${overBudget.budget.category}`,
+      message: `${overBudget.budget.category} is ${peso.format(Math.abs(overBudget.remaining))} over budget this month.`,
+      tone: 'risk',
+    })
+  }
+
+  if (riskyCard) {
+    cards.push({
+      label: 'Card risk',
+      title: `Avoid ${riskyCard.card.name}`,
+      message: riskyCard.reason,
+      tone: 'risk',
+    })
+  } else if (recommendedCard) {
+    cards.push({
+      label: 'Best card',
+      title: `Use ${recommendedCard.card.name} if needed`,
+      message: recommendedCard.reason,
+      tone: 'good',
+    })
+  }
+
+  if (debtPlan.months > 0) {
+    cards.push({
+      label: 'Debt action',
+      title: `Focus on ${debtPlan.focusName}`,
+      message: `${debtPlan.method} can clear your tracked debt in about ${monthsToText(debtPlan.months)} if you follow the payment plan.`,
+      tone: 'watch',
+    })
+  }
+
+  if (netCashflow < 0) {
+    cards.push({
+      label: 'Cashflow warning',
+      title: 'Slow down spending',
+      message: `Recorded expenses are higher than income by ${peso.format(Math.abs(netCashflow))}.`,
+      tone: 'risk',
+    })
+  } else {
+    cards.push({
+      label: 'Payday move',
+      title: 'Allocate extra cash intentionally',
+      message: 'After bills and minimum payments, send extra money to your focus debt or emergency fund.',
+      tone: 'good',
+    })
+  }
+
+  return cards.slice(0, 5)
+}
+
+function getCreditCardMinimumPayment(card: CreditCardAccount) {
+  return Math.min(card.currentBalance, Math.max(500, Math.round(card.currentBalance * 0.04)))
+}
+
+function sumNumbers(values: number[]) {
+  return values.reduce((total, value) => total + value, 0)
+}
+
+function monthsToText(months: number) {
+  if (months <= 0) return 'No debt'
+  if (months >= 240) return '20+ years'
+  const years = Math.floor(months / 12)
+  const remainingMonths = months % 12
+  if (years <= 0) return `${months} month${months === 1 ? '' : 's'}`
+  if (remainingMonths === 0) return `${years} year${years === 1 ? '' : 's'}`
+  return `${years}y ${remainingMonths}m`
+}
+
+function getDebtFreeDateLabel(months: number) {
+  if (months <= 0) return 'Already debt-free'
+  if (months >= 240) return 'More than 20 years'
+  const date = new Date()
+  date.setMonth(date.getMonth() + months)
+  return date.toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })
+}
+
+function addDays(date: Date, days: number) {
+  const nextDate = new Date(date)
+  nextDate.setDate(nextDate.getDate() + days)
+  return nextDate
+}
+
+function formatChartDate(date: Date) {
+  return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+}
+
+function parseUpcomingMonthDay(label: string) {
+  const today = startOfDay(new Date())
+  const candidate = new Date(`${label} ${today.getFullYear()}`)
+  if (Number.isNaN(candidate.getTime())) return null
+  candidate.setHours(0, 0, 0, 0)
+
+  while (candidate < today) {
+    candidate.setMonth(candidate.getMonth() + 1)
+  }
+
+  return candidate
+}
+
+function parseRecurringDay(label: string) {
+  const match = label.match(/(\d{1,2})/)
+  if (!match) return null
+
+  const day = clamp(Number(match[1]), 1, 28)
+  const today = startOfDay(new Date())
+  const candidate = new Date(today.getFullYear(), today.getMonth(), day)
+  candidate.setHours(0, 0, 0, 0)
+
+  if (candidate < today) {
+    candidate.setMonth(candidate.getMonth() + 1)
+  }
+
+  return candidate
 }
 
 function getBudgetMetrics(monthlyBudgets: MonthlyBudget[], transactions: Transaction[]): BudgetMetric[] {
