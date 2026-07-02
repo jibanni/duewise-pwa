@@ -7162,3 +7162,1465 @@ body,
     opacity: 0 !important;
   }
 }
+/* =========================================================
+   DueWise Plan Control + Custom Budget UX
+   Paste at the very bottom of src/index.css.
+   Adds Plan-only quick buttons beside the FAB and improves
+   user-controlled custom budget cards.
+   ========================================================= */
+
+/* ---------- Plan-only quick add buttons beside FAB ---------- */
+.plan-fab-actions {
+  position: fixed !important;
+  right: max(86px, calc((100vw - 430px) / 2 + 86px)) !important;
+  bottom: 126px !important;
+  z-index: 91 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  max-width: calc(100vw - 112px) !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+}
+
+.plan-fab-actions button {
+  min-height: 42px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  color: var(--dw-clean-text, #171717) !important;
+  background: rgba(255, 253, 248, 0.96) !important;
+  border: 1px solid rgba(23, 23, 23, 0.10) !important;
+  box-shadow: none !important;
+  font-size: 0.72rem !important;
+  font-weight: 950 !important;
+  white-space: nowrap !important;
+}
+
+.theme-dark .plan-fab-actions button {
+  color: var(--dw-clean-text, #f8f5ee) !important;
+  background: rgba(34, 38, 34, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.plan-fab-actions button:first-child {
+  border-color: rgba(249, 115, 22, 0.38) !important;
+  background:
+    linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(255, 253, 248, 0.96)) !important;
+}
+
+.theme-dark .plan-fab-actions button:first-child {
+  border-color: rgba(251, 146, 60, 0.42) !important;
+  background:
+    linear-gradient(135deg, rgba(251, 146, 60, 0.16), rgba(34, 38, 34, 0.96)) !important;
+}
+
+.plan-fab-actions svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.plan-fab-actions span {
+  color: inherit !important;
+  font-size: inherit !important;
+  line-height: 1 !important;
+}
+
+/* Hide plan quick buttons when a modal/backdrop is open */
+.fab-backdrop.visible ~ .plan-fab-actions {
+  display: none !important;
+}
+
+/* ---------- Inline Add Budget button inside Budget section ---------- */
+.plan-inline-actions {
+  width: 100% !important;
+  margin-top: 10px !important;
+}
+
+.plan-inline-actions button {
+  width: 100% !important;
+  min-height: 48px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 0 14px !important;
+  border-radius: 20px !important;
+  color: #ffffff !important;
+  background: #171717 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  font-size: 0.86rem !important;
+  font-weight: 950 !important;
+}
+
+.theme-dark .plan-inline-actions button {
+  color: #171717 !important;
+  background: #f8f5ee !important;
+}
+
+.plan-inline-actions button span,
+.plan-inline-actions button strong {
+  color: inherit !important;
+}
+
+/* ---------- Custom budget empty card ---------- */
+.budget-empty-card {
+  margin-top: 12px !important;
+  min-height: 88px !important;
+  align-items: center !important;
+  border-style: dashed !important;
+  border-color: rgba(249, 115, 22, 0.28) !important;
+  background:
+    linear-gradient(135deg, rgba(249, 115, 22, 0.08), #fffdf8) !important;
+}
+
+.theme-dark .budget-empty-card {
+  border-color: rgba(251, 146, 60, 0.30) !important;
+  background:
+    linear-gradient(135deg, rgba(251, 146, 60, 0.10), #222622) !important;
+}
+
+.budget-empty-card h3 {
+  color: var(--dw-clean-text, #171717) !important;
+}
+
+.budget-empty-card p {
+  color: var(--dw-clean-muted, #676159) !important;
+}
+
+/* ---------- Budget cards should look editable and user-owned ---------- */
+.goal-card {
+  box-shadow: none !important;
+}
+
+.goal-card .goal-header h3 {
+  color: var(--dw-clean-text, #171717) !important;
+}
+
+.goal-card .goal-header p {
+  color: var(--dw-clean-muted, #676159) !important;
+}
+
+.goal-values span,
+.goal-values strong {
+  color: var(--dw-clean-text, #171717) !important;
+}
+
+/* ---------- Plan card selected state remains strong ---------- */
+.plan-summary-card.active {
+  border: 2px solid rgba(249, 115, 22, 0.76) !important;
+  outline: 3px solid rgba(249, 115, 22, 0.13) !important;
+  background:
+    linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(47, 125, 90, 0.08)),
+    #fffdf8 !important;
+}
+
+.theme-dark .plan-summary-card.active {
+  border-color: rgba(251, 146, 60, 0.82) !important;
+  outline-color: rgba(251, 146, 60, 0.15) !important;
+}
+
+/* ---------- Modal field readability for custom budget names ---------- */
+div[style*="position: fixed"] input {
+  font-size: 16px !important;
+}
+
+/* ---------- Small phone layout ---------- */
+@media (max-width: 390px) {
+  .plan-fab-actions {
+    right: 76px !important;
+    bottom: 120px !important;
+    gap: 5px !important;
+    max-width: calc(100vw - 96px) !important;
+  }
+
+  .plan-fab-actions button {
+    min-height: 38px !important;
+    padding: 0 8px !important;
+    font-size: 0.66rem !important;
+  }
+
+  .plan-fab-actions svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .plan-inline-actions button {
+    min-height: 46px !important;
+    border-radius: 18px !important;
+  }
+}
+/* =========================================================
+   DueWise Plan FAB Stack Fix
+   Paste at the very bottom of src/index.css.
+   Makes Budget / Savings / Debt appear as a clean vertical
+   mini-FAB stack above the main plus button on Plan page.
+   ========================================================= */
+
+/* Plan page mini FAB stack */
+.plan-fab-actions {
+  position: fixed !important;
+  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
+  bottom: 194px !important;
+  z-index: 92 !important;
+
+  width: auto !important;
+  max-width: none !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  justify-content: flex-end !important;
+  gap: 9px !important;
+
+  overflow: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Mini FAB buttons */
+.plan-fab-actions button {
+  width: 124px !important;
+  min-width: 124px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+
+  display: grid !important;
+  grid-template-columns: 22px 1fr !important;
+  align-items: center !important;
+  justify-content: center !important;
+  column-gap: 8px !important;
+
+  padding: 0 13px !important;
+  border-radius: 999px !important;
+
+  color: #171717 !important;
+  background: rgba(255, 253, 248, 0.97) !important;
+  border: 1px solid rgba(23, 23, 23, 0.11) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+
+  font-size: 0.76rem !important;
+  font-weight: 950 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+}
+
+/* Primary mini FAB: Budget */
+.plan-fab-actions button:first-child {
+  color: #171717 !important;
+  background:
+    linear-gradient(135deg, rgba(249, 115, 22, 0.16), rgba(255, 253, 248, 0.97)) !important;
+  border-color: rgba(249, 115, 22, 0.42) !important;
+}
+
+/* Dark mode */
+.theme-dark .plan-fab-actions button {
+  color: #f8f5ee !important;
+  background: rgba(34, 38, 34, 0.97) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.theme-dark .plan-fab-actions button:first-child {
+  color: #f8f5ee !important;
+  background:
+    linear-gradient(135deg, rgba(251, 146, 60, 0.18), rgba(34, 38, 34, 0.97)) !important;
+  border-color: rgba(251, 146, 60, 0.46) !important;
+}
+
+/* Icon and label alignment */
+.plan-fab-actions button svg {
+  width: 15px !important;
+  height: 15px !important;
+  justify-self: center !important;
+  color: inherit !important;
+}
+
+.plan-fab-actions button span {
+  color: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: 1 !important;
+  text-align: left !important;
+}
+
+/* Main plus stays below the mini FAB stack */
+.main-fab {
+  bottom: 126px !important;
+  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
+  z-index: 90 !important;
+}
+
+/* Hide Plan mini FABs when the general FAB menu is open */
+.fab-backdrop.visible ~ .plan-fab-actions {
+  display: none !important;
+}
+
+/* Add bottom clearance so content does not sit under the FAB stack */
+.mobile-app {
+  padding-bottom: 136px !important;
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .plan-fab-actions {
+    right: 14px !important;
+    bottom: 184px !important;
+    gap: 8px !important;
+  }
+
+  .plan-fab-actions button {
+    width: 112px !important;
+    min-width: 112px !important;
+    height: 39px !important;
+    min-height: 39px !important;
+    grid-template-columns: 20px 1fr !important;
+    column-gap: 7px !important;
+    padding: 0 11px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .main-fab {
+    right: 14px !important;
+    bottom: 120px !important;
+  }
+
+  .mobile-app {
+    padding-bottom: 130px !important;
+  }
+}
+/* =========================================================
+   DueWise Plan Mini FAB Icon-Only Circles
+   Paste at the very bottom of src/index.css.
+   Makes Plan quick actions uniform circular icon buttons above
+   the main plus FAB: Budget, Savings, Debt.
+   ========================================================= */
+
+/* Stack the Plan-only mini FABs above the main plus button */
+.plan-fab-actions {
+  position: fixed !important;
+  right: max(20px, calc((100vw - 430px) / 2 + 20px)) !important;
+  bottom: 194px !important;
+  z-index: 92 !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+
+  width: 54px !important;
+  max-width: 54px !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Make Budget / Savings / Debt circular and icon-only */
+.plan-fab-actions button {
+  width: 54px !important;
+  height: 54px !important;
+  min-width: 54px !important;
+  min-height: 54px !important;
+  max-width: 54px !important;
+  max-height: 54px !important;
+
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+
+  border-radius: 999px !important;
+  color: #171717 !important;
+  background: rgba(255, 253, 248, 0.98) !important;
+  border: 1px solid rgba(23, 23, 23, 0.12) !important;
+  box-shadow: none !important;
+
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+
+/* Hide text label but keep button behavior */
+.plan-fab-actions button span {
+  display: none !important;
+}
+
+/* Icon sizing */
+.plan-fab-actions button svg {
+  width: 22px !important;
+  height: 22px !important;
+  color: inherit !important;
+  stroke-width: 2.6 !important;
+}
+
+/* Give each icon a subtle identity using border/background only */
+.plan-fab-actions button:nth-child(1) {
+  background:
+    linear-gradient(135deg, rgba(249, 115, 22, 0.16), rgba(255, 253, 248, 0.98)) !important;
+  border-color: rgba(249, 115, 22, 0.42) !important;
+}
+
+.plan-fab-actions button:nth-child(2) {
+  background:
+    linear-gradient(135deg, rgba(47, 125, 90, 0.13), rgba(255, 253, 248, 0.98)) !important;
+  border-color: rgba(47, 125, 90, 0.32) !important;
+}
+
+.plan-fab-actions button:nth-child(3) {
+  background:
+    linear-gradient(135deg, rgba(120, 113, 108, 0.12), rgba(255, 253, 248, 0.98)) !important;
+  border-color: rgba(120, 113, 108, 0.28) !important;
+}
+
+/* Dark mode */
+.theme-dark .plan-fab-actions button {
+  color: #f8f5ee !important;
+  background: rgba(34, 38, 34, 0.98) !important;
+  border-color: rgba(255, 255, 255, 0.13) !important;
+  box-shadow: none !important;
+}
+
+.theme-dark .plan-fab-actions button:nth-child(1) {
+  background:
+    linear-gradient(135deg, rgba(251, 146, 60, 0.18), rgba(34, 38, 34, 0.98)) !important;
+  border-color: rgba(251, 146, 60, 0.46) !important;
+}
+
+.theme-dark .plan-fab-actions button:nth-child(2) {
+  background:
+    linear-gradient(135deg, rgba(126, 224, 169, 0.14), rgba(34, 38, 34, 0.98)) !important;
+  border-color: rgba(126, 224, 169, 0.36) !important;
+}
+
+.theme-dark .plan-fab-actions button:nth-child(3) {
+  background:
+    linear-gradient(135deg, rgba(148, 141, 131, 0.16), rgba(34, 38, 34, 0.98)) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Main plus remains same size and aligned with the mini stack */
+.main-fab {
+  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
+  bottom: 126px !important;
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  z-index: 90 !important;
+}
+
+/* Hide mini FAB stack when main FAB menu/backdrop is open */
+.fab-backdrop.visible ~ .plan-fab-actions {
+  display: none !important;
+}
+
+/* Keep enough bottom clearance */
+.mobile-app {
+  padding-bottom: 136px !important;
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .plan-fab-actions {
+    right: 16px !important;
+    bottom: 184px !important;
+    width: 50px !important;
+    max-width: 50px !important;
+    gap: 9px !important;
+  }
+
+  .plan-fab-actions button {
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    max-width: 50px !important;
+    max-height: 50px !important;
+  }
+
+  .plan-fab-actions button svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .main-fab {
+    right: 14px !important;
+    bottom: 120px !important;
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px !important;
+    min-height: 54px !important;
+  }
+
+  .mobile-app {
+    padding-bottom: 130px !important;
+  }
+}
+/* =========================================================
+   DueWise Plan Mini FAB Icon Polish
+   Paste at the very bottom of src/index.css.
+   Makes Plan quick actions clean icon-only floating buttons:
+   Budget, Savings, Debt.
+   ========================================================= */
+
+/* Plan-only mini FABs: floating stack above main plus */
+.plan-fab-actions {
+  position: fixed !important;
+  right: max(20px, calc((100vw - 430px) / 2 + 20px)) !important;
+  bottom: 194px !important;
+  z-index: 92 !important;
+
+  width: 54px !important;
+  max-width: 54px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+
+  overflow: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Circle mini FAB base */
+.plan-mini-fab,
+.plan-fab-actions button {
+  width: 54px !important;
+  height: 54px !important;
+  min-width: 54px !important;
+  min-height: 54px !important;
+  max-width: 54px !important;
+  max-height: 54px !important;
+
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+
+  border-radius: 999px !important;
+  color: #171717 !important;
+  background: rgba(255, 253, 248, 0.98) !important;
+  border: 1px solid rgba(23, 23, 23, 0.12) !important;
+  box-shadow: none !important;
+
+  font-size: 0 !important;
+  line-height: 1 !important;
+  position: relative !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+
+  animation: duewiseMiniFabFloat 3.2s ease-in-out infinite !important;
+}
+
+/* Hide text labels but keep aria-label/title */
+.plan-mini-fab span,
+.plan-fab-actions button span {
+  display: none !important;
+}
+
+/* Chosen icons */
+.plan-mini-fab svg,
+.plan-fab-actions button svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke-width: 2.35 !important;
+  color: inherit !important;
+}
+
+/* Same subtle radar/pulse language as main FAB */
+.plan-mini-fab::before,
+.plan-fab-actions button::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -5px !important;
+  border-radius: inherit !important;
+  border: 1px solid currentColor !important;
+  opacity: 0 !important;
+  transform: scale(0.86) !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  animation: duewiseMiniFabPulse 3.2s ease-out infinite !important;
+}
+
+/* Stagger movement */
+.plan-mini-fab:nth-child(1),
+.plan-fab-actions button:nth-child(1) {
+  animation-delay: 0s !important;
+}
+
+.plan-mini-fab:nth-child(2),
+.plan-fab-actions button:nth-child(2) {
+  animation-delay: 0.18s !important;
+}
+
+.plan-mini-fab:nth-child(3),
+.plan-fab-actions button:nth-child(3) {
+  animation-delay: 0.36s !important;
+}
+
+.plan-mini-fab:nth-child(1)::before,
+.plan-fab-actions button:nth-child(1)::before {
+  animation-delay: 0.25s !important;
+}
+
+.plan-mini-fab:nth-child(2)::before,
+.plan-fab-actions button:nth-child(2)::before {
+  animation-delay: 0.55s !important;
+}
+
+.plan-mini-fab:nth-child(3)::before,
+.plan-fab-actions button:nth-child(3)::before {
+  animation-delay: 0.85s !important;
+}
+
+/* Identity colors by action */
+.plan-mini-fab.budget,
+.plan-fab-actions button:nth-child(1) {
+  color: #f97316 !important;
+  background:
+    linear-gradient(135deg, rgba(249, 115, 22, 0.16), rgba(255, 253, 248, 0.98)) !important;
+  border-color: rgba(249, 115, 22, 0.42) !important;
+}
+
+.plan-mini-fab.savings,
+.plan-fab-actions button:nth-child(2) {
+  color: #2f7d5a !important;
+  background:
+    linear-gradient(135deg, rgba(47, 125, 90, 0.13), rgba(255, 253, 248, 0.98)) !important;
+  border-color: rgba(47, 125, 90, 0.34) !important;
+}
+
+.plan-mini-fab.debt,
+.plan-fab-actions button:nth-child(3) {
+  color: #57534e !important;
+  background:
+    linear-gradient(135deg, rgba(87, 83, 78, 0.10), rgba(255, 253, 248, 0.98)) !important;
+  border-color: rgba(87, 83, 78, 0.28) !important;
+}
+
+/* Dark mode */
+.theme-dark .plan-mini-fab,
+.theme-dark .plan-fab-actions button {
+  color: #f8f5ee !important;
+  background: rgba(34, 38, 34, 0.98) !important;
+  border-color: rgba(255, 255, 255, 0.13) !important;
+  box-shadow: none !important;
+}
+
+.theme-dark .plan-mini-fab.budget,
+.theme-dark .plan-fab-actions button:nth-child(1) {
+  color: #fb923c !important;
+  background:
+    linear-gradient(135deg, rgba(251, 146, 60, 0.16), rgba(34, 38, 34, 0.98)) !important;
+  border-color: rgba(251, 146, 60, 0.44) !important;
+}
+
+.theme-dark .plan-mini-fab.savings,
+.theme-dark .plan-fab-actions button:nth-child(2) {
+  color: #7ee0a9 !important;
+  background:
+    linear-gradient(135deg, rgba(126, 224, 169, 0.13), rgba(34, 38, 34, 0.98)) !important;
+  border-color: rgba(126, 224, 169, 0.36) !important;
+}
+
+.theme-dark .plan-mini-fab.debt,
+.theme-dark .plan-fab-actions button:nth-child(3) {
+  color: #d6d3d1 !important;
+  background:
+    linear-gradient(135deg, rgba(214, 211, 209, 0.10), rgba(34, 38, 34, 0.98)) !important;
+  border-color: rgba(214, 211, 209, 0.22) !important;
+}
+
+/* Main FAB alignment */
+.main-fab {
+  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
+  bottom: 126px !important;
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  z-index: 90 !important;
+}
+
+/* Hide mini stack when regular FAB menu is open */
+.fab-backdrop.visible ~ .plan-fab-actions {
+  display: none !important;
+}
+
+/* Motion */
+@keyframes duewiseMiniFabFloat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.015);
+  }
+}
+
+@keyframes duewiseMiniFabPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  22% {
+    opacity: 0.22;
+  }
+
+  70% {
+    opacity: 0.05;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.42);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .plan-mini-fab,
+  .plan-fab-actions button,
+  .plan-mini-fab::before,
+  .plan-fab-actions button::before {
+    animation: none !important;
+  }
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .plan-fab-actions {
+    right: 16px !important;
+    bottom: 184px !important;
+    width: 50px !important;
+    max-width: 50px !important;
+    gap: 9px !important;
+  }
+
+  .plan-mini-fab,
+  .plan-fab-actions button {
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    max-width: 50px !important;
+    max-height: 50px !important;
+  }
+
+  .plan-mini-fab svg,
+  .plan-fab-actions button svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .main-fab {
+    right: 14px !important;
+    bottom: 120px !important;
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px !important;
+    min-height: 54px !important;
+  }
+}
+/* =========================================================
+   DueWise Uniform Black FAB Stack
+   Paste at the very bottom of src/index.css.
+   Makes Plan mini-FABs match the main plus button:
+   black circles, centered white icons, uniform float/ripple.
+   ========================================================= */
+
+/* Shared placement */
+.plan-fab-actions {
+  position: fixed !important;
+  right: max(20px, calc((100vw - 430px) / 2 + 20px)) !important;
+  bottom: 194px !important;
+  z-index: 92 !important;
+
+  width: 54px !important;
+  max-width: 54px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+
+  overflow: visible !important;
+  pointer-events: auto !important;
+}
+
+/* All four FABs use the same visual language */
+.main-fab,
+.plan-mini-fab,
+.plan-fab-actions button {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  max-width: 58px !important;
+  max-height: 58px !important;
+
+  display: grid !important;
+  place-items: center !important;
+  align-items: center !important;
+  justify-items: center !important;
+
+  padding: 0 !important;
+  border-radius: 999px !important;
+
+  color: #ffffff !important;
+  background: #111111 !important;
+  border: 4px solid #f7f2e8 !important;
+  box-shadow: none !important;
+
+  line-height: 1 !important;
+  font-size: 0 !important;
+  text-align: center !important;
+
+  position: fixed !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+
+  animation: duewiseUniformFabFloat 3.1s ease-in-out infinite !important;
+}
+
+/* Main plus location */
+.main-fab {
+  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
+  bottom: 126px !important;
+  z-index: 90 !important;
+}
+
+/* Plan mini-FABs are positioned by their parent stack, not individually fixed */
+.plan-mini-fab,
+.plan-fab-actions button {
+  position: relative !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: 92 !important;
+}
+
+/* Hide labels but keep aria-label/title */
+.plan-mini-fab span,
+.plan-fab-actions button span {
+  display: none !important;
+}
+
+/* Center every icon exactly */
+.main-fab svg,
+.plan-mini-fab svg,
+.plan-fab-actions button svg {
+  width: 24px !important;
+  height: 24px !important;
+  display: block !important;
+  margin: 0 !important;
+  transform: none !important;
+  justify-self: center !important;
+  align-self: center !important;
+  color: #ffffff !important;
+  stroke: currentColor !important;
+  stroke-width: 2.5 !important;
+}
+
+/* Remove previous colored identities */
+.plan-mini-fab.budget,
+.plan-mini-fab.savings,
+.plan-mini-fab.debt,
+.plan-fab-actions button:nth-child(1),
+.plan-fab-actions button:nth-child(2),
+.plan-fab-actions button:nth-child(3) {
+  color: #ffffff !important;
+  background: #111111 !important;
+  border-color: #f7f2e8 !important;
+}
+
+/* Same dark-mode look, only border changes to match background */
+.theme-dark .main-fab,
+.theme-dark .plan-mini-fab,
+.theme-dark .plan-fab-actions button,
+.theme-dark .plan-mini-fab.budget,
+.theme-dark .plan-mini-fab.savings,
+.theme-dark .plan-mini-fab.debt,
+.theme-dark .plan-fab-actions button:nth-child(1),
+.theme-dark .plan-fab-actions button:nth-child(2),
+.theme-dark .plan-fab-actions button:nth-child(3) {
+  color: #ffffff !important;
+  background: #111111 !important;
+  border-color: #111411 !important;
+  box-shadow: none !important;
+}
+
+/* Uniform subtle radar ripple for all FABs */
+.main-fab::before,
+.plan-mini-fab::before,
+.plan-fab-actions button::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -8px !important;
+  border-radius: inherit !important;
+  border: 1px solid rgba(17, 17, 17, 0.28) !important;
+  background: rgba(17, 17, 17, 0.06) !important;
+  opacity: 0 !important;
+  transform: scale(0.9) !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  animation: duewiseUniformFabPulse 3.1s ease-out infinite !important;
+}
+
+.theme-dark .main-fab::before,
+.theme-dark .plan-mini-fab::before,
+.theme-dark .plan-fab-actions button::before {
+  border-color: rgba(255, 255, 255, 0.20) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+}
+
+/* Uniform movement timing: all four move together */
+.main-fab,
+.plan-mini-fab:nth-child(1),
+.plan-mini-fab:nth-child(2),
+.plan-mini-fab:nth-child(3),
+.plan-fab-actions button:nth-child(1),
+.plan-fab-actions button:nth-child(2),
+.plan-fab-actions button:nth-child(3),
+.main-fab::before,
+.plan-mini-fab:nth-child(1)::before,
+.plan-mini-fab:nth-child(2)::before,
+.plan-mini-fab:nth-child(3)::before,
+.plan-fab-actions button:nth-child(1)::before,
+.plan-fab-actions button:nth-child(2)::before,
+.plan-fab-actions button:nth-child(3)::before {
+  animation-delay: 0s !important;
+}
+
+/* When the main FAB menu is opened, keep it still and hide Plan mini-FABs */
+.main-fab.open {
+  animation: none !important;
+  transform: none !important;
+}
+
+.main-fab.open::before,
+.main-fab.open::after {
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+.fab-backdrop.visible ~ .plan-fab-actions {
+  display: none !important;
+}
+
+/* Keep enough content clearance */
+.mobile-app {
+  padding-bottom: 136px !important;
+}
+
+@keyframes duewiseUniformFabFloat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.015);
+  }
+}
+
+@keyframes duewiseUniformFabPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+
+  22% {
+    opacity: 0.24;
+  }
+
+  70% {
+    opacity: 0.06;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .main-fab,
+  .plan-mini-fab,
+  .plan-fab-actions button,
+  .main-fab::before,
+  .plan-mini-fab::before,
+  .plan-fab-actions button::before {
+    animation: none !important;
+  }
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .plan-fab-actions {
+    right: 16px !important;
+    bottom: 184px !important;
+    width: 50px !important;
+    max-width: 50px !important;
+    gap: 9px !important;
+  }
+
+  .main-fab,
+  .plan-mini-fab,
+  .plan-fab-actions button {
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px !important;
+    min-height: 54px !important;
+    max-width: 54px !important;
+    max-height: 54px !important;
+  }
+
+  .main-fab {
+    right: 14px !important;
+    bottom: 120px !important;
+  }
+
+  .plan-mini-fab,
+  .plan-fab-actions button {
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    max-width: 50px !important;
+    max-height: 50px !important;
+  }
+
+  .main-fab svg,
+  .plan-mini-fab svg,
+  .plan-fab-actions button svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .mobile-app {
+    padding-bottom: 130px !important;
+  }
+}
+/* =========================================================
+   DueWise FAB Icon Center Correction
+   Paste at the very bottom of src/index.css.
+   Forces Plan mini-FAB icons to the true visual center and
+   keeps all four FABs using the same movement.
+   ========================================================= */
+
+/* Keep the Plan mini-FAB stack aligned with the main plus FAB */
+.plan-fab-actions {
+  right: max(20px, calc((100vw - 430px) / 2 + 20px)) !important;
+  bottom: 194px !important;
+  width: 54px !important;
+  max-width: 54px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+/* Remove all old two-column/grid label layout from previous patches */
+.plan-mini-fab,
+.plan-fab-actions button {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  max-width: 58px !important;
+  max-height: 58px !important;
+
+  display: block !important;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  place-items: unset !important;
+  align-items: unset !important;
+  justify-items: unset !important;
+  justify-content: unset !important;
+  align-content: unset !important;
+  column-gap: 0 !important;
+  gap: 0 !important;
+
+  padding: 0 !important;
+  border-radius: 999px !important;
+  position: relative !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+
+  color: #ffffff !important;
+  background: #111111 !important;
+  border: 4px solid #f7f2e8 !important;
+  box-shadow: none !important;
+
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-align: center !important;
+
+  animation: duewiseFabUnifiedFloat 3.1s ease-in-out infinite !important;
+}
+
+/* Main FAB uses same motion and visual style */
+.main-fab {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+
+  display: block !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  position: fixed !important;
+
+  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
+  bottom: 126px !important;
+
+  color: #ffffff !important;
+  background: #111111 !important;
+  border: 4px solid #f7f2e8 !important;
+  box-shadow: none !important;
+
+  animation: duewiseFabUnifiedFloat 3.1s ease-in-out infinite !important;
+}
+
+/* Hide text labels from Plan mini-FABs */
+.plan-mini-fab span,
+.plan-fab-actions button span {
+  display: none !important;
+}
+
+/* TRUE CENTER: absolute-position every mini-FAB SVG */
+.plan-mini-fab > svg,
+.plan-fab-actions button > svg {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+
+  width: 23px !important;
+  height: 23px !important;
+  min-width: 23px !important;
+  min-height: 23px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  transform: translate(-50%, -50%) !important;
+  transform-origin: center center !important;
+
+  display: block !important;
+  color: #ffffff !important;
+  stroke: currentColor !important;
+  stroke-width: 2.45 !important;
+  line-height: 1 !important;
+}
+
+/* TRUE CENTER: absolute-position the main plus SVG also */
+.main-fab > svg {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  transform: translate(-50%, -50%) !important;
+  transform-origin: center center !important;
+
+  display: block !important;
+  color: #ffffff !important;
+  stroke: currentColor !important;
+  stroke-width: 2.45 !important;
+}
+
+/* Remove old colored FAB identities */
+.plan-mini-fab.budget,
+.plan-mini-fab.savings,
+.plan-mini-fab.debt,
+.plan-fab-actions button:nth-child(1),
+.plan-fab-actions button:nth-child(2),
+.plan-fab-actions button:nth-child(3) {
+  color: #ffffff !important;
+  background: #111111 !important;
+  border-color: #f7f2e8 !important;
+}
+
+/* Same dark-mode appearance */
+.theme-dark .main-fab,
+.theme-dark .plan-mini-fab,
+.theme-dark .plan-fab-actions button,
+.theme-dark .plan-mini-fab.budget,
+.theme-dark .plan-mini-fab.savings,
+.theme-dark .plan-mini-fab.debt,
+.theme-dark .plan-fab-actions button:nth-child(1),
+.theme-dark .plan-fab-actions button:nth-child(2),
+.theme-dark .plan-fab-actions button:nth-child(3) {
+  color: #ffffff !important;
+  background: #111111 !important;
+  border-color: #111411 !important;
+  box-shadow: none !important;
+}
+
+/* Uniform ripple on all four buttons */
+.main-fab::before,
+.plan-mini-fab::before,
+.plan-fab-actions button::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -8px !important;
+  border-radius: inherit !important;
+  border: 1px solid rgba(17, 17, 17, 0.28) !important;
+  background: rgba(17, 17, 17, 0.06) !important;
+  opacity: 0 !important;
+  transform: scale(0.88) !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  animation: duewiseFabUnifiedPulse 3.1s ease-out infinite !important;
+}
+
+.theme-dark .main-fab::before,
+.theme-dark .plan-mini-fab::before,
+.theme-dark .plan-fab-actions button::before {
+  border-color: rgba(255, 255, 255, 0.20) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+}
+
+/* Remove old secondary pseudo-ripple if it exists */
+.plan-mini-fab::after,
+.plan-fab-actions button::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* All four buttons move together */
+.main-fab,
+.plan-mini-fab,
+.plan-fab-actions button,
+.main-fab::before,
+.plan-mini-fab::before,
+.plan-fab-actions button::before {
+  animation-delay: 0s !important;
+}
+
+/* Hide Plan mini-FABs when main FAB menu is open */
+.fab-backdrop.visible ~ .plan-fab-actions {
+  display: none !important;
+}
+
+.main-fab.open {
+  animation: none !important;
+  transform: none !important;
+}
+
+.main-fab.open::before,
+.main-fab.open::after {
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+@keyframes duewiseFabUnifiedFloat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.015);
+  }
+}
+
+@keyframes duewiseFabUnifiedPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+
+  22% {
+    opacity: 0.24;
+  }
+
+  70% {
+    opacity: 0.06;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-fab,
+  .plan-mini-fab,
+  .plan-fab-actions button,
+  .main-fab::before,
+  .plan-mini-fab::before,
+  .plan-fab-actions button::before {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .plan-fab-actions {
+    right: 16px !important;
+    bottom: 184px !important;
+    width: 50px !important;
+    max-width: 50px !important;
+    gap: 9px !important;
+  }
+
+  .plan-mini-fab,
+  .plan-fab-actions button {
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px !important;
+    min-height: 54px !important;
+    max-width: 54px !important;
+    max-height: 54px !important;
+  }
+
+  .main-fab {
+    right: 14px !important;
+    bottom: 120px !important;
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px !important;
+    min-height: 54px !important;
+  }
+
+  .plan-mini-fab > svg,
+  .plan-fab-actions button > svg {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+  }
+
+  .main-fab > svg {
+    width: 27px !important;
+    height: 27px !important;
+    min-width: 27px !important;
+    min-height: 27px !important;
+  }
+}
+/* =========================================================
+   DueWise FAB Sync Motion Fix
+   Paste at the very bottom of src/index.css.
+   Forces the 3 Plan mini-FABs and the main plus FAB to move
+   and pulse in the exact same timing.
+   ========================================================= */
+
+/* The parent stack must not animate, only the buttons animate */
+.plan-fab-actions {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Reset old mixed animations from previous patches */
+.main-fab,
+.plan-mini-fab,
+.plan-fab-actions button {
+  animation-name: duewiseAllFabFloatSync !important;
+  animation-duration: 3.1s !important;
+  animation-timing-function: ease-in-out !important;
+  animation-iteration-count: infinite !important;
+  animation-delay: 0s !important;
+  animation-direction: normal !important;
+  animation-fill-mode: both !important;
+  transform-origin: center center !important;
+}
+
+/* Same synchronized ripple for all buttons */
+.main-fab::before,
+.plan-mini-fab::before,
+.plan-fab-actions button::before {
+  animation-name: duewiseAllFabPulseSync !important;
+  animation-duration: 3.1s !important;
+  animation-timing-function: ease-out !important;
+  animation-iteration-count: infinite !important;
+  animation-delay: 0s !important;
+  animation-direction: normal !important;
+  animation-fill-mode: both !important;
+
+  content: "" !important;
+  position: absolute !important;
+  inset: -8px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(17, 17, 17, 0.28) !important;
+  background: rgba(17, 17, 17, 0.06) !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+}
+
+/* Remove the old second ripple on the main FAB that made it look off-beat */
+.main-fab::after,
+.plan-mini-fab::after,
+.plan-fab-actions button::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+}
+
+/* Keep opened plus button still */
+.main-fab.open {
+  animation: none !important;
+  transform: none !important;
+}
+
+.main-fab.open::before,
+.main-fab.open::after {
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+/* Synchronized movement: all 4 rise together, then return together */
+@keyframes duewiseAllFabFloatSync {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.015);
+  }
+}
+
+/* Synchronized pulse: all 4 ripple together */
+@keyframes duewiseAllFabPulseSync {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+
+  22% {
+    opacity: 0.24;
+  }
+
+  70% {
+    opacity: 0.06;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .main-fab,
+  .plan-mini-fab,
+  .plan-fab-actions button,
+  .main-fab::before,
+  .plan-mini-fab::before,
+  .plan-fab-actions button::before {
+    animation: none !important;
+  }
+}
