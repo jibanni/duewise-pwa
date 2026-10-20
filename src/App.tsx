@@ -1,6 +1,8 @@
 import './index.css'
 
 import { createClient, type Session } from '@supabase/supabase-js'
+import * as pdfjsLib from 'pdfjs-dist'
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 import {
   useEffect,
@@ -32,6 +34,7 @@ import {
   BarChart3,
   ClipboardList,
   CreditCard,
+  FileText,
   Home,
   Landmark,
   Moon,
@@ -69,6 +72,8 @@ type CreditCardAccount = {
   creditLimit: number
   cutOffDay: number
   dueDay: number
+  annualRate?: number
+  minimumDue?: number
   lastPaymentAt?: string
 }
 
@@ -97,6 +102,9 @@ type Debt = {
   balance: number
   monthly: number
   due: string
+  annualRate?: number
+  source?: string
+  kind?: 'loan' | 'credit-card-installment' | 'other'
 }
 
 type RecurringExpense = {
@@ -215,6 +223,95 @@ type AffordabilityResult = {
   paymentAdvice: string
 }
 
+type StatementInstallmentDraft = {
+  id: string
+  description: string
+  monthlyAmount: number
+  remainingBalance: number
+  monthsRemaining: number
+  annualRate: number
+  confidence: 'High' | 'Medium' | 'Low'
+}
+
+type StatementDebtComponentDraft = {
+  id: string
+  type: 'revolving' | 'installment' | 'interest'
+  name: string
+  balance: number
+  monthlyDue: number
+  annualRate: number
+  priority: 'High' | 'Medium' | 'Low'
+  note: string
+}
+
+type StatementAvalanchePreview = {
+  totalDebtExposure: number
+  requiredThisMonth: number
+  focusName: string
+  focusRate: number
+  focusNote: string
+  componentCount: number
+}
+
+type StatementImportDraft = {
+  fileName: string
+  rawText: string
+  cardName: string
+  statementDate: string
+  dueDate: string
+  totalAmountDue: number
+  minimumAmountDue: number
+  outstandingBalance: number
+  creditLimit: number
+  financeCharge: number
+  annualRate: number
+  installments: StatementInstallmentDraft[]
+  notes: string[]
+}
+
+type StatementImportSavePayload = {
+  selectedCardId: string
+  draft: StatementImportDraft
+  updateCreditCard: boolean
+  addFinanceCharge: boolean
+  addInstallments: boolean
+}
+
+type StatementPasswordFormat = 'manual' | 'dob-ddmmmyyyy-upper' | 'dob-mmddyyyy' | 'dob-ddmmmyyyy-title'
+
+type StatementPasswordProfile = {
+  id: string
+  label: string
+  format: StatementPasswordFormat
+  hint: string
+  example: string
+}
+
+type SoaParserFieldKey =
+  | 'statementDate'
+  | 'dueDate'
+  | 'totalAmountDue'
+  | 'minimumAmountDue'
+  | 'outstandingBalance'
+  | 'creditLimit'
+  | 'financeCharge'
+  | 'installments'
+
+type SoaParserProfile = {
+  id: string
+  bankName: string
+  passwordProfileId: string
+  keywords: string[]
+  fields: Record<SoaParserFieldKey, string[]>
+  defaultAnnualRate: number
+}
+
+type SoaParserMatch = {
+  profile: SoaParserProfile
+  score: number
+  confidence: 'High' | 'Medium' | 'Low'
+}
+
 
 type MessageDialogState = {
   type: 'alert' | 'confirm'
@@ -236,10 +333,118 @@ const STORAGE_KEY = 'duewise-local-data-v1'
 const THEME_KEY = 'duewise-theme'
 const DAY_IN_MS = 1000 * 60 * 60 * 24
 const CLOUD_SYNC_KEY = 'duewise-last-cloud-sync-at'
+const DEFAULT_SOA_BIRTHDATE = ''
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 const supabase = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+
+const statementPasswordProfiles: StatementPasswordProfile[] = [
+  {
+    id: 'security-bank',
+    label: 'Security Bank',
+    format: 'dob-ddmmmyyyy-upper',
+    hint: 'Birthday in DDMMMYYYY format',
+    example: '05NOV1980',
+  },
+  {
+    id: 'rcbc-flex-classic',
+    label: 'RCBC Flex / Classic',
+    format: 'dob-mmddyyyy',
+    hint: 'Birthday in MMDDYYYY format',
+    example: '11051981',
+  },
+  {
+    id: 'unionbank',
+    label: 'UnionBank',
+    format: 'dob-ddmmmyyyy-title',
+    hint: 'Birthday in ddMmmyyyy format',
+    example: '22Jun1994',
+  },
+]
+
+const soaParserProfiles: SoaParserProfile[] = [
+  {
+    id: 'unionbank',
+    bankName: 'UnionBank',
+    passwordProfileId: 'unionbank',
+    keywords: [
+      'UnionBank',
+      'Union Bank',
+      'UBP',
+      'Payment Due Date',
+      'Total Amount Due',
+      'Minimum Amount Due',
+      'Statement Date',
+      'Credit Limit',
+      'Finance Charge',
+    ],
+    fields: {
+      statementDate: ['statement date', 'billing period', 'statement period', 'statement as of', 'cycle date'],
+      dueDate: ['payment due date', 'due date', 'pay on or before', 'please pay on or before'],
+      totalAmountDue: ['total amount due', 'amount due', 'total payment due', 'payment amount due'],
+      minimumAmountDue: ['minimum amount due', 'minimum payment due', 'minimum payment', 'minimum due'],
+      outstandingBalance: ['statement balance', 'outstanding balance', 'new balance', 'current balance', 'total balance'],
+      creditLimit: ['credit limit', 'total credit limit', 'approved credit limit'],
+      financeCharge: ['finance charge', 'interest charge', 'retail interest', 'monthly interest', 'cash advance interest'],
+      installments: ['installment', 'instalment', 'installment plan', 'easy pay', 'easypay', 'payeasy', 'balance conversion'],
+    },
+    defaultAnnualRate: 0.36,
+  },
+  {
+    id: 'security-bank',
+    bankName: 'Security Bank',
+    passwordProfileId: 'security-bank',
+    keywords: [
+      'Security Bank',
+      'Security Bank Corporation',
+      'Total Amount Due',
+      'Minimum Amount Due',
+      'Payment Due Date',
+      'Statement Date',
+      'Finance Charge',
+    ],
+    fields: {
+      statementDate: ['statement date', 'billing date', 'statement period', 'cut-off date'],
+      dueDate: ['payment due date', 'due date', 'payment date', 'please pay on or before'],
+      totalAmountDue: ['total amount due', 'amount due', 'total payment due'],
+      minimumAmountDue: ['minimum amount due', 'minimum payment required', 'minimum payment due', 'minimum due'],
+      outstandingBalance: ['outstanding balance', 'statement balance', 'new balance', 'current balance', 'total balance'],
+      creditLimit: ['credit limit', 'total credit limit', 'available credit limit'],
+      financeCharge: ['finance charge', 'interest charge', 'retail interest', 'monthly interest charge'],
+      installments: ['installment', 'instalment', 'charge light', 'balance transfer', 'balance conversion', 'monthly amortization'],
+    },
+    defaultAnnualRate: 0.36,
+  },
+  {
+    id: 'rcbc-flex-classic',
+    bankName: 'RCBC',
+    passwordProfileId: 'rcbc-flex-classic',
+    keywords: [
+      'RCBC',
+      'Bankard',
+      'Flex',
+      'Classic',
+      'Payment Due Date',
+      'Minimum Amount Due',
+      'Total Amount Due',
+      'Statement Balance',
+    ],
+    fields: {
+      statementDate: ['statement date', 'billing date', 'statement period'],
+      dueDate: ['payment due date', 'due date', 'pay by', 'payment date'],
+      totalAmountDue: ['total amount due', 'amount due', 'total payment due'],
+      minimumAmountDue: ['minimum amount due', 'minimum due', 'minimum payment', 'minimum payment due'],
+      outstandingBalance: ['statement balance', 'outstanding balance', 'new balance', 'current balance', 'total balance'],
+      creditLimit: ['credit limit', 'total credit limit'],
+      financeCharge: ['retail interest', 'finance charge', 'interest charge', 'cash advance interest'],
+      installments: ['installment', 'instalment', 'unli 0%', 'unli zero', 'unlipay', 'balance conversion', 'monthly amortization'],
+    },
+    defaultAnnualRate: 0.36,
+  },
+]
 
 const budgetCategories: BudgetCategory[] = [
   'Food',
@@ -255,7 +460,8 @@ const budgetCategories: BudgetCategory[] = [
 const peso = new Intl.NumberFormat('en-PH', {
   style: 'currency',
   currency: 'PHP',
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 })
 
 const initialMonthlyBudgets: MonthlyBudget[] = []
@@ -332,6 +538,7 @@ function App() {
   const [cardPaymentTarget, setCardPaymentTarget] = useState<CreditCardAccount | null>(null)
   const [goalMoneyTarget, setGoalMoneyTarget] = useState<{ goal: SavingsGoal; mode: 'deposit' | 'withdraw' } | null>(null)
   const [debtPaymentTarget, setDebtPaymentTarget] = useState<Debt | null>(null)
+  const [statementImporterOpen, setStatementImporterOpen] = useState(false)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(financeData))
@@ -488,7 +695,7 @@ function App() {
   }
 
   async function upsertFinanceDataToCloud(dataToSync: FinanceData) {
-    if (!supabase || !session) throw new Error('Sign in to DueWise Cloud first.')
+    if (!supabase || !session) throw new Error('Sign in to Due₱oint Cloud first.')
 
     const syncedAt = new Date().toISOString()
     const { error } = await supabase.from('duewise_user_data').upsert(
@@ -512,7 +719,7 @@ function App() {
     }
 
     if (!session) {
-      if (!options.silent) showAlert('Sign In Required', 'Sign in to DueWise Cloud before syncing.')
+      if (!options.silent) showAlert('Sign In Required', 'Sign in to Due₱oint Cloud before syncing.')
       return
     }
 
@@ -534,7 +741,7 @@ function App() {
 
   async function restoreDataFromCloud(options: { silent?: boolean } = {}) {
     if (!supabase || !session) {
-      if (!options.silent) showAlert('Sign In Required', 'Sign in to DueWise Cloud before restoring.')
+      if (!options.silent) showAlert('Sign In Required', 'Sign in to Due₱oint Cloud before restoring.')
       return
     }
 
@@ -552,7 +759,7 @@ function App() {
 
       if (!data?.data) {
         setSyncStatus('No cloud backup found')
-        if (!options.silent) showAlert('No Cloud Backup', 'No saved DueWise backup was found for this account.')
+        if (!options.silent) showAlert('No Cloud Backup', 'No saved Due₱oint backup was found for this account.')
         return
       }
 
@@ -574,7 +781,7 @@ function App() {
   function confirmRestoreFromCloud() {
     showConfirm({
       title: 'Are you sure?',
-      message: 'This will replace the local DueWise data on this browser with your saved cloud backup.',
+      message: 'This will replace the local Due₱oint data on this browser with your saved cloud backup.',
       confirmLabel: 'Restore',
       onConfirm: () => {
         void restoreDataFromCloud()
@@ -618,7 +825,7 @@ function App() {
     }
 
     setSyncStatus('Account created')
-    showAlert('Account Created', 'Check your email if confirmation is required. After signing in, DueWise will sync your data.')
+    showAlert('Account Created', 'Check your email if confirmation is required. After signing in, Due₱oint will sync your data.')
   }
 
   async function signOutFromCloud() {
@@ -836,7 +1043,7 @@ function App() {
       ),
       creditCards: current.creditCards.map((item) =>
         item.id === cardId
-          ? { ...item, currentBalance: Math.max(item.currentBalance - amount, 0), lastPaymentAt: paidAt }
+          ? { ...item, currentBalance: Math.max(item.currentBalance - amount, 0), minimumDue: typeof item.minimumDue === 'number' ? Math.max(item.minimumDue - amount, 0) : undefined, lastPaymentAt: paidAt }
           : item,
       ),
       transactions: [
@@ -853,6 +1060,91 @@ function App() {
       ].slice(0, 200),
     }))
     setCardPaymentTarget(null)
+  }
+
+  function saveStatementImport({
+    selectedCardId,
+    draft,
+    updateCreditCard,
+    addInstallments,
+  }: StatementImportSavePayload) {
+    const statementBalance = Math.max(draft.outstandingBalance || draft.totalAmountDue || 0, 0)
+    const dueDay = parseDayFromStatementDate(draft.dueDate, 15)
+    const cutOffDay = parseDayFromStatementDate(draft.statementDate, 1)
+    const cleanedAnnualRate = Number.isFinite(draft.annualRate) && draft.annualRate >= 0 ? draft.annualRate : 0.36
+
+    setFinanceData((current) => {
+      let importedCardName = draft.cardName.trim() || 'Imported Credit Card'
+      let creditCards = current.creditCards
+
+      if (updateCreditCard) {
+        if (selectedCardId === 'new') {
+          const newCard: CreditCardAccount = {
+            id: createNumericId(current.creditCards),
+            name: importedCardName,
+            currentBalance: statementBalance,
+            creditLimit: Math.max(draft.creditLimit, statementBalance, 1),
+            cutOffDay,
+            dueDay,
+            annualRate: cleanedAnnualRate,
+            minimumDue: draft.minimumAmountDue,
+          }
+          creditCards = [...current.creditCards, newCard]
+        } else {
+          const parsedCardId = Number(selectedCardId)
+          const existingCard = current.creditCards.find((card) => card.id === parsedCardId)
+          if (existingCard) importedCardName = existingCard.name
+
+          creditCards = current.creditCards.map((card) =>
+            card.id === parsedCardId
+              ? {
+                  ...card,
+                  currentBalance: statementBalance,
+                  creditLimit: draft.creditLimit > 0 ? draft.creditLimit : card.creditLimit,
+                  dueDay,
+                  cutOffDay: cutOffDay || card.cutOffDay,
+                  annualRate: cleanedAnnualRate,
+                  minimumDue: draft.minimumAmountDue,
+                }
+              : card,
+          )
+        }
+      }
+
+      const nextDebtId = Math.max(0, ...current.debts.map((debt) => debt.id)) + 1
+      const importedDebts: Debt[] = addInstallments
+        ? draft.installments
+            .filter((installment) => installment.monthlyAmount > 0 || installment.remainingBalance > 0)
+            .map((installment, index) => {
+              const monthly = Math.max(installment.monthlyAmount, 1)
+              const balance = (installment.remainingBalance > 0 ? installment.remainingBalance : installment.monthlyAmount * Math.max(installment.monthsRemaining, 1))
+
+              return {
+                id: nextDebtId + index,
+                name: `${importedCardName} - ${installment.description}`,
+                balance,
+                monthly,
+                due: draft.dueDate ? `Every ${formatOrdinalDay(dueDay)}` : 'Every month',
+                annualRate: installment.annualRate,
+                source: 'Imported credit card SOA',
+                kind: 'credit-card-installment',
+              }
+            })
+        : []
+
+
+      return {
+        ...current,
+        creditCards,
+        debts: mergeImportedInstallmentDebts(current.debts, importedDebts),
+      }
+    })
+
+    setStatementImporterOpen(false)
+    showAlert(
+      'Statement Saved',
+      'Card balance and future installment plans saved. Payments and interest already included in the statement were not posted again.',
+    )
   }
 
   function saveBill(bill: Omit<RecurringExpense, 'id' | 'remainingBalance' | 'periodKey' | 'lastPaidAt'>, id?: number) {
@@ -1105,7 +1397,7 @@ function App() {
 
   function resetLocalData() {
     showConfirm({
-      title: 'Reset DueWise?',
+      title: 'Reset Due₱oint?',
       message: 'This will clear local data and restore the sample records.',
       confirmLabel: 'Reset',
       onConfirm: () => {
@@ -1121,8 +1413,8 @@ function App() {
     <main className={`app-shell ${darkMode ? 'theme-dark' : ''}`}>
       <section className="mobile-app">
         <header className="app-header">
-          <div>
-            <p className="brand-name">DueWise</p>
+          <div className="dp-header-title">
+            <span className="dp-header-wordmark">DUEPOINT</span>
             <h1>{getPageTitle(activeTab)}</h1>
           </div>
 
@@ -1142,13 +1434,15 @@ function App() {
           </div>
         </header>
 
-        <section className="balance-hero">
-          <div>
-            <p className="hero-label">Available Cash</p>
-            <h2>{peso.format(totalCash)}</h2>
-            <p className="hero-description">Estimated spendable balance across your cash accounts</p>
-          </div>
-        </section>
+        {activeTab === 'today' && (
+          <section className="balance-hero">
+            <div>
+              <p className="hero-label">Available Cash</p>
+              <h2>{peso.format(totalCash)}</h2>
+              <p className="hero-description">Estimated spendable balance across your cash accounts</p>
+            </div>
+          </section>
+        )}
 
         <section className="page-content">
           {activeTab === 'today' && (
@@ -1171,6 +1465,7 @@ function App() {
               onEditAccount={setAccountEditor}
               onDeleteAccount={deleteAccount}
               onAddCreditCard={() => setCardEditor('new')}
+              onImportStatement={() => setStatementImporterOpen(true)}
               onEditCreditCard={setCardEditor}
               onDeleteCreditCard={deleteCreditCard}
               onPayCreditCard={setCardPaymentTarget}
@@ -1276,7 +1571,7 @@ function App() {
         )}
 
         <button
-          className={`main-fab ${fabOpen ? 'open' : ''}`}
+          className={`main-fab dp-fab-v3 ${fabOpen ? 'open' : ''}`}
           type="button"
           aria-label={fabOpen ? 'Close quick actions' : 'Open quick actions'}
           onClick={() => setFabOpen((current) => !current)}
@@ -1284,7 +1579,7 @@ function App() {
           {fabOpen ? <X size={25} /> : <Plus size={27} />}
         </button>
 
-        <nav className="bottom-nav">
+        <nav className="bottom-nav dp-navbar-v3" aria-label="Main navigation">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = activeTab === item.key
@@ -1293,6 +1588,8 @@ function App() {
               <button
                 key={item.key}
                 type="button"
+                aria-label={item.label}
+                aria-current={isActive ? "page" : undefined}
                 className={isActive ? 'active' : ''}
                 onClick={() => {
                   setActiveTab(item.key)
@@ -1300,7 +1597,6 @@ function App() {
                 }}
               >
                 <Icon size={20} strokeWidth={isActive ? 2.25 : 1.8} />
-                <span>{item.label}</span>
               </button>
             )
           })}
@@ -1334,6 +1630,16 @@ function App() {
             card={cardEditor === 'new' ? undefined : cardEditor}
             onClose={() => setCardEditor(null)}
             onSave={saveCreditCard}
+            onNotify={showAlert}
+          />
+        )}
+
+        {statementImporterOpen && (
+          <StatementImportModal
+            creditCards={financeData.creditCards}
+            debts={financeData.debts}
+            onClose={() => setStatementImporterOpen(false)}
+            onSave={saveStatementImport}
             onNotify={showAlert}
           />
         )}
@@ -1492,19 +1798,25 @@ function TodayPage({
 
   const dailyRecommendation = getDailyRecommendation(creditCardInsights)
 
-  const billEvents = recurringExpenses.slice(0, 3).map((bill) => ({
-    id: `bill-${bill.id}`,
-    title: bill.name,
-    date: bill.nextDue,
-    amount: getBillRemainingBalance(bill),
-    type: 'Recurring',
-  }))
+  // Show the actual upcoming cycle, not the month written into an old bill label.
+  const billEvents = recurringExpenses.map((bill) => {
+    const upcomingDate = getUpcomingBillDueDate(bill)
+    return {
+      id: `bill-${bill.id}`,
+      title: bill.name,
+      date: upcomingDate ? formatChartDate(upcomingDate) : bill.nextDue,
+      sortDate: upcomingDate?.getTime() ?? Number.MAX_SAFE_INTEGER,
+      amount: getBillRemainingBalance(bill),
+      type: 'Recurring',
+    }
+  })
 
-  const cardEvents = creditCardInsights.slice(0, 1).flatMap((insight) => [
+  const cardEvents = creditCardInsights.flatMap((insight) => [
     {
       id: `cutoff-${insight.card.id}`,
       title: `${insight.card.name} Cut-off`,
       date: formatRelativeDays(insight.daysToCutOff),
+      sortDate: addDays(startOfDay(today), insight.daysToCutOff).getTime(),
       amount: 0,
       type: 'Cut-off',
     },
@@ -1512,12 +1824,15 @@ function TodayPage({
       id: `due-${insight.card.id}`,
       title: `${insight.card.name} Due Date`,
       date: formatRelativeDays(insight.daysToDue),
-      amount: insight.card.currentBalance,
+      sortDate: addDays(startOfDay(today), insight.daysToDue).getTime(),
+      amount: getCreditCardMinimumPayment(insight.card),
       type: 'Due',
     },
   ])
 
   const events = [...billEvents, ...cardEvents]
+    .sort((first, second) => first.sortDate - second.sortDate)
+    .slice(0, 4)
 
   return (
     <>
@@ -1597,6 +1912,7 @@ function WalletPage({
   onEditAccount,
   onDeleteAccount,
   onAddCreditCard,
+  onImportStatement,
   onEditCreditCard,
   onDeleteCreditCard,
   onPayCreditCard,
@@ -1608,6 +1924,7 @@ function WalletPage({
   onEditAccount: (account: Account) => void
   onDeleteAccount: (id: number) => void
   onAddCreditCard: () => void
+  onImportStatement: () => void
   onEditCreditCard: (card: CreditCardAccount) => void
   onDeleteCreditCard: (id: number) => void
   onPayCreditCard: (card: CreditCardAccount) => void
@@ -1622,6 +1939,10 @@ function WalletPage({
         <button type="button" style={softButtonStyle} onClick={onAddCreditCard}>
           <Plus size={16} />
           Add Card
+        </button>
+        <button type="button" className="statement-import-button" style={softButtonStyle} onClick={onImportStatement}>
+          <FileText size={16} />
+          Manual SOA Entry
         </button>
       </div>
 
@@ -1715,6 +2036,7 @@ function WalletPage({
               <div className="credit-dates">
                 <span>Cut-off: {formatOrdinalDay(card.cutOffDay)}</span>
                 <span>Due: {formatOrdinalDay(card.dueDay)}</span>
+                {typeof card.annualRate === 'number' && <span>APR: {Math.round(card.annualRate * 100)}%</span>}
               </div>
             </article>
           )
@@ -1885,7 +2207,7 @@ function PlanPage({
                     <p>
                       {expense.category} · {expense.frequency}
                     </p>
-                    <span>Next due: {expense.nextDue}</span>
+                    <span>Next due: {getUpcomingBillDueDate(expense) ? formatChartDate(getUpcomingBillDueDate(expense)!) : expense.nextDue}</span>
                     {hasPartialPayment && (
                       <span>Original amount: {peso.format(expense.amount)}</span>
                     )}
@@ -2076,6 +2398,7 @@ function PlanPage({
                   <h3>{debt.name}</h3>
                   <p>
                     {peso.format(debt.monthly)} monthly · {debt.due}
+                    {typeof debt.annualRate === 'number' ? ` · ${Math.round(debt.annualRate * 100)}% APR` : ''}
                   </p>
                 </div>
 
@@ -2820,7 +3143,7 @@ function AffordabilityTool({
       </div>
 
       <div className="ai-tool-result">
-        <span>DueWise check</span>
+        <span>Due₱oint check</span>
         <p>{result.message}</p>
       </div>
     </section>
@@ -2833,7 +3156,7 @@ function CreditCardRanking({ insights }: { insights: CreditCardInsight[] }) {
       <article className="account-card">
         <div className="card-main-content">
           <h3>No credit cards yet</h3>
-          <p>Add a credit card to enable DueWise recommendations.</p>
+          <p>Add a credit card to enable Due₱oint recommendations.</p>
         </div>
       </article>
     )
@@ -3189,6 +3512,593 @@ function AccountEditorModal({
     </ModalShell>
   )
 }
+
+
+const duewiseLegacySoaParserReferences = [
+  DEFAULT_SOA_BIRTHDATE,
+  getStatementPasswordCandidatePreview,
+  extractPdfTextWithAutoPassword,
+  parseCreditCardStatement,
+]
+
+void duewiseLegacySoaParserReferences
+
+
+function StatementImportModal({
+  creditCards,
+  debts,
+  onClose,
+  onSave,
+  onNotify,
+}: {
+  creditCards: CreditCardAccount[]
+  debts: Debt[]
+  onClose: () => void
+  onSave: (payload: StatementImportSavePayload) => void
+  onNotify: (title: string, message: string) => void
+}) {
+  const firstCard = creditCards[0]
+  const [selectedCardId, setSelectedCardId] = useState(firstCard ? firstCard.id.toString() : 'new')
+  const selectedCard = creditCards.find((card) => card.id.toString() === selectedCardId)
+
+  const [cardName, setCardName] = useState(firstCard?.name ?? '')
+  const [statementDate, setStatementDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [dueDate, setDueDate] = useState('')
+  const [previousBalance, setPreviousBalance] = useState('')
+  const [paymentsMade, setPaymentsMade] = useState('')
+  const [currentCharges, setCurrentCharges] = useState('')
+  const [currentInstallmentDue, setCurrentInstallmentDue] = useState('')
+  const [otherFees, setOtherFees] = useState('')
+  const [actualStatementBalance, setActualStatementBalance] = useState('')
+  const [minimumAmountDue, setMinimumAmountDue] = useState('')
+  const [creditLimit, setCreditLimit] = useState(firstCard?.creditLimit ? firstCard.creditLimit.toString() : '')
+  const [financeCharge, setFinanceCharge] = useState('')
+  const [annualRate, setAnnualRate] = useState(Math.round((firstCard?.annualRate ?? 0.36) * 100).toString())
+  const [installments, setInstallments] = useState<StatementInstallmentDraft[]>([])
+  const moduleOrder = ['overview', 'balance', 'payment', 'installments', 'preview'] as const
+  type ManualSoaModuleKey = (typeof moduleOrder)[number]
+  const [activeModule, setActiveModule] = useState<ManualSoaModuleKey>('overview')
+
+  const computedStatementBalance = Math.max(
+    parseMoneyValue(previousBalance) -
+      parseMoneyValue(paymentsMade) +
+      parseMoneyValue(currentCharges) +
+      parseMoneyValue(currentInstallmentDue) +
+      parseMoneyValue(financeCharge) +
+      parseMoneyValue(otherFees),
+    0,
+  )
+  const actualBalance = parseMoneyValue(actualStatementBalance)
+  const hasBreakdown = [previousBalance, paymentsMade, currentCharges, currentInstallmentDue, financeCharge, otherFees].some((value) => value.trim() !== '')
+  const statementBalance = actualBalance > 0 ? actualBalance : computedStatementBalance
+  const balanceDifference = actualBalance > 0 && hasBreakdown ? actualBalance - computedStatementBalance : 0
+
+  const moduleLabels: Record<ManualSoaModuleKey, string> = {
+    overview: 'Card',
+    balance: 'Balance',
+    payment: 'Payment',
+    installments: 'Plans',
+    preview: 'Review',
+  }
+
+  const moduleMeta: Record<ManualSoaModuleKey, { title: string; subtitle: string }> = {
+    overview: {
+      title: 'Card and due dates',
+      subtitle: 'Choose the credit card, statement date, and payment due date.',
+    },
+    balance: {
+      title: 'Balance builder',
+      subtitle: 'Build the new balance from previous balance, payment, new charges, installment, and fees.',
+    },
+    payment: {
+      title: 'Payment requirement',
+      subtitle: 'Encode the minimum due, card limit, and APR for debt prioritization.',
+    },
+    installments: {
+      title: 'Future installment plans',
+      subtitle: 'Add only active installment plans that still have remaining balances.',
+    },
+    preview: {
+      title: 'Review and save',
+      subtitle: 'Check the payment requirement, total exposure, and avalanche recommendation.',
+    },
+  }
+
+  const activeModuleIndex = moduleOrder.indexOf(activeModule)
+  const progressPercent = ((activeModuleIndex + 1) / moduleOrder.length) * 100
+
+  function goToNextModule() {
+    const nextModule = moduleOrder[Math.min(activeModuleIndex + 1, moduleOrder.length - 1)]
+    setActiveModule(nextModule)
+  }
+
+  function goToPreviousModule() {
+    const previousModule = moduleOrder[Math.max(activeModuleIndex - 1, 0)]
+    setActiveModule(previousModule)
+  }
+
+  function handleCardChange(value: string) {
+    setSelectedCardId(value)
+
+    if (value === 'new') {
+      setCardName('')
+      setPreviousBalance('')
+      setActualStatementBalance('')
+      setCreditLimit('')
+      setAnnualRate('36')
+      return
+    }
+
+    const card = creditCards.find((item) => item.id.toString() === value)
+    if (!card) return
+
+    setCardName(card.name)
+    setPreviousBalance('')
+    setActualStatementBalance('')
+    setCreditLimit(card.creditLimit > 0 ? card.creditLimit.toString() : '')
+    setAnnualRate(Math.round((card.annualRate ?? 0.36) * 100).toString())
+  }
+
+  function addInstallment() {
+    setInstallments((current) => [
+      ...current,
+      {
+        id: createId(),
+        description: '',
+        monthlyAmount: 0,
+        remainingBalance: 0,
+        monthsRemaining: 1,
+        annualRate: 0,
+        confidence: 'High',
+      },
+    ])
+  }
+
+  function removeInstallment(index: number) {
+    setInstallments((current) => current.filter((_, itemIndex) => itemIndex !== index))
+  }
+
+  function updateInstallment(index: number, field: keyof StatementInstallmentDraft, value: string) {
+    setInstallments((current) =>
+      current.map((item, itemIndex) => {
+        if (itemIndex !== index) return item
+
+        if (field === 'description') {
+          return {
+            ...item,
+            description: value,
+          }
+        }
+
+        if (field === 'monthsRemaining') {
+          return {
+            ...item,
+            monthsRemaining: Math.max(1, Math.round(parseMoneyValue(value))),
+          }
+        }
+
+        if (field === 'annualRate') {
+          return {
+            ...item,
+            annualRate: Math.max(parseMoneyValue(value), 0) / 100,
+          }
+        }
+
+        if (field === 'monthlyAmount' || field === 'remainingBalance') {
+          return {
+            ...item,
+            [field]: Math.max(parseMoneyValue(value), 0),
+          }
+        }
+
+        return item
+      }),
+    )
+  }
+
+  function buildManualDraft(): StatementImportDraft {
+    const cleanInstallments = installments
+      .map((installment) => ({
+        ...installment,
+        description: installment.description.trim() || 'Manual installment',
+        monthlyAmount: Math.max(installment.monthlyAmount, 0),
+        remainingBalance: installment.remainingBalance > 0
+          ? installment.remainingBalance
+          : installment.monthlyAmount * Math.max(installment.monthsRemaining, 1),
+        monthsRemaining: Math.max(installment.monthsRemaining, 1),
+        annualRate: Math.max(installment.annualRate, 0),
+        confidence: 'High' as const,
+      }))
+      .filter((installment) => installment.monthlyAmount > 0 || installment.remainingBalance > 0)
+
+    const balanceBreakdown = [
+      `Previous balance: ${formatStatementAmount(parseMoneyValue(previousBalance))}`,
+      `Less payments/credits made: ${formatStatementAmount(parseMoneyValue(paymentsMade))}`,
+      `Current purchases/charges: ${formatStatementAmount(parseMoneyValue(currentCharges))}`,
+      `Current installment billed: ${formatStatementAmount(parseMoneyValue(currentInstallmentDue))}`,
+      `Finance charge/interest: ${formatStatementAmount(parseMoneyValue(financeCharge))}`,
+      `Other fees/adjustments: ${formatStatementAmount(parseMoneyValue(otherFees))}`,
+      `Computed new balance: ${formatStatementAmount(computedStatementBalance)}`,
+    ]
+
+    if (actualBalance > 0) {
+      balanceBreakdown.push(`Actual SOA new balance used: ${formatStatementAmount(actualBalance)}`)
+    }
+
+    if (Math.abs(balanceDifference) >= 1) {
+      balanceBreakdown.push(`Difference between actual and computed balance: ${formatStatementAmount(balanceDifference)}`)
+    }
+
+    return {
+      fileName: 'Manual SOA Entry',
+      rawText: '',
+      cardName: selectedCard?.name ?? cardName.trim(),
+      statementDate,
+      dueDate,
+      totalAmountDue: statementBalance,
+      minimumAmountDue: Math.max(parseMoneyValue(minimumAmountDue), 0),
+      outstandingBalance: statementBalance,
+      creditLimit: Math.max(parseMoneyValue(creditLimit), statementBalance, 0),
+      financeCharge: Math.max(parseMoneyValue(financeCharge), 0),
+      annualRate: Math.max(parseMoneyValue(annualRate), 0) / 100,
+      installments: cleanInstallments,
+      notes: [
+        'Manual SOA entry used. No PDF capture was applied.',
+        'Previous balance is for calculation/reference only. Due₱oint saves the New Balance / Total Amount Due as the active card balance.',
+        ...balanceBreakdown,
+      ],
+    }
+  }
+
+  const previewDraft = buildManualDraft()
+  const statementComponents = buildStatementDebtComponents(previewDraft)
+  const validationWarnings = getStatementValidationWarnings(previewDraft)
+  const balanceWarnings = Math.abs(balanceDifference) >= 1
+    ? [
+        `Actual SOA balance differs from computed balance by ${formatStatementAmount(balanceDifference)}. This may be normal if the SOA has taxes, fees, refunds, or adjustments not encoded.`,
+      ]
+    : []
+  const avalanchePreview = getStatementAvalanchePreview(creditCards, debts, previewDraft)
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const draft = buildManualDraft()
+    const balance = draft.outstandingBalance || draft.totalAmountDue
+
+    if (!draft.cardName.trim()) {
+      setActiveModule('overview')
+      return onNotify('Card Required', 'Select an existing card or enter a card name.')
+    }
+
+    if (actualBalance <= 0 || balance <= 0) {
+      setActiveModule('balance')
+      return onNotify('Statement Balance Required', 'Enter the actual New Balance / Total Amount Due printed on your SOA before saving.')
+    }
+
+    if (!draft.dueDate) {
+      setActiveModule('overview')
+      return onNotify('Due Date Required', 'Enter the payment due date from your SOA.')
+    }
+
+    if (draft.minimumAmountDue <= 0) {
+      setActiveModule('payment')
+      return onNotify('Minimum Due Required', 'Enter the minimum amount due printed on your SOA.')
+    }
+
+    if (installments.some((item) => (item.monthlyAmount > 0 || item.remainingBalance > 0) && !item.description.trim())) {
+      setActiveModule('installments')
+      return onNotify('Plan Description Required', 'Name every active installment plan before saving to prevent accidental duplicates.')
+    }
+
+    onSave({
+      selectedCardId,
+      updateCreditCard: true,
+      addFinanceCharge: draft.financeCharge > 0,
+      addInstallments: draft.installments.length > 0,
+      draft,
+    })
+  }
+
+  return (
+    <ModalShell eyebrow="Manual SOA" title="Add Statement" onClose={onClose}>
+      <form className="manual-soa-clean-form" onSubmit={submit} style={modalFormStyle}>
+        <section className="soa-clean-top-card">
+          <div className="soa-clean-progress-copy">
+            <span>Step {activeModuleIndex + 1} of {moduleOrder.length}</span>
+            <h3>{moduleMeta[activeModule].title}</h3>
+
+          </div>
+
+
+          <div className="soa-clean-progress-track">
+            <i style={{ width: `${progressPercent}%` }} />
+          </div>
+        </section>
+
+        <nav className="soa-clean-stepper" aria-label="Manual SOA modules">
+          {moduleOrder.map((moduleKey, index) => (
+            <button
+              key={moduleKey}
+              type="button"
+              className={activeModule === moduleKey ? 'active' : ''}
+              onClick={() => setActiveModule(moduleKey)}
+            >
+              <span>{index + 1}</span>
+              <strong>{moduleLabels[moduleKey]}</strong>
+            </button>
+          ))}
+        </nav>
+
+
+        {activeModule === 'overview' && (
+          <section className="soa-clean-panel">
+            <div className="soa-clean-panel-title">
+              <h3>Card details</h3>
+              <p>Start here. This keeps the entry connected to the correct card.</p>
+            </div>
+
+            <SelectField label="Credit card" value={selectedCardId} onChange={handleCardChange}>
+              {creditCards.map((card) => (
+                <option key={card.id} value={card.id.toString()}>
+                  {card.name}
+                </option>
+              ))}
+              <option value="new">New card</option>
+            </SelectField>
+
+            {selectedCardId === 'new' && (
+              <TextField
+                label="Card name"
+                value={cardName}
+                onChange={setCardName}
+                placeholder="Example: UnionBank Mastercard"
+              />
+            )}
+
+            <div className="soa-clean-grid">
+              <TextField label="Statement date" type="date" value={statementDate} onChange={setStatementDate} />
+              <TextField label="Due date" type="date" value={dueDate} onChange={setDueDate} />
+            </div>
+
+            <article className="soa-clean-helper">
+              <strong>Rule</strong>
+              <p>Enter the statement amount printed by the bank. The previous balance is for reference, not another payment.</p>
+            </article>
+          </section>
+        )}
+
+        {activeModule === 'balance' && (
+          <section className="soa-clean-panel">
+            <div className="soa-clean-panel-title">
+              <h3>Balance builder</h3>
+              <p>Enter the exact new balance printed by your bank. The optional breakdown helps double-check it.</p>
+            </div>
+
+            <div className="dp-primary-amount">
+              <MoneyField
+                label="New Balance / Total Amount Due (from SOA)"
+                value={actualStatementBalance}
+                onChange={setActualStatementBalance}
+                placeholder="0.00"
+              />
+              <p>This is the amount Due₱oint will save as the card balance. The bank's printed figure takes priority.</p>
+            </div>
+
+            <details className="dp-reconcile">
+              <summary>Reconcile statement breakdown <span>Optional</span></summary>
+              <div className="soa-clean-grid">
+                <MoneyField label="Previous Balance" value={previousBalance} onChange={setPreviousBalance} />
+                <MoneyField label="Payments / Credits" value={paymentsMade} onChange={setPaymentsMade} />
+                <MoneyField label="Current Purchases / Charges" value={currentCharges} onChange={setCurrentCharges} />
+                <MoneyField label="Current Installment Billed" value={currentInstallmentDue} onChange={setCurrentInstallmentDue} />
+                <MoneyField label="Finance Charge / Interest" value={financeCharge} onChange={setFinanceCharge} />
+                <MoneyField label="Other Fees / Adjustments" value={otherFees} onChange={setOtherFees} />
+              </div>
+              <div className="dp-reconcile-total">
+                <span>Calculated from breakdown</span>
+                <strong>{formatStatementAmount(computedStatementBalance)}</strong>
+              </div>
+              {hasBreakdown && Math.abs(balanceDifference) >= 0.01 && (
+                <p className="dp-difference-note">Difference: {formatStatementAmount(balanceDifference)}. Check taxes, refunds, or adjustments.</p>
+              )}
+            </details>
+            <div className="dp-current-balance"><span>Current card balance to save</span><strong>{formatStatementAmount(statementBalance)}</strong></div>
+          </section>
+        )}
+
+        {activeModule === 'payment' && (
+          <section className="soa-clean-panel">
+            <div className="soa-clean-panel-title">
+              <h3>Payment requirement</h3>
+              <p>Minimum due is your must-pay amount. APR helps Due₱oint prioritize extra payments.</p>
+            </div>
+
+            <div className="soa-clean-grid">
+              <MoneyField
+                label="Minimum Amount Due"
+                value={minimumAmountDue}
+                onChange={setMinimumAmountDue}
+                placeholder="0.00"
+              />
+              <MoneyField
+                label="Credit Limit"
+                value={creditLimit}
+                onChange={setCreditLimit}
+                placeholder="0.00"
+              />
+              <TextField
+                label="Card APR %"
+                type="number"
+                value={annualRate}
+                onChange={setAnnualRate}
+                placeholder="36"
+              />
+            </div>
+
+            <article className="soa-clean-focus-card">
+              <span>Required this month</span>
+              <strong>{formatStatementAmount(avalanchePreview.requiredThisMonth)}</strong>
+              <p>From the bank’s minimum amount due. Billed installments are already reflected in the SOA.</p>
+            </article>
+          </section>
+        )}
+
+        {activeModule === 'installments' && (
+          <section className="soa-clean-panel">
+            <div className="soa-clean-panel-title action-title">
+              <div>
+                <h3>Future installment plans</h3>
+                <p>Add only future UNBILLED installment balance, excluding the amount already included in this statement.</p>
+              </div>
+              <button type="button" onClick={addInstallment}>
+                Add Plan
+              </button>
+            </div>
+
+            <p className="dp-installment-guidance">Enter the remaining unbilled principal only. If the amount is already included in your SOA New Balance, do not add it again here.</p>
+            {installments.length === 0 ? (
+              <article className="soa-clean-empty">
+                <strong>No future installment plan</strong>
+                <p>Skip this module if the card has no active installment balance.</p>
+              </article>
+            ) : (
+              <div className="soa-clean-installment-list">
+                {installments.map((installment, index) => (
+                  <article key={installment.id} className="soa-clean-installment">
+                    <div className="soa-clean-installment-title">
+                      <strong>Plan {index + 1}</strong>
+                      <button type="button" onClick={() => removeInstallment(index)}>
+                        Remove
+                      </button>
+                    </div>
+
+                    <TextField
+                      label="Description"
+                      value={installment.description}
+                      onChange={(value) => updateInstallment(index, 'description', value)}
+                      placeholder="Example: Phone installment"
+                    />
+
+                    <div className="soa-clean-grid">
+                      <MoneyField
+                        label="Future monthly amortization"
+                        value={installment.monthlyAmount ? installment.monthlyAmount.toString() : ''}
+                        onChange={(value) => updateInstallment(index, 'monthlyAmount', value)}
+                        placeholder="0.00"
+                      />
+                      <TextField
+                        label="Months remaining"
+                        type="number"
+                        value={installment.monthsRemaining.toString()}
+                        onChange={(value) => updateInstallment(index, 'monthsRemaining', value)}
+                        placeholder="1"
+                      />
+                      <MoneyField
+                        label="Future unbilled balance"
+                        value={installment.remainingBalance ? installment.remainingBalance.toString() : ''}
+                        onChange={(value) => updateInstallment(index, 'remainingBalance', value)}
+                        placeholder="0.00"
+                      />
+                      <TextField
+                        label="Installment APR %"
+                        type="number"
+                        value={Math.round((installment.annualRate || 0) * 100).toString()}
+                        onChange={(value) => updateInstallment(index, 'annualRate', value)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeModule === 'preview' && (
+          <section className="soa-clean-panel">
+            <div className="soa-clean-panel-title">
+              <h3>Final review</h3>
+              <p>Only the bank's statement balance is saved as current card debt. Future unbilled plans stay separate.</p>
+            </div>
+
+            <article className="dp-final-check">
+              <span>Card</span><strong>{selectedCard?.name ?? cardName.trim()}</strong>
+              <span>SOA balance</span><strong>{formatStatementAmount(statementBalance)}</strong>
+              <span>Minimum due</span><strong>{formatStatementAmount(previewDraft.minimumAmountDue)}</strong>
+              <span>Future installment plans</span><strong>{installments.length}</strong>
+            </article>
+            <section className="soa-clean-review-grid">
+              <article>
+                <span>Required this month</span>
+                <strong>{formatStatementAmount(avalanchePreview.requiredThisMonth)}</strong>
+                <p>Statement minimum due only; future installments are tracked separately.</p>
+              </article>
+              <article>
+                <span>Total debt exposure</span>
+                <strong>{formatStatementAmount(avalanchePreview.totalDebtExposure)}</strong>
+                <p>Cards, debts, and remaining installment balances.</p>
+              </article>
+              <article className="wide">
+                <span>Avalanche focus</span>
+                <strong>{avalanchePreview.focusName}</strong>
+                <p>{avalanchePreview.focusNote}</p>
+              </article>
+            </section>
+
+            {[...validationWarnings, ...balanceWarnings].length > 0 && (
+              <section className="soa-clean-warning-list">
+                {[...validationWarnings, ...balanceWarnings].map((warning) => (
+                  <p key={warning}>{warning}</p>
+                ))}
+              </section>
+            )}
+
+            <details className="soa-clean-details">
+              <summary>
+                <span>Debt components</span>
+                <strong>{statementComponents.length}</strong>
+              </summary>
+
+              <section className="manual-soa-component-list">
+                {statementComponents.map((component) => (
+                  <article key={component.id} className={`statement-component-item ${component.priority.toLowerCase()}`}>
+                    <div>
+                      <span>{component.type === 'revolving' ? 'Current SOA balance' : component.type === 'installment' ? 'Installment' : 'Interest / fee'}</span>
+                      <strong>{component.name}</strong>
+                      <p>{component.note}</p>
+                    </div>
+                    <div>
+                      <strong>{formatStatementAmount(component.balance)}</strong>
+                      <small>{formatStatementAmount(component.monthlyDue)} monthly · {Math.round(component.annualRate * 100)}% APR · {component.priority} priority</small>
+                    </div>
+                  </article>
+                ))}
+              </section>
+            </details>
+          </section>
+        )}
+
+        <section className="soa-clean-footer">
+          <button type="button" onClick={goToPreviousModule} disabled={activeModuleIndex === 0}>
+            Previous
+          </button>
+
+          {activeModule !== 'preview' ? (
+            <button type="button" className="primary" onClick={goToNextModule}>
+              Next step
+            </button>
+          ) : (
+            <button type="submit" className="primary">
+              Save statement
+            </button>
+          )}
+        </section>
+      </form>
+    </ModalShell>
+  )
+}
+
 
 function CreditCardEditorModal({
   card,
@@ -3701,7 +4611,7 @@ function CloudSyncModal({
   }
 
   return (
-    <ModalShell eyebrow="DueWise Cloud" title={sessionEmail ? 'Cloud Sync' : 'Sign in to sync'} onClose={onClose}>
+    <ModalShell eyebrow="Due₱oint Cloud" title={sessionEmail ? 'Cloud Sync' : 'Sign in to sync'} onClose={onClose}>
       {!isConfigured ? (
         <section className="cloud-sync-panel warning">
           <p>Cloud sync is not configured.</p>
@@ -3736,7 +4646,7 @@ function CloudSyncModal({
       ) : (
         <form className="cloud-sync-panel" onSubmit={handleSubmit}>
           <p className="cloud-sync-note">
-            Sign in so DueWise can restore your data after clearing browser storage.
+            Sign in so Due₱oint can restore your data after clearing browser storage.
           </p>
 
           <label className="cloud-sync-field">
@@ -3770,7 +4680,7 @@ function CloudSyncModal({
             onClick={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
             disabled={busy}
           >
-            {mode === 'sign-in' ? 'Create new DueWise Cloud account' : 'I already have an account'}
+            {mode === 'sign-in' ? 'Create new Due₱oint Cloud account' : 'I already have an account'}
           </button>
         </form>
       )}
@@ -3829,7 +4739,7 @@ function TextField({
   value: string
   onChange: (value: string) => void
   placeholder?: string
-  type?: 'text' | 'number'
+  type?: 'text' | 'number' | 'password' | 'date'
   autoFocus?: boolean
 }) {
   return (
@@ -3846,6 +4756,57 @@ function TextField({
         style={inputStyle}
         autoFocus={autoFocus}
       />
+    </label>
+  )
+}
+
+function MoneyField({
+  label,
+  value,
+  onChange,
+  placeholder = '0.00',
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const [displayValue, setDisplayValue] = useState(() =>
+    value.trim() ? parseMoneyValue(value).toFixed(2) : '',
+  )
+
+  useEffect(() => {
+    if (!editing) setDisplayValue(value.trim() ? parseMoneyValue(value).toFixed(2) : '')
+  }, [value, editing])
+
+  return (
+    <label className="dp-money-field" style={fieldStyle}>
+      <span style={labelStyle}>{label}</span>
+      <div className="dp-money-control">
+        <span aria-hidden="true">₱</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={displayValue}
+          onFocus={() => setEditing(true)}
+          onChange={(event) => {
+            const next = event.target.value.replace(/[^0-9.]/g, '')
+            if (!/^\d*(?:\.\d{0,2})?$/.test(next)) return
+            setDisplayValue(next)
+            onChange(next)
+          }}
+          onBlur={() => {
+            setEditing(false)
+            const next = displayValue.trim() ? parseMoneyValue(displayValue).toFixed(2) : ''
+            setDisplayValue(next)
+            onChange(next)
+          }}
+          placeholder={placeholder}
+          aria-label={label}
+          style={inputStyle}
+        />
+      </div>
     </label>
   )
 }
@@ -3919,9 +4880,9 @@ function clamp(value: number, minimum: number, maximum: number) {
 }
 
 function compactPeso(value: number) {
-  if (Math.abs(value) >= 1_000_000) return `₱${Math.round(value / 1_000_000)}M`
-  if (Math.abs(value) >= 1_000) return `₱${Math.round(value / 1_000)}k`
-  return `₱${Math.round(value)}`
+  if (Math.abs(value) >= 1_000_000) return `₱${(value / 1_000_000).toFixed(2)}M`
+  if (Math.abs(value) >= 1_000) return `₱${(value / 1_000).toFixed(2)}k`
+  return peso.format(value)
 }
 
 function getFinancialHealthSummary({
@@ -4028,7 +4989,7 @@ function getCashflowForecast({
   const today = startOfDay(new Date())
   const outflows = [
     ...recurringExpenses.map((expense) => ({
-      dueDate: parseUpcomingMonthDay(expense.nextDue),
+      dueDate: getUpcomingBillDueDate(expense),
       amount: getBillRemainingBalance(expense),
     })),
     ...creditCardInsights.map((insight) => ({
@@ -4090,7 +5051,7 @@ function getDebtPlanningItems(creditCardInsights: CreditCardInsight[], debts: De
     name: insight.card.name,
     balance: Math.max(0, insight.card.currentBalance),
     minimumPayment: getCreditCardMinimumPayment(insight.card),
-    annualRate: 0.36,
+    annualRate: insight.card.annualRate ?? 0.36,
     kind: 'Credit card' as const,
   }))
 
@@ -4099,7 +5060,7 @@ function getDebtPlanningItems(creditCardInsights: CreditCardInsight[], debts: De
     name: debt.name,
     balance: Math.max(0, debt.balance),
     minimumPayment: Math.max(1, debt.monthly),
-    annualRate: 0.12,
+    annualRate: debt.annualRate ?? 0.12,
     kind: 'Debt' as const,
   }))
 
@@ -4461,6 +5422,9 @@ function getAffordabilityResult({
 }
 
 function getCreditCardMinimumPayment(card: CreditCardAccount) {
+  if (typeof card.minimumDue === 'number' && Number.isFinite(card.minimumDue)) {
+    return Math.min(card.currentBalance, Math.max(card.minimumDue, 0))
+  }
   return Math.min(card.currentBalance, Math.max(500, Math.round(card.currentBalance * 0.04)))
 }
 
@@ -4494,6 +5458,39 @@ function addDays(date: Date, days: number) {
 
 function formatChartDate(date: Date) {
   return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+}
+
+function getUpcomingBillDueDate(expense: RecurringExpense): Date | null {
+  const today = startOfDay(new Date())
+  const frequency = expense.frequency.toLowerCase()
+  const label = expense.nextDue.trim()
+
+  if (frequency.includes('month')) {
+    // "June 30" and "Every 30th" both mean the 30th of each MONTH.
+    // Recalculate on display; never rewrite the user's original bill record.
+    const dayMatch = label.match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/i)
+    if (dayMatch) {
+      const day = Math.max(1, Math.min(31, Number(dayMatch[1])))
+      const makeDate = (year: number, month: number) => {
+        const lastDay = new Date(year, month + 1, 0).getDate()
+        return new Date(year, month, Math.min(day, lastDay))
+      }
+      let dueDate = makeDate(today.getFullYear(), today.getMonth())
+      if (dueDate < today) dueDate = makeDate(today.getFullYear(), today.getMonth() + 1)
+      return dueDate
+    }
+  }
+
+  if (frequency.includes('year') || frequency.includes('annual')) {
+    const annualDate = new Date(`${label} ${today.getFullYear()}`)
+    if (!Number.isNaN(annualDate.getTime())) {
+      annualDate.setHours(0, 0, 0, 0)
+      if (annualDate < today) annualDate.setFullYear(annualDate.getFullYear() + 1)
+      return annualDate
+    }
+  }
+
+  return parseUpcomingMonthDay(label)
 }
 
 function parseUpcomingMonthDay(label: string) {
@@ -4634,7 +5631,7 @@ function getDailyRecommendation(insights: CreditCardInsight[]) {
 
   return {
     title: 'Add a credit card',
-    description: 'DueWise needs at least one credit card to calculate the best card to use today.',
+    description: 'Due₱oint needs at least one credit card to calculate the best card to use today.',
   }
 }
 
@@ -4768,6 +5765,744 @@ function isBudgetCategory(value: unknown): value is BudgetCategory {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+
+function getStatementPasswordProfile(profileId: string) {
+  return statementPasswordProfiles.find((profile) => profile.id === profileId)
+}
+
+function buildStatementPdfPassword(profileId: string, birthDate: string, manualPassword: string) {
+  if (profileId === 'manual') return manualPassword.trim()
+
+  const profile = getStatementPasswordProfile(profileId)
+  if (!profile || !birthDate) return ''
+
+  const [year, month, day] = birthDate.split('-')
+  const monthIndex = Number(month) - 1
+
+  if (!year || !month || !day || monthIndex < 0 || monthIndex > 11) return ''
+
+  const dd = day.padStart(2, '0')
+  const mm = month.padStart(2, '0')
+  const yyyy = year
+  const monthUpper = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][monthIndex]
+  const monthTitle = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][monthIndex]
+
+  if (profile.format === 'dob-ddmmmyyyy-upper') return `${dd}${monthUpper}${yyyy}`
+  if (profile.format === 'dob-mmddyyyy') return `${mm}${dd}${yyyy}`
+  if (profile.format === 'dob-ddmmmyyyy-title') return `${dd}${monthTitle}${yyyy}`
+
+  return manualPassword.trim()
+}
+
+function buildStatementPdfPasswordCandidates(birthDate: string) {
+  if (!birthDate) return []
+
+  return statementPasswordProfiles
+    .map((profile) => ({
+      id: profile.id,
+      label: `${normalizeDetectedBankName(profile.label)} format`,
+      bankName: normalizeDetectedBankName(profile.label),
+      password: buildStatementPdfPassword(profile.id, birthDate, ''),
+    }))
+    .filter((candidate, index, candidates) =>
+      candidate.password && candidates.findIndex((item) => item.password === candidate.password) === index,
+    )
+}
+
+function getStatementPasswordCandidatePreview(birthDate: string) {
+  const candidates = buildStatementPdfPasswordCandidates(birthDate)
+
+  if (candidates.length === 0) {
+    return 'Enter birthday to generate Security Bank, RCBC, and UnionBank SOA password formats.'
+  }
+
+  return `Due₱oint will try: ${candidates.map((candidate) => candidate.password).join(' · ')}`
+}
+
+async function extractPdfTextWithAutoPassword(file: File, birthDate: string) {
+  const attempts: Array<{ label: string; password?: string; profileId?: string; bankName?: string }> = [
+    { label: 'No password', password: undefined },
+  ]
+  const candidates = buildStatementPdfPasswordCandidates(birthDate)
+  attempts.push(
+    ...candidates.map((candidate) => ({
+      label: candidate.label,
+      password: candidate.password,
+      profileId: candidate.id,
+      bankName: candidate.bankName,
+    })),
+  )
+
+  let lastError: unknown = null
+
+  for (const attempt of attempts) {
+    try {
+      const rawText = await extractPdfText(file, attempt.password)
+      return {
+        rawText,
+        passwordLabel: attempt.password ? `${attempt.bankName ?? attempt.label} format` : 'No password',
+        passwordProfileId: attempt.profileId ?? '',
+        passwordBankName: attempt.bankName ?? '',
+      }
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  if (!birthDate) {
+    throw new Error('This SOA PDF may be password-protected. Enter your birthday, then upload the PDF again.')
+  }
+
+  throw new Error(
+    lastError instanceof Error
+      ? `Due₱oint could not open this PDF using the known birthday formats. ${lastError.message}`
+      : 'Due₱oint could not open this PDF using the known birthday formats.',
+  )
+}
+
+function resolveStatementCardId(creditCards: CreditCardAccount[], detectedCardName: string) {
+  const detected = normalizeCardMatchText(detectedCardName)
+
+  if (!detected) return 'new'
+
+  const matched = creditCards.find((card) => {
+    const cardName = normalizeCardMatchText(card.name)
+    return cardName.includes(detected) || detected.includes(cardName) || haveSharedCardBank(cardName, detected)
+  })
+
+  return matched ? matched.id.toString() : 'new'
+}
+
+function normalizeCardMatchText(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function haveSharedCardBank(cardName: string, detectedName: string) {
+  const banks = ['bpi', 'bdo', 'metrobank', 'unionbank', 'securitybank', 'rcbc', 'eastwest', 'pnb', 'chinabank', 'aub', 'maybank', 'hsbc', 'citibank']
+  const networks = ['visa', 'mastercard', 'amex', 'americanexpress', 'jcb']
+  const sharedBank = banks.some((bank) => cardName.includes(bank) && detectedName.includes(bank))
+  const sharedNetwork = networks.some((network) => cardName.includes(network) && detectedName.includes(network))
+
+  return sharedBank && (sharedNetwork || cardName.includes('creditcard') || detectedName.includes('creditcard'))
+}
+
+function buildStatementDebtComponents(draft: StatementImportDraft): StatementDebtComponentDraft[] {
+  const statementBalance = Math.max(draft.outstandingBalance || draft.totalAmountDue || 0, 0)
+  const minimumDue = Math.max(draft.minimumAmountDue || estimateCreditCardMinimumFromBalance(statementBalance), 0)
+  const estimatedRevolvingBalance = statementBalance
+
+  const components: StatementDebtComponentDraft[] = []
+
+  if (estimatedRevolvingBalance > 0) {
+    components.push({
+      id: 'soa-revolving',
+      type: 'revolving',
+      name: `${draft.cardName || 'Credit Card'} revolving balance`,
+      balance: estimatedRevolvingBalance,
+      monthlyDue: minimumDue,
+      annualRate: Number.isFinite(draft.annualRate) && draft.annualRate >= 0 ? draft.annualRate : 0.36,
+      priority: (draft.annualRate || 0.36) >= 0.24 ? 'High' : 'Medium',
+      note: 'Statement balance already includes any billed installments, interest and fees. Those amounts are not added again.',
+    })
+  }
+
+  draft.installments.forEach((installment, index) => {
+    const remainingBalance = (installment.remainingBalance > 0 ? installment.remainingBalance : installment.monthlyAmount * Math.max(installment.monthsRemaining, 1))
+
+    components.push({
+      id: `soa-installment-${installment.id || index}`,
+      type: 'installment',
+      name: installment.description || `Installment ${index + 1}`,
+      balance: remainingBalance,
+      monthlyDue: Math.max(installment.monthlyAmount, 0),
+      annualRate: Math.max(installment.annualRate || 0, 0),
+      priority: installment.annualRate > 0.18 ? 'Medium' : 'Low',
+      note:
+        installment.annualRate <= 0
+          ? 'Usually paid on schedule. Extra avalanche money should normally go to higher-interest revolving debt first.'
+          : 'Fixed installment. Pay required amortization, then compare rate before sending extra money here.',
+    })
+  })
+
+
+  if (components.length === 0) {
+    components.push({
+      id: 'soa-empty',
+      type: 'revolving',
+      name: draft.cardName || 'Imported credit card',
+      balance: 0,
+      monthlyDue: 0,
+      annualRate: draft.annualRate || 0.36,
+      priority: 'Low',
+      note: 'No clear debt component was detected. Review the SOA manually before saving.',
+    })
+  }
+
+  return components
+}
+
+function getStatementAvalanchePreview(
+  creditCards: CreditCardAccount[],
+  debts: Debt[],
+  draft: StatementImportDraft,
+): StatementAvalanchePreview {
+  const selectedCardId = resolveStatementCardId(creditCards, draft.cardName)
+  const statementBalance = Math.max(draft.outstandingBalance || draft.totalAmountDue || 0, 0)
+  const dueDay = parseDayFromStatementDate(draft.dueDate, 15)
+  const cutOffDay = parseDayFromStatementDate(draft.statementDate, 1)
+  const annualRate = Number.isFinite(draft.annualRate) && draft.annualRate >= 0 ? draft.annualRate : 0.36
+
+  const projectedCard: CreditCardAccount = {
+    id: selectedCardId === 'new' ? 999999 : Number(selectedCardId),
+    name: draft.cardName || 'Imported Credit Card',
+    currentBalance: statementBalance,
+    minimumDue: draft.minimumAmountDue,
+    creditLimit: Math.max(draft.creditLimit, statementBalance, 1),
+    cutOffDay,
+    dueDay,
+    annualRate,
+  }
+
+  const projectedCards =
+    selectedCardId === 'new'
+      ? [...creditCards, projectedCard]
+      : creditCards.map((card) =>
+          card.id === Number(selectedCardId)
+            ? {
+                ...card,
+                name: card.name || projectedCard.name,
+                currentBalance: projectedCard.currentBalance,
+                minimumDue: projectedCard.minimumDue,
+                creditLimit: projectedCard.creditLimit,
+                cutOffDay: projectedCard.cutOffDay,
+                dueDay: projectedCard.dueDay,
+                annualRate: projectedCard.annualRate,
+              }
+            : card,
+        )
+
+  const importedInstallmentDebts: Debt[] = draft.installments.map((installment, index) => ({
+    id: 900000 + index,
+    name: `${draft.cardName || 'Card'} - ${installment.description || `Installment ${index + 1}`}`,
+    balance: (installment.remainingBalance > 0 ? installment.remainingBalance : installment.monthlyAmount * Math.max(installment.monthsRemaining, 1)),
+    monthly: Math.max(installment.monthlyAmount, 1),
+    due: draft.dueDate ? `Every ${formatOrdinalDay(dueDay)}` : 'Every month',
+    annualRate: Math.max(installment.annualRate || 0, 0),
+    source: 'SOA preview',
+    kind: 'credit-card-installment',
+  }))
+
+  const projectedDebts = mergeImportedInstallmentDebts(debts, importedInstallmentDebts)
+  const items = getDebtPlanningItems(getCreditCardInsights(projectedCards), projectedDebts)
+  const orderedIndexes = getDebtPaymentOrder(
+    items,
+    items.map((item) => item.balance),
+    'Avalanche',
+  )
+  const focusItem = typeof orderedIndexes[0] === 'number' ? items[orderedIndexes[0]] : undefined
+  const statementComponents = buildStatementDebtComponents(draft)
+  const minimumDue = Math.max(draft.minimumAmountDue || estimateCreditCardMinimumFromBalance(statementBalance), 0)
+  const requiredThisMonth = minimumDue
+
+  return {
+    totalDebtExposure: items.reduce((total, item) => total + Math.max(item.balance, 0), 0),
+    requiredThisMonth,
+    focusName: focusItem?.name ?? 'No active debt',
+    focusRate: focusItem?.annualRate ?? 0,
+    focusNote: focusItem
+      ? `After required payments, extra money should go here first because it has about ${Math.round((focusItem.annualRate || 0) * 100)}% APR.`
+      : 'Add card balances or debts to generate an avalanche focus.',
+    componentCount: statementComponents.filter((component) => component.balance > 0).length,
+  }
+}
+
+function getStatementValidationWarnings(draft: StatementImportDraft) {
+  const warnings: string[] = []
+  const statementBalance = Math.max(draft.outstandingBalance || draft.totalAmountDue || 0, 0)
+  const minimumDue = Math.max(draft.minimumAmountDue || 0, 0)
+
+  if (statementBalance > 5000 && minimumDue > 0 && minimumDue < Math.max(100, statementBalance * 0.005)) {
+    warnings.push('Minimum amount due looks unusually low compared with the statement balance. Please verify before saving.')
+  }
+
+  if (draft.totalAmountDue > 0 && draft.outstandingBalance > 0 && draft.totalAmountDue > draft.outstandingBalance * 1.25) {
+    warnings.push('Total amount due is much higher than outstanding balance. Please verify the entered amounts.')
+  }
+
+  if (draft.creditLimit > 0 && statementBalance > draft.creditLimit) {
+    warnings.push('Statement balance is higher than the credit limit. Check the amounts against your SOA.')
+  }
+
+  if (draft.statementDate && draft.dueDate && isDueDateBeforeStatementDate(draft.statementDate, draft.dueDate)) {
+    warnings.push('Payment due date is before the statement date. Check both dates.')
+  }
+
+  if (!draft.dueDate) warnings.push('Payment due date has not been entered.')
+  if (!draft.statementDate) warnings.push('Statement date has not been entered.')
+  if (!draft.totalAmountDue && !draft.outstandingBalance) warnings.push('SOA statement balance has not been entered.')
+  if (draft.installments.some((installment) => installment.confidence === 'Low')) {
+    warnings.push('Some installment detections are low confidence. Review the installment names, amounts, and remaining months.')
+  }
+  if (draft.notes.some((note) => note.toLowerCase().includes('low confidence'))) {
+    warnings.push('SOA bank/profile detection is low confidence. Confirm the detected card/bank before saving.')
+  }
+
+  return warnings
+}
+
+function estimateCreditCardMinimumFromBalance(balance: number) {
+  if (!Number.isFinite(balance) || balance <= 0) return 0
+  return Math.max(500, Math.round(balance * 0.03))
+}
+
+function isDueDateBeforeStatementDate(statementDate: string, dueDate: string) {
+  const statement = new Date(statementDate)
+  const due = new Date(dueDate)
+  if (Number.isNaN(statement.getTime()) || Number.isNaN(due.getTime())) return false
+  return due.getTime() < statement.getTime()
+}
+
+function mergeImportedInstallmentDebts(existingDebts: Debt[], importedDebts: Debt[]) {
+  if (importedDebts.length === 0) return existingDebts
+
+  const nextDebts = [...existingDebts]
+
+  importedDebts.forEach((importedDebt) => {
+    const importedKey = normalizeDebtMatchKey(importedDebt.name)
+    const existingIndex = nextDebts.findIndex(
+      (debt) => debt.kind === 'credit-card-installment' && normalizeDebtMatchKey(debt.name) === importedKey,
+    )
+
+    if (existingIndex >= 0) {
+      nextDebts[existingIndex] = {
+        ...nextDebts[existingIndex],
+        ...importedDebt,
+        id: nextDebts[existingIndex].id,
+      }
+    } else {
+      nextDebts.push(importedDebt)
+    }
+  })
+
+  return nextDebts
+}
+
+function normalizeDebtMatchKey(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\b(statement|soa|installment|instalment|payment|plan)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function formatStatementAmount(value: number) {
+  return peso.format(Number.isFinite(value) ? value : 0)
+}
+
+function getPdfImportErrorMessage(error: unknown, hadPassword: boolean) {
+  const name = error instanceof Error ? error.name : ''
+  const message = error instanceof Error ? error.message : String(error)
+  const lower = `${name} ${message}`.toLowerCase()
+
+  if (lower.includes('password')) {
+    return hadPassword
+      ? 'The PDF password appears to be incorrect. Check the selected bank format, birthday, or manual password, then upload again.'
+      : 'This SOA PDF is password-protected. Select the bank password format or enter the manual PDF password, then upload again.'
+  }
+
+  return message || 'Due₱oint could not read this PDF statement.'
+}
+
+async function extractPdfText(file: File, password?: string) {
+  const buffer = await file.arrayBuffer()
+  const loadingTask = pdfjsLib.getDocument({
+    data: new Uint8Array(buffer),
+    password,
+  })
+
+  let pdf: any
+
+  try {
+    pdf = await loadingTask.promise
+  } catch (error) {
+    throw new Error(getPdfImportErrorMessage(error, Boolean(password)))
+  }
+
+  const pages: string[] = []
+
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber)
+    const textContent = await page.getTextContent()
+    const items = textContent.items as Array<{ str?: string }>
+    const pageText = items.map((item) => item.str ?? '').join(' ')
+    pages.push(pageText)
+  }
+
+  return pages.join('\n').replace(/\s+/g, ' ').trim()
+}
+
+function parseCreditCardStatement(rawText: string, fileName: string, preferredBankName = ''): StatementImportDraft {
+  const text = normalizeStatementText(rawText)
+  const profileMatch = detectSoaParserProfile(text, fileName, preferredBankName)
+  const profile = profileMatch?.profile ?? null
+
+  const totalAmountDue = findProfileMoney(text, profile, 'totalAmountDue', [
+    'total amount due',
+    'total amt due',
+    'amount due',
+    'total payment due',
+    'payment amount due',
+  ])
+  const outstandingBalance = findProfileMoney(text, profile, 'outstandingBalance', [
+    'outstanding balance',
+    'statement balance',
+    'new balance',
+    'current balance',
+    'total balance',
+    'ending balance',
+  ])
+  const minimumAmountDue = findProfileMoney(text, profile, 'minimumAmountDue', [
+    'minimum amount due',
+    'minimum payment due',
+    'minimum payment',
+    'min amount due',
+    'minimum due',
+  ])
+  const creditLimit = findProfileMoney(text, profile, 'creditLimit', [
+    'credit limit',
+    'total credit limit',
+    'available credit limit',
+  ])
+  const financeCharge = findProfileMoney(text, profile, 'financeCharge', [
+    'finance charge',
+    'interest charge',
+    'retail interest',
+    'cash advance interest',
+    'monthly interest',
+  ])
+  const statementDate = findProfileDate(text, profile, 'statementDate', [
+    'statement date',
+    'billing date',
+    'statement as of',
+    'as of',
+  ])
+  const dueDate = findProfileDate(text, profile, 'dueDate', [
+    'payment due date',
+    'due date',
+    'please pay on or before',
+    'pay by',
+    'payment date',
+  ])
+  const annualRate = findAnnualRate(text) ?? profile?.defaultAnnualRate ?? 0.36
+  const installments = detectStatementInstallmentsWithProfile(text, profile)
+  const notes: string[] = []
+
+  if (profileMatch) {
+    notes.push(`SOA parser profile used: ${profileMatch.profile.bankName} (${profileMatch.confidence} confidence, score ${profileMatch.score}).`)
+  } else {
+    notes.push('No bank-specific parser profile matched. Due₱oint used the generic SOA parser.')
+  }
+
+  if (profileMatch?.confidence === 'Low') {
+    notes.push('Bank/profile detection is low confidence. Review the detected card name, balance, due date, and minimum due.')
+  }
+  if (!totalAmountDue && !outstandingBalance) notes.push('No clear total/outstanding balance found. Please check the balance before saving.')
+  if (!minimumAmountDue) notes.push('No clear minimum amount due found. Due₱oint will estimate the minimum if needed.')
+  if (!dueDate) notes.push('No clear payment due date found. Please encode the due date manually.')
+  if (installments.length > 0) notes.push('Installments were detected as possible matches. Review them before adding to Debt Tracker.')
+
+  return {
+    fileName,
+    rawText,
+    cardName: detectCardName(text, fileName, profile?.bankName ?? preferredBankName),
+    statementDate,
+    dueDate,
+    totalAmountDue,
+    minimumAmountDue,
+    outstandingBalance: outstandingBalance || totalAmountDue,
+    creditLimit,
+    financeCharge,
+    annualRate,
+    installments,
+    notes,
+  }
+}
+
+function detectSoaParserProfile(text: string, fileName: string, preferredBankName = ''): SoaParserMatch | null {
+  const normalizedText = text.toLowerCase()
+  const normalizedFileName = fileName.toLowerCase()
+  const preferredBank = normalizeDetectedBankName(preferredBankName).toLowerCase()
+
+  const scored = soaParserProfiles
+    .map((profile) => {
+      let score = 0
+      const normalizedBank = profile.bankName.toLowerCase()
+
+      if (preferredBank && (preferredBank.includes(normalizedBank) || normalizedBank.includes(preferredBank))) score += 60
+      if (normalizedFileName.includes(profile.id) || normalizedFileName.includes(normalizedBank.replace(/\s+/g, ''))) score += 25
+
+      profile.keywords.forEach((keyword) => {
+        if (normalizedText.includes(keyword.toLowerCase())) score += 8
+      })
+
+      Object.values(profile.fields).flat().forEach((label) => {
+        if (normalizedText.includes(label.toLowerCase())) score += 2
+      })
+
+      return {
+        profile,
+        score,
+        confidence: score >= 80 ? 'High' : score >= 40 ? 'Medium' : 'Low',
+      } as SoaParserMatch
+    })
+    .sort((a, b) => b.score - a.score)
+
+  const best = scored[0]
+  return best && best.score > 0 ? best : null
+}
+
+function findProfileMoney(
+  text: string,
+  profile: SoaParserProfile | null,
+  field: SoaParserFieldKey,
+  genericLabels: string[],
+) {
+  const profileValue = profile ? findMoneyAfterLabels(text, uniqueLabels([...(profile.fields[field] ?? []), ...genericLabels]), 130) : 0
+  if (profileValue > 0) return profileValue
+
+  return findMoneyAfterLabels(text, genericLabels, 90)
+}
+
+function findProfileDate(
+  text: string,
+  profile: SoaParserProfile | null,
+  field: SoaParserFieldKey,
+  genericLabels: string[],
+) {
+  const profileValue = profile ? findDateAfterLabels(text, uniqueLabels([...(profile.fields[field] ?? []), ...genericLabels]), 130) : ''
+  if (profileValue) return profileValue
+
+  return findDateAfterLabels(text, genericLabels, 90)
+}
+
+function uniqueLabels(labels: string[]) {
+  const seen = new Set<string>()
+
+  return labels.filter((label) => {
+    const normalized = label.toLowerCase().replace(/\s+/g, ' ').trim()
+    if (!normalized || seen.has(normalized)) return false
+    seen.add(normalized)
+    return true
+  })
+}
+
+function detectStatementInstallmentsWithProfile(text: string, profile: SoaParserProfile | null) {
+  const genericInstallments = detectStatementInstallments(text)
+  if (!profile) return genericInstallments
+
+  const profileInstallments = detectStatementInstallments(text, profile.fields.installments)
+  const seen = new Set<string>()
+
+  return [...profileInstallments, ...genericInstallments].filter((installment) => {
+    const fingerprint = `${installment.description}-${Math.round(installment.monthlyAmount)}-${installment.monthsRemaining}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+    if (seen.has(fingerprint)) return false
+    seen.add(fingerprint)
+    return true
+  })
+}
+
+function normalizeStatementText(value: string) {
+  return value
+    .replace(/[₱]/g, 'PHP ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function detectCardName(text: string, fileName: string, preferredBankName = '') {
+  const preferredBank = normalizeDetectedBankName(preferredBankName)
+  const cardType = detectCardNetwork(text)
+
+  if (preferredBank) {
+    return cardType ? `${preferredBank} ${cardType}` : `${preferredBank} Credit Card`
+  }
+
+  const banks = [
+    'UnionBank',
+    'Security Bank',
+    'RCBC',
+    'BPI',
+    'BDO',
+    'Metrobank',
+    'EastWest',
+    'PNB',
+    'Chinabank',
+    'AUB',
+    'Maybank',
+    'HSBC',
+    'Citibank',
+  ]
+
+  const bank = banks.find((item) => new RegExp(`\\b${escapeRegExp(item)}\\b`, 'i').test(text))
+
+  if (bank && cardType) return `${bank} ${cardType}`
+  if (bank) return `${bank} Credit Card`
+
+  const cleanFileName = fileName
+    .replace(/\.pdf$/i, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  return cleanFileName || 'Imported Credit Card'
+}
+
+function detectCardNetwork(text: string) {
+  const match = text.match(/\b(Visa|Mastercard|MasterCard|Amex|American Express|JCB)\b/i)?.[1]
+  if (!match) return ''
+  if (/mastercard/i.test(match)) return 'Mastercard'
+  if (/american express|amex/i.test(match)) return 'American Express'
+  if (/visa/i.test(match)) return 'Visa'
+  if (/jcb/i.test(match)) return 'JCB'
+  return match
+}
+
+function normalizeDetectedBankName(value: string) {
+  const normalized = value.trim().toLowerCase()
+
+  if (!normalized) return ''
+  if (normalized.includes('unionbank') || normalized.includes('union bank')) return 'UnionBank'
+  if (normalized.includes('security')) return 'Security Bank'
+  if (normalized.includes('rcbc')) return 'RCBC'
+  if (normalized.includes('bpi')) return 'BPI'
+  if (normalized.includes('bdo')) return 'BDO'
+  if (normalized.includes('metrobank')) return 'Metrobank'
+
+  return value.trim()
+}
+
+function findMoneyAfterLabels(text: string, labels: string[], distance = 90) {
+  for (const label of labels) {
+    const labelPattern = escapeRegExp(label).replace(/\s+/g, '\\s+')
+    const pattern = new RegExp(`${labelPattern}.{0,${distance}}?((?:PHP|P)?\\s*-?\\d[\\d,]*(?:\\.\\d{1,2})?)`, 'i')
+    const match = text.match(pattern)
+    if (match) {
+      const parsed = parseMoneyValue(match[1])
+      if (parsed > 0) return parsed
+    }
+  }
+
+  return 0
+}
+
+function findDateAfterLabels(text: string, labels: string[], distance = 90) {
+  const datePattern =
+    '((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\\.?\\s+\\d{1,2},?\\s+\\d{2,4}|\\d{1,2}[\\/.-]\\d{1,2}[\\/.-]\\d{2,4})'
+
+  for (const label of labels) {
+    const labelPattern = escapeRegExp(label).replace(/\s+/g, '\\s+')
+    const pattern = new RegExp(`${labelPattern}.{0,${distance}}?${datePattern}`, 'i')
+    const match = text.match(pattern)
+    if (match) return match[1].replace(/\s+/g, ' ').trim()
+  }
+
+  return ''
+}
+
+function findAnnualRate(text: string) {
+  const aprMatch = text.match(/(?:APR|annual percentage rate|annual interest rate).{0,40}?(\d{1,2}(?:\.\d+)?)\s*%/i)
+  if (aprMatch) return Number(aprMatch[1]) / 100
+
+  const monthlyMatch = text.match(/(?:monthly interest rate|monthly effective rate|finance charge rate).{0,40}?(\d{1,2}(?:\.\d+)?)\s*%/i)
+  if (monthlyMatch) return (Number(monthlyMatch[1]) / 100) * 12
+
+  return null
+}
+
+function detectStatementInstallments(text: string, extraLabels: string[] = []): StatementInstallmentDraft[] {
+  const extraPattern = extraLabels
+    .map((label) => escapeRegExp(label).replace(/\s+/g, '\\s*'))
+    .filter(Boolean)
+    .join('|')
+  const basePattern = 'installment|instalment|monthly amortization|amortization|easy\\s*pay|easypay|balance conversion|sip|0%\\s*installment|buy now pay later|bnpl'
+  const keywordPattern = new RegExp(extraPattern ? `(${basePattern}|${extraPattern})` : `(${basePattern})`, 'gi')
+  const matches = Array.from(text.matchAll(keywordPattern))
+  const seen = new Set<string>()
+
+  return matches.slice(0, 8).flatMap((match, index) => {
+    const start = Math.max(0, (match.index ?? 0) - 90)
+    const end = Math.min(text.length, (match.index ?? 0) + 210)
+    const snippet = text.slice(start, end).replace(/\s+/g, ' ').trim()
+    const fingerprint = snippet.slice(0, 90).toLowerCase()
+
+    if (seen.has(fingerprint)) return []
+    seen.add(fingerprint)
+
+    const amounts = Array.from(snippet.matchAll(/(?:PHP|P)?\s*-?\d[\d,]*(?:\.\d{1,2})?/gi))
+      .map((item) => parseMoneyValue(item[0]))
+      .filter((amount) => amount > 0)
+    const monthsMatch = snippet.match(/\b(\d{1,2})\s*(?:months|month|mos|mo)\b/i)
+    const monthsRemaining = monthsMatch ? Number(monthsMatch[1]) : 1
+    const isZeroPercent = /0\s*%/.test(snippet)
+    const interestMatch = snippet.match(/(\d{1,2}(?:\.\d+)?)\s*%/)
+    const annualRate = isZeroPercent ? 0 : interestMatch ? Number(interestMatch[1]) / 100 : 0.12
+    const monthlyAmount = amounts[0] ?? 0
+    const remainingBalance = amounts.length > 1 ? Math.max(...amounts) : monthlyAmount * Math.max(monthsRemaining, 1)
+    const cleanDescription = snippet
+      .replace(/\b(?:PHP|P)?\s*-?\d[\d,]*(?:\.\d{1,2})?\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .slice(0, 76)
+      .trim()
+
+    return [
+      {
+        id: `installment-${index}-${Math.round(monthlyAmount)}`,
+        description: cleanDescription || 'Statement Installment',
+        monthlyAmount,
+        remainingBalance,
+        monthsRemaining,
+        annualRate,
+        confidence: monthlyAmount > 0 && monthsRemaining > 1 ? 'Medium' : 'Low',
+      },
+    ]
+  })
+}
+
+function parseMoneyValue(value: string) {
+  const cleaned = value.replace(/PHP|P|,/gi, '').replace(/[^\d.-]/g, '')
+  const parsed = Number(cleaned)
+  return Number.isFinite(parsed) ? Math.abs(parsed) : 0
+}
+
+
+
+function parseDayFromStatementDate(value: string, fallback: number) {
+  if (!value.trim()) return fallback
+
+  const monthNameMatch = value.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})/i)
+  if (monthNameMatch) {
+    const day = Number(monthNameMatch[1])
+    return isValidDayOfMonth(day) ? day : fallback
+  }
+
+  const numericMatch = value.match(/\b(\d{1,2})[\\/.-](\d{1,2})[\\/.-](\d{2,4})\b/)
+  if (numericMatch) {
+    const first = Number(numericMatch[1])
+    const second = Number(numericMatch[2])
+    const day = first > 12 ? first : second
+    return isValidDayOfMonth(day) ? day : fallback
+  }
+
+  return parseDayFromText(value, fallback)
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function normalizeTransactions(rawTransactions: unknown): Transaction[] {
   if (!Array.isArray(rawTransactions)) return []
 
@@ -4873,6 +6608,12 @@ function normalizeCreditCards(rawCreditCards: unknown): CreditCardAccount[] {
       dueDay: parseDayFromText(card.dueDay ?? card.dueDate, 15),
     }
 
+    const annualRate = Number(card.annualRate ?? 0.36)
+    if (Number.isFinite(annualRate) && annualRate >= 0) normalizedCard.annualRate = annualRate
+
+    const minimumDue = Number(card.minimumDue)
+    if (card.minimumDue !== undefined && Number.isFinite(minimumDue) && minimumDue >= 0) normalizedCard.minimumDue = minimumDue
+
     if (typeof card.lastPaymentAt === 'string') normalizedCard.lastPaymentAt = card.lastPaymentAt
 
     return normalizedCard
@@ -4936,12 +6677,18 @@ function normalizeDebts(rawDebts: unknown): Debt[] {
     const balance = Number(debt.balance ?? 0)
     const monthly = Number(debt.monthly ?? 0)
 
+    const annualRate = Number(debt.annualRate ?? 0.12)
+    const kind = debt.kind === 'credit-card-installment' || debt.kind === 'loan' || debt.kind === 'other' ? debt.kind : undefined
+
     return {
       id: Number(debt.id ?? index + 1),
       name: String(debt.name ?? `Debt ${index + 1}`),
       balance: Number.isFinite(balance) && balance >= 0 ? balance : 0,
       monthly: Number.isFinite(monthly) && monthly > 0 ? monthly : 1,
       due: String(debt.due ?? 'Every month'),
+      annualRate: Number.isFinite(annualRate) && annualRate >= 0 ? annualRate : 0.12,
+      source: typeof debt.source === 'string' ? debt.source : undefined,
+      kind,
     }
   })
 }

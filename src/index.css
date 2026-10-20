@@ -6010,2697 +6010,3550 @@ button:disabled.cloud-sync-danger-button,
   font-weight: 950 !important;
   letter-spacing: -0.02em !important;
 }
-
 /* =========================================================
-   DueWise Disable Accidental Zoom
-   Reduces accidental double-tap zoom and iOS input zoom.
-   ========================================================= */
-
-html,
-body {
-  width: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
-  touch-action: manipulation;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-button,
-a,
-input,
-select,
-textarea {
-  touch-action: manipulation;
-}
-
-/* Prevent iPhone Safari from zooming when tapping inputs */
-input,
-select,
-textarea {
-  font-size: 16px !important;
-}
-
-/* Prevent accidental text selection while tapping app controls */
-button,
-.bottom-nav,
-.main-fab,
-.fab-action,
-.date-strip,
-.insights-section-card {
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* =========================================================
-   DueWise Clean UI Reset
+   DueWise Credit Card Statement Import V1
    Paste at the very bottom of src/index.css.
-   Purpose:
-   - removes dirty/heavy shadows across pages
-   - fixes side overflow/cut-off views
-   - normalizes card spacing, width, and surfaces
-   - keeps the DueWise warm/orange + green identity
    ========================================================= */
 
-/* ---------- Clean design tokens ---------- */
-:root {
-  --dw-clean-bg: #f7f2e8;
-  --dw-clean-bg-2: #fffaf1;
-  --dw-clean-card: #fffdf8;
-  --dw-clean-card-soft: #f8f3ea;
-  --dw-clean-text: #171717;
-  --dw-clean-muted: #676159;
-  --dw-clean-muted-2: #8a8378;
-  --dw-clean-border: rgba(23, 23, 23, 0.10);
-  --dw-clean-shadow: 0 8px 20px rgba(45, 37, 24, 0.075);
-  --dw-clean-shadow-soft: 0 4px 12px rgba(45, 37, 24, 0.055);
-  --dw-clean-brand: #f97316;
-  --dw-clean-green: #2f7d5a;
-  --dw-clean-green-soft: #e9f7ef;
-  --dw-clean-danger: #be4440;
+/* Wallet top actions now has 3 actions */
+.statement-import-button {
+  grid-column: 1 / -1 !important;
 }
 
-.theme-dark {
-  --dw-clean-bg: #111411;
-  --dw-clean-bg-2: #151815;
-  --dw-clean-card: #222622;
-  --dw-clean-card-soft: #2a2e2a;
-  --dw-clean-text: #f8f5ee;
-  --dw-clean-muted: #c1baaf;
-  --dw-clean-muted-2: #948d83;
-  --dw-clean-border: rgba(255, 255, 255, 0.11);
-  --dw-clean-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
-  --dw-clean-shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.18);
-  --dw-clean-brand: #fb923c;
-  --dw-clean-green: #7ee0a9;
-  --dw-clean-green-soft: rgba(126, 224, 169, 0.12);
-  --dw-clean-danger: #ff9b95;
+/* Statement upload card */
+.statement-upload-card {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(23, 23, 23, 0.08);
 }
 
-/* ---------- Stop ugly side overflow and clipped page views ---------- */
-html,
-body,
-#root {
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  overflow-x: hidden !important;
-  margin: 0 !important;
+.statement-upload-card > svg {
+  width: 42px;
+  height: 42px;
+  padding: 10px;
+  border-radius: 15px;
+  color: #ffffff;
+  background: #111111;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box !important;
+.statement-upload-card h3 {
+  margin: 0 0 4px;
+  color: #171717;
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
 }
 
-.app-shell,
-.theme-dark.app-shell {
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100vw !important;
-  overflow-x: hidden !important;
-  color: var(--dw-clean-text) !important;
-  background:
-    radial-gradient(circle at 12% 0%, rgba(249, 115, 22, 0.08), transparent 26%),
-    linear-gradient(180deg, var(--dw-clean-bg-2) 0%, var(--dw-clean-bg) 100%) !important;
+.statement-upload-card p {
+  margin: 0;
+  color: #6f685f;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
-.theme-dark.app-shell {
-  background:
-    radial-gradient(circle at 12% 0%, rgba(251, 146, 60, 0.08), transparent 26%),
-    linear-gradient(180deg, var(--dw-clean-bg-2) 0%, var(--dw-clean-bg) 100%) !important;
+.statement-upload-card input {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: 12px;
+  border: 1px dashed rgba(23, 23, 23, 0.18);
+  border-radius: 16px;
+  color: #171717;
+  background: rgba(250, 248, 243, 0.9);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
-.mobile-app {
-  width: min(100%, 430px) !important;
-  max-width: 430px !important;
-  min-width: 0 !important;
-  margin: 0 auto !important;
-  padding: 12px 16px 116px !important;
-  overflow-x: hidden !important;
-  color: var(--dw-clean-text) !important;
-  background: transparent !important;
+/* Statement review fields */
+.statement-review-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 13px;
 }
 
-/* ---------- Header: remove dirty black slab and normalize ---------- */
-.app-header {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 60 !important;
-  width: 100% !important;
-  margin: 0 0 10px !important;
-  padding: 8px 0 10px !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  backdrop-filter: none !important;
+.statement-options-card,
+.statement-detected-card,
+.statement-notes-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(23, 23, 23, 0.07);
 }
 
-.app-header::before {
-  content: "" !important;
-  position: absolute !important;
-  inset: 0 -16px !important;
-  z-index: -1 !important;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 250, 241, 0.96) 0%,
-    rgba(255, 250, 241, 0.86) 76%,
-    rgba(255, 250, 241, 0) 100%
-  ) !important;
-  opacity: 1 !important;
-  pointer-events: none !important;
+.statement-options-card label {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: start;
+  gap: 9px;
+  color: #171717;
+  font-size: 0.8rem;
+  font-weight: 850;
+  line-height: 1.35;
 }
 
-.theme-dark .app-header::before {
-  background: linear-gradient(
-    180deg,
-    rgba(17, 20, 17, 0.96) 0%,
-    rgba(17, 20, 17, 0.86) 76%,
-    rgba(17, 20, 17, 0) 100%
-  ) !important;
+.statement-options-card input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: #111111;
 }
 
-.brand-name {
-  color: var(--dw-clean-brand) !important;
-  font-size: 0.7rem !important;
-  line-height: 1 !important;
-  letter-spacing: 0.24em !important;
-  font-weight: 950 !important;
-  opacity: 1 !important;
+.statement-detected-card h3,
+.statement-notes-card h3 {
+  margin: 0;
+  color: #171717;
+  font-size: 0.9rem;
+  letter-spacing: -0.02em;
 }
 
-.app-header h1 {
-  margin: 2px 0 0 !important;
-  color: var(--dw-clean-text) !important;
-  font-size: clamp(2.4rem, 10vw, 3.15rem) !important;
-  line-height: 0.92 !important;
-  letter-spacing: -0.07em !important;
+.statement-detected-card p,
+.statement-notes-card p {
+  margin: 0;
+  color: #6f685f;
+  font-size: 0.77rem;
+  font-weight: 750;
+  line-height: 1.4;
 }
 
-.theme-toggle-button,
-.profile-button {
-  width: 48px !important;
-  height: 48px !important;
-  min-width: 48px !important;
-  border-radius: 999px !important;
-  color: var(--dw-clean-text) !important;
-  background: var(--dw-clean-card) !important;
-  border: 1px solid var(--dw-clean-border) !important;
-  box-shadow: var(--dw-clean-shadow-soft) !important;
+.statement-installment-list {
+  display: grid;
+  gap: 9px;
 }
 
-.theme-dark .theme-toggle-button,
-.theme-dark .profile-button {
-  background: var(--dw-clean-card-soft) !important;
+.statement-installment-list article {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border-radius: 16px;
+  background: rgba(250, 248, 243, 0.9);
+  border: 1px solid rgba(23, 23, 23, 0.06);
 }
 
-/* ---------- General surfaces: softer, cleaner, no muddy heavy shadows ---------- */
-.balance-hero,
-.recommendation-card,
-.info-card,
-.account-card,
-.event-card,
-.recurring-card,
-.credit-card,
-.goal-card,
-.debt-card,
-.strategy-card,
-.insight-card,
-.recurring-summary,
-.debt-summary,
-.overview-row,
-.financial-health-card,
-.insights-chart-card,
-.debt-coach-card,
-.compact-debt-coach-card,
-.ai-money-tool-card,
-.smart-insight-card,
-.compact-ai-card,
-.history-metric,
-.transaction-history-panel,
-.cloud-sync-status-card,
-.page-content > section[style*="border-radius"],
-.card-list > article {
-  color: var(--dw-clean-text) !important;
-  background: var(--dw-clean-card) !important;
-  border: 1px solid var(--dw-clean-border) !important;
-  box-shadow: var(--dw-clean-shadow) !important;
-  filter: none !important;
+.statement-installment-list strong {
+  color: #171717;
+  font-size: 0.83rem;
+  line-height: 1.25;
 }
 
-/* Keep charts/cards from creating side overflow */
-.page-content,
-.card-list,
-.mini-grid,
-.analysis-grid,
-.overview-list,
-.insights-section-switcher,
-.date-strip,
-.insights-chart-card,
-.transaction-history-panel,
-.cloud-sync-panel {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  overflow-x: hidden !important;
+.statement-installment-list span,
+.statement-installment-list small {
+  color: #6f685f;
+  font-size: 0.73rem;
+  font-weight: 800;
 }
 
-/* ---------- Text readability ---------- */
-p,
-span,
-small,
-label {
-  color: var(--dw-clean-muted) !important;
-  opacity: 1 !important;
+/* Dark mode */
+.theme-dark .statement-upload-card,
+.theme-dark .statement-options-card,
+.theme-dark .statement-detected-card,
+.theme-dark .statement-notes-card {
+  background: rgba(34, 38, 34, 0.92);
+  border-color: rgba(255, 255, 255, 0.09);
 }
 
-h1,
-h2,
-h3,
-strong {
-  color: var(--dw-clean-text) !important;
-  opacity: 1 !important;
+.theme-dark .statement-upload-card h3,
+.theme-dark .statement-options-card label,
+.theme-dark .statement-detected-card h3,
+.theme-dark .statement-notes-card h3,
+.theme-dark .statement-installment-list strong {
+  color: #f8f5ee;
 }
 
-/* ---------- Hero card: compact, clean ---------- */
-.balance-hero {
-  min-height: 145px !important;
-  margin: 4px 0 14px !important;
-  padding: 20px !important;
-  border-radius: 28px !important;
-  background:
-    radial-gradient(circle at 0% 0%, rgba(249, 115, 22, 0.06), transparent 34%),
-    linear-gradient(145deg, var(--dw-clean-card), rgba(47, 125, 90, 0.045)) !important;
+.theme-dark .statement-upload-card p,
+.theme-dark .statement-detected-card p,
+.theme-dark .statement-notes-card p,
+.theme-dark .statement-installment-list span,
+.theme-dark .statement-installment-list small {
+  color: #b8b0a3;
 }
 
-.theme-dark .balance-hero {
-  background:
-    radial-gradient(circle at 0% 0%, rgba(251, 146, 60, 0.08), transparent 34%),
-    linear-gradient(145deg, var(--dw-clean-card), rgba(126, 224, 169, 0.06)) !important;
+.theme-dark .statement-upload-card input,
+.theme-dark .statement-installment-list article {
+  color: #f8f5ee;
+  background: rgba(17, 20, 17, 0.76);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-.balance-hero h2 {
-  margin: 8px 0 7px !important;
-  font-size: clamp(2.5rem, 11vw, 3.15rem) !important;
-  line-height: 0.94 !important;
-  letter-spacing: -0.065em !important;
+/* Better spacing on wide phones */
+@media (min-width: 391px) {
+  .statement-review-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.hero-label {
-  color: var(--dw-clean-muted) !important;
-  font-size: 0.84rem !important;
+/* =========================================================
+   DueWise Statement Import Password Profiles
+   Adds bank SOA password helper styling.
+   ========================================================= */
+
+.statement-password-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(23, 23, 23, 0.07);
 }
 
-.hero-description {
-  max-width: 295px !important;
-  color: var(--dw-clean-muted) !important;
-  font-size: 0.86rem !important;
-  line-height: 1.34 !important;
+.statement-password-card h3 {
+  margin: 0 0 4px;
+  color: #171717;
+  font-size: 0.92rem;
+  letter-spacing: -0.02em;
 }
 
-/* ---------- Date strip: no side scroll, no ugly cut edges ---------- */
-.date-strip {
+.statement-password-card p {
+  margin: 0;
+  color: #6f685f;
+  font-size: 0.76rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.statement-password-preview {
+  padding: 10px 12px;
+  border-radius: 15px;
+  color: #171717 !important;
+  background: rgba(249, 115, 22, 0.10);
+  border: 1px solid rgba(249, 115, 22, 0.18);
+  font-size: 0.76rem !important;
+  font-weight: 850 !important;
+}
+
+.theme-dark .statement-password-card {
+  background: rgba(34, 38, 34, 0.92);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.theme-dark .statement-password-card h3,
+.theme-dark .statement-password-preview {
+  color: #f8f5ee !important;
+}
+
+.theme-dark .statement-password-card p {
+  color: #b8b0a3;
+}
+
+.theme-dark .statement-password-preview {
+  background: rgba(251, 146, 60, 0.12);
+  border-color: rgba(251, 146, 60, 0.20);
+}
+/* =========================================================
+   DueWise Statement Import Auto-Detect + Read-Only Review
+   Paste at the very bottom of src/index.css.
+   - Birthday only
+   - No bank dropdown
+   - No card dropdown
+   - SOA fields are read-only review cards
+   ========================================================= */
+
+.compact-password-card {
+  margin-bottom: 0 !important;
+}
+
+.statement-password-card.compact-password-card {
   display: grid !important;
-  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
-  gap: 7px !important;
-  margin: 0 0 14px !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
-
-.date-strip button {
-  width: 100% !important;
-  min-width: 0 !important;
-  min-height: 64px !important;
-  padding: 8px 2px !important;
-  border-radius: 18px !important;
-  color: var(--dw-clean-text) !important;
-  background: var(--dw-clean-card) !important;
-  border: 1px solid var(--dw-clean-border) !important;
-  box-shadow: var(--dw-clean-shadow-soft) !important;
-}
-
-.date-strip button span {
-  color: var(--dw-clean-muted) !important;
-  font-size: 0.65rem !important;
-}
-
-.date-strip button strong {
-  color: var(--dw-clean-text) !important;
-  font-size: 0.98rem !important;
-}
-
-.date-strip button.selected {
-  color: #ffffff !important;
-  background: var(--dw-clean-text) !important;
-  border-color: transparent !important;
-}
-
-.date-strip button.selected span,
-.date-strip button.selected strong {
-  color: #ffffff !important;
-}
-
-.theme-dark .date-strip button.selected {
-  color: #141614 !important;
-  background: #f8f5ee !important;
-}
-
-.theme-dark .date-strip button.selected span,
-.theme-dark .date-strip button.selected strong {
-  color: #141614 !important;
-}
-
-/* ---------- Recommendation: less glow, cleaner green ---------- */
-.recommendation-card {
-  margin: 0 0 12px !important;
-  padding: 16px !important;
-  gap: 13px !important;
-  border-radius: 26px !important;
-  background:
-    radial-gradient(circle at top left, rgba(47, 125, 90, 0.12), transparent 34%),
-    var(--dw-clean-card) !important;
-  border-color: rgba(47, 125, 90, 0.20) !important;
-}
-
-.theme-dark .recommendation-card {
-  background:
-    radial-gradient(circle at top left, rgba(126, 224, 169, 0.12), transparent 34%),
-    var(--dw-clean-card) !important;
-  border-color: rgba(126, 224, 169, 0.22) !important;
-}
-
-.recommendation-icon {
-  width: 52px !important;
-  height: 52px !important;
-  border-radius: 18px !important;
-  color: var(--dw-clean-green) !important;
-  background: rgba(47, 125, 90, 0.10) !important;
-  border: 1px solid rgba(47, 125, 90, 0.16) !important;
-  box-shadow: none !important;
-}
-
-.theme-dark .recommendation-icon {
-  background: rgba(126, 224, 169, 0.10) !important;
-  border-color: rgba(126, 224, 169, 0.18) !important;
-}
-
-.recommendation-card p {
-  color: var(--dw-clean-green) !important;
-  font-weight: 950 !important;
-}
-
-.recommendation-card h2 {
-  font-size: 1.08rem !important;
-}
-
-.recommendation-card span {
-  font-size: 0.8rem !important;
-  line-height: 1.32 !important;
-}
-
-/* ---------- Small cards and lists ---------- */
-.page-content {
   gap: 12px !important;
 }
 
-.mini-grid,
-.analysis-grid,
-.compact-insight-metrics {
-  gap: 9px !important;
+.statement-password-card.compact-password-card h3 {
+  margin: 0 0 4px !important;
 }
 
-.info-card {
-  min-height: 72px !important;
-  padding: 12px 14px !important;
-  border-radius: 21px !important;
+.statement-password-card.compact-password-card p {
+  line-height: 1.42 !important;
 }
 
-.account-card,
-.event-card,
-.recurring-card,
-.debt-card {
-  min-height: 72px !important;
-  padding: 11px 12px !important;
-  border-radius: 21px !important;
+.statement-password-preview {
+  padding: 11px 13px !important;
+  border-radius: 16px !important;
+  color: #5f3b19 !important;
+  background: rgba(249, 115, 22, 0.10) !important;
+  border: 1px solid rgba(249, 115, 22, 0.20) !important;
+  font-size: 0.75rem !important;
+  font-weight: 850 !important;
 }
 
-.goal-card,
-.credit-card,
-.strategy-card,
-.insight-card,
-.recurring-summary,
-.debt-summary,
-.smart-insight-card,
-.compact-ai-card,
-.ai-money-tool-card,
-.insights-chart-card,
-.financial-health-card {
-  border-radius: 24px !important;
+/* Auto save target card */
+.statement-auto-target-card,
+.statement-actions-summary {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(23, 23, 23, 0.07);
 }
 
-/* ---------- Insights selector no dirty shadows ---------- */
-.insights-section-switcher {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 8px !important;
-  margin: 0 0 12px !important;
-  padding: 0 !important;
-  overflow: visible !important;
+.statement-auto-target-card h3,
+.statement-actions-summary h3 {
+  margin: 0;
+  color: #171717;
+  font-size: 0.88rem;
+  letter-spacing: -0.02em;
 }
 
-.insights-section-card {
-  min-width: 0 !important;
-  min-height: 66px !important;
-  padding: 10px 12px !important;
-  border-radius: 19px !important;
-  background: var(--dw-clean-card) !important;
-  border: 1px solid var(--dw-clean-border) !important;
-  box-shadow: var(--dw-clean-shadow-soft) !important;
+.statement-auto-target-card p,
+.statement-actions-summary p {
+  margin: 0;
+  color: #5f5a52;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.38;
 }
 
-.insights-section-card.active {
-  background:
-    radial-gradient(circle at top left, rgba(249, 115, 22, 0.12), transparent 34%),
-    var(--dw-clean-card) !important;
-  border-color: rgba(249, 115, 22, 0.48) !important;
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.08), var(--dw-clean-shadow-soft) !important;
+.statement-auto-target-card small {
+  color: #8a8175;
+  font-size: 0.7rem;
+  font-weight: 850;
 }
 
-/* ---------- Buttons: clean and consistent ---------- */
-button {
-  -webkit-tap-highlight-color: transparent !important;
+/* Read-only review layout */
+.statement-readonly-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
-button[style*="width: 100%"],
-.cloud-sync-primary-button,
-.cloud-sync-secondary-button,
-.cloud-sync-danger-button,
-.history-clear-button {
-  box-shadow: var(--dw-clean-shadow-soft) !important;
+.statement-field-card {
+  min-height: 78px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 13px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(23, 23, 23, 0.08);
 }
 
-button[style*="rgba(255, 255, 255"],
-button[style*="#eee9df"],
-button[style*="#dcece5"] {
-  background: var(--dw-clean-card) !important;
-  color: var(--dw-clean-text) !important;
-  border: 1px solid var(--dw-clean-border) !important;
-  box-shadow: var(--dw-clean-shadow-soft) !important;
+.statement-field-card.full {
+  grid-column: 1 / -1;
 }
 
-/* ---------- Bottom nav and FAB: less dirty glow ---------- */
-.bottom-nav {
-  width: min(calc(100% - 32px), 398px) !important;
-  left: 50% !important;
-  right: auto !important;
-  bottom: 8px !important;
-  transform: translateX(-50%) !important;
-  padding: 8px !important;
-  border-radius: 30px !important;
-  background: rgba(255, 253, 248, 0.90) !important;
-  border: 1px solid var(--dw-clean-border) !important;
-  box-shadow: 0 10px 28px rgba(45, 37, 24, 0.12) !important;
-  backdrop-filter: blur(18px) !important;
-  overflow: hidden !important;
+.statement-field-card span {
+  color: #6f685f;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.theme-dark .bottom-nav {
+.statement-field-card strong {
+  color: #171717;
+  font-size: 1.02rem;
+  font-weight: 950;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+/* Make notes/detected cards align with new read-only style */
+.statement-detected-card,
+.statement-notes-card {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(23, 23, 23, 0.07) !important;
+}
+
+/* Dark mode */
+.theme-dark .statement-password-preview {
+  color: #f8f5ee !important;
+  background: rgba(251, 146, 60, 0.13) !important;
+  border-color: rgba(251, 146, 60, 0.22) !important;
+}
+
+.theme-dark .statement-auto-target-card,
+.theme-dark .statement-actions-summary,
+.theme-dark .statement-field-card,
+.theme-dark .statement-detected-card,
+.theme-dark .statement-notes-card {
   background: rgba(34, 38, 34, 0.92) !important;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
 }
 
-.bottom-nav button {
-  min-height: 56px !important;
-  border-radius: 20px !important;
-  background: transparent !important;
-  box-shadow: none !important;
+.theme-dark .statement-auto-target-card h3,
+.theme-dark .statement-actions-summary h3,
+.theme-dark .statement-field-card strong {
+  color: #f8f5ee !important;
 }
 
-.bottom-nav button.active {
-  background: rgba(249, 115, 22, 0.12) !important;
+.theme-dark .statement-auto-target-card p,
+.theme-dark .statement-actions-summary p,
+.theme-dark .statement-field-card span,
+.theme-dark .statement-auto-target-card small {
+  color: #b8b0a3 !important;
 }
 
-.theme-dark .bottom-nav button.active {
-  background: rgba(251, 146, 60, 0.14) !important;
-}
-
-.main-fab {
-  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
-  bottom: 106px !important;
-  width: 58px !important;
-  height: 58px !important;
-  border-radius: 999px !important;
-  border: 4px solid var(--dw-clean-bg) !important;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18) !important;
-}
-
-/* ---------- Modal panels cleaner ---------- */
-div[style*="position: fixed"] section[style*="border-radius"] {
-  color: var(--dw-clean-text) !important;
-  background: var(--dw-clean-card) !important;
-  border: 1px solid var(--dw-clean-border) !important;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24) !important;
-}
-
-/* ---------- Small phone tuning ---------- */
+/* Small phones */
 @media (max-width: 390px) {
-  .mobile-app {
-    padding-inline: 12px !important;
+  .statement-readonly-grid {
+    gap: 9px;
   }
 
-  .app-header h1 {
-    font-size: clamp(2.25rem, 10vw, 2.85rem) !important;
+  .statement-field-card {
+    min-height: 72px;
+    padding: 12px;
+    border-radius: 18px;
   }
 
-  .balance-hero {
-    min-height: 138px !important;
-    padding: 18px !important;
-    border-radius: 26px !important;
-  }
-
-  .date-strip {
-    gap: 5px !important;
-  }
-
-  .date-strip button {
-    min-height: 60px !important;
-    border-radius: 16px !important;
-  }
-
-  .recommendation-card {
-    padding: 14px !important;
-  }
-
-  .main-fab {
-    right: 14px !important;
-    bottom: 102px !important;
-    width: 54px !important;
-    height: 54px !important;
+  .statement-field-card strong {
+    font-size: 0.94rem;
   }
 }
 /* =========================================================
-   DueWise No-Shadow UI Fix
+   DueWise SOA Import Bank Detection + Better File Button
    Paste at the very bottom of src/index.css.
-   This removes the remaining dirty card shadows completely and
-   replaces depth with clean borders and subtle surface contrast.
+   - Prefers bank detected from the successful SOA password profile.
+   - Replaces native Choose File with a clean mobile button.
    ========================================================= */
 
-/* ---------- Global no-shadow rule for app UI ---------- */
-.mobile-app *,
-.mobile-app *::before,
-.mobile-app *::after {
-  box-shadow: none !important;
-  filter: none !important;
+/* Hide ugly native file input and replace with custom picker */
+.statement-upload-card input[type="file"] {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0 !important;
+  cursor: pointer !important;
 }
 
-/* ---------- Clean page background ---------- */
-.app-shell,
-.theme-dark.app-shell {
-  overflow-x: hidden !important;
-}
+.statement-file-picker {
+  grid-column: 1 / -1 !important;
+  position: relative !important;
+  overflow: hidden !important;
 
-.mobile-app {
-  overflow-x: hidden !important;
-}
+  min-height: 58px !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  align-items: center !important;
+  gap: 3px !important;
 
-/* ---------- Main surfaces: border-only clean cards ---------- */
-.balance-hero,
-.recommendation-card,
-.info-card,
-.account-card,
-.event-card,
-.recurring-card,
-.credit-card,
-.goal-card,
-.debt-card,
-.strategy-card,
-.insight-card,
-.recurring-summary,
-.debt-summary,
-.overview-row,
-.financial-health-card,
-.insights-chart-card,
-.debt-coach-card,
-.compact-debt-coach-card,
-.ai-money-tool-card,
-.smart-insight-card,
-.compact-ai-card,
-.history-metric,
-.transaction-history-panel,
-.cloud-sync-status-card,
-.page-content > section,
-.card-list > article,
-section[style],
-article[style],
-button[style] {
-  box-shadow: none !important;
-  filter: none !important;
-}
+  padding: 13px 16px !important;
+  border-radius: 20px !important;
 
-/* ---------- Light mode card surfaces ---------- */
-.balance-hero,
-.recommendation-card,
-.info-card,
-.account-card,
-.event-card,
-.recurring-card,
-.credit-card,
-.goal-card,
-.debt-card,
-.strategy-card,
-.insight-card,
-.recurring-summary,
-.debt-summary,
-.overview-row,
-.financial-health-card,
-.insights-chart-card,
-.debt-coach-card,
-.compact-debt-coach-card,
-.ai-money-tool-card,
-.smart-insight-card,
-.compact-ai-card,
-.history-metric,
-.cloud-sync-status-card,
-.card-list > article {
-  background: #fffdf8 !important;
-  border: 1px solid rgba(23, 23, 23, 0.10) !important;
-}
-
-/* ---------- Dark mode card surfaces ---------- */
-.theme-dark .balance-hero,
-.theme-dark .recommendation-card,
-.theme-dark .info-card,
-.theme-dark .account-card,
-.theme-dark .event-card,
-.theme-dark .recurring-card,
-.theme-dark .credit-card,
-.theme-dark .goal-card,
-.theme-dark .debt-card,
-.theme-dark .strategy-card,
-.theme-dark .insight-card,
-.theme-dark .recurring-summary,
-.theme-dark .debt-summary,
-.theme-dark .overview-row,
-.theme-dark .financial-health-card,
-.theme-dark .insights-chart-card,
-.theme-dark .debt-coach-card,
-.theme-dark .compact-debt-coach-card,
-.theme-dark .ai-money-tool-card,
-.theme-dark .smart-insight-card,
-.theme-dark .compact-ai-card,
-.theme-dark .history-metric,
-.theme-dark .cloud-sync-status-card,
-.theme-dark .card-list > article {
-  background: #222622 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-}
-
-/* ---------- Hero: remove glow but keep premium gradient ---------- */
-.balance-hero {
-  background:
-    linear-gradient(145deg, #fffdf8 0%, #f6fbf7 100%) !important;
-}
-
-.theme-dark .balance-hero {
-  background:
-    linear-gradient(145deg, #222622 0%, #18221c 100%) !important;
-}
-
-/* ---------- Today's recommendation: calm green, no glow ---------- */
-.recommendation-card {
-  background:
-    linear-gradient(145deg, #f2fbf6 0%, #fffdf8 100%) !important;
-  border-color: rgba(47, 125, 90, 0.24) !important;
-}
-
-.theme-dark .recommendation-card {
-  background:
-    linear-gradient(145deg, rgba(47, 125, 90, 0.18) 0%, #222622 100%) !important;
-  border-color: rgba(126, 224, 169, 0.26) !important;
-}
-
-.recommendation-icon {
-  background: rgba(47, 125, 90, 0.10) !important;
-  border: 1px solid rgba(47, 125, 90, 0.16) !important;
-  box-shadow: none !important;
-}
-
-.theme-dark .recommendation-icon {
-  background: rgba(126, 224, 169, 0.10) !important;
-  border-color: rgba(126, 224, 169, 0.18) !important;
-}
-
-/* ---------- Smaller, cleaner empty-state cards ---------- */
-.card-list > article,
-.event-card,
-.account-card,
-.recurring-card,
-.debt-card {
-  min-height: 72px !important;
-  padding: 12px 14px !important;
-  border-radius: 22px !important;
-}
-
-/* Specifically compact the Today empty explanation card */
-.mobile-app:has(.date-strip) .page-content > section {
-  border-radius: 22px !important;
-}
-
-.mobile-app:has(.date-strip) .page-content > section[style] {
-  padding: 16px !important;
-}
-
-/* Reduce excessive text card height on Today */
-.mobile-app:has(.date-strip) .page-content > section p,
-.mobile-app:has(.date-strip) .page-content > section span {
-  line-height: 1.34 !important;
-}
-
-/* ---------- Mini cards: no floating effect ---------- */
-.mini-grid {
-  gap: 10px !important;
-}
-
-.info-card {
-  min-height: 72px !important;
-  padding: 12px 14px !important;
-  border-radius: 22px !important;
-}
-
-/* ---------- Header should not look like a black block ---------- */
-.app-header {
-  box-shadow: none !important;
-  background: transparent !important;
-}
-
-.app-header::before {
-  box-shadow: none !important;
-  filter: none !important;
-}
-
-/* ---------- Buttons: flat, bordered ---------- */
-button,
-.fab-action,
-.cloud-sync-primary-button,
-.cloud-sync-secondary-button,
-.cloud-sync-danger-button,
-.history-clear-button {
-  box-shadow: none !important;
-  filter: none !important;
-}
-
-/* ---------- Bottom nav: no dirty shadow ---------- */
-.bottom-nav {
-  box-shadow: none !important;
-  border: 1px solid rgba(23, 23, 23, 0.10) !important;
-  background: rgba(255, 253, 248, 0.94) !important;
-}
-
-.theme-dark .bottom-nav {
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  background: rgba(34, 38, 34, 0.94) !important;
-}
-
-/* ---------- FAB: keep visible but remove dirty glow ---------- */
-.main-fab {
-  box-shadow: none !important;
+  color: #ffffff !important;
+  background: #111111 !important;
   border: 4px solid #f7f2e8 !important;
+  box-shadow: none !important;
+
+  cursor: pointer !important;
 }
 
-.theme-dark .main-fab {
-  border-color: #111411 !important;
+.statement-file-picker::after {
+  content: "Tap to upload" !important;
+  position: absolute !important;
+  right: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+
+  padding: 7px 10px !important;
+  border-radius: 999px !important;
+
+  color: #111111 !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+
+  font-size: 0.68rem !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.01em !important;
 }
 
-/* ---------- Side overflow protection ---------- */
-html,
-body,
-#root,
-.app-shell,
-.mobile-app,
-.page-content {
-  max-width: 100vw !important;
-  overflow-x: hidden !important;
+.statement-file-picker span {
+  color: #ffffff !important;
+  font-size: 0.88rem !important;
+  font-weight: 950 !important;
+  line-height: 1.15 !important;
+  padding-right: 98px !important;
 }
 
-/* ---------- Consistent spacing on Today ---------- */
-.mobile-app:has(.date-strip) .page-content {
-  gap: 11px !important;
+.statement-file-picker small {
+  color: rgba(255, 255, 255, 0.74) !important;
+  font-size: 0.72rem !important;
+  font-weight: 850 !important;
+  line-height: 1.2 !important;
+  padding-right: 98px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
-.mobile-app:has(.date-strip) .balance-hero {
-  margin-bottom: 12px !important;
+/* Remove previous dashed native file field styling */
+.statement-upload-card > input,
+.statement-upload-card input {
+  border: 0 !important;
 }
 
-.mobile-app:has(.date-strip) .date-strip {
-  margin-bottom: 13px !important;
+/* Better upload card alignment */
+.statement-upload-card {
+  align-items: start !important;
 }
 
-.mobile-app:has(.date-strip) .recommendation-card {
-  margin-bottom: 10px !important;
-}
-
-.mobile-app:has(.date-strip) .section-heading {
+.statement-upload-card > svg {
   margin-top: 2px !important;
 }
 
-/* ---------- Small phone polish ---------- */
-@media (max-width: 390px) {
-  .mobile-app:has(.date-strip) .page-content {
-    gap: 10px !important;
-  }
-
-  .card-list > article,
-  .event-card,
-  .account-card,
-  .recurring-card,
-  .debt-card {
-    border-radius: 20px !important;
-  }
-
-  .mobile-app:has(.date-strip) .page-content > section[style] {
-    padding: 14px !important;
-  }
-}
-/* =========================================================
-   DueWise Bottom Nav Compact Fix
-   Paste at the very bottom of src/index.css.
-   Fixes stretched bottom navigation and keeps it app-like.
-   ========================================================= */
-
-.bottom-nav {
-  position: fixed !important;
-  left: 50% !important;
-  right: auto !important;
-  bottom: max(10px, env(safe-area-inset-bottom)) !important;
-  transform: translateX(-50%) !important;
-
-  width: min(calc(100vw - 32px), 398px) !important;
-  max-width: 398px !important;
-  min-width: 0 !important;
-
-  height: 78px !important;
-  min-height: 78px !important;
-  max-height: 78px !important;
-
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  align-items: center !important;
-  gap: 6px !important;
-
-  padding: 8px !important;
-  border-radius: 28px !important;
-  overflow: hidden !important;
-
-  background: rgba(255, 253, 248, 0.96) !important;
-  border: 1px solid rgba(23, 23, 23, 0.10) !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(18px) !important;
-  -webkit-backdrop-filter: blur(18px) !important;
-
-  z-index: 80 !important;
-}
-
-.theme-dark .bottom-nav {
-  background: rgba(34, 38, 34, 0.96) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  box-shadow: none !important;
-}
-
-.bottom-nav button {
-  width: 100% !important;
-  min-width: 0 !important;
-  height: 60px !important;
-  min-height: 60px !important;
-  max-height: 60px !important;
-
-  display: grid !important;
-  place-items: center !important;
-  align-content: center !important;
-  gap: 4px !important;
-
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 22px !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.bottom-nav button.active {
-  background: rgba(249, 115, 22, 0.13) !important;
-  box-shadow: none !important;
-}
-
-.theme-dark .bottom-nav button.active {
-  background: rgba(251, 146, 60, 0.15) !important;
-}
-
-.bottom-nav svg {
-  width: 22px !important;
-  height: 22px !important;
-  margin: 0 !important;
-}
-
-.bottom-nav span {
-  margin: 0 !important;
-  font-size: 0.64rem !important;
-  line-height: 1 !important;
-  font-weight: 900 !important;
-  white-space: nowrap !important;
-}
-
-/* Active underline should be short and centered */
-.bottom-nav button.active::after {
-  width: 24px !important;
-  height: 3px !important;
-  border-radius: 999px !important;
-  margin-top: 1px !important;
-}
-
-/* Keep page content from hiding behind the compact nav */
-.mobile-app {
-  padding-bottom: 108px !important;
-}
-
-/* Keep FAB above nav without touching it */
-.main-fab {
-  bottom: 100px !important;
-  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
-  box-shadow: none !important;
-}
-
-/* Small phones */
-@media (max-width: 390px) {
-  .bottom-nav {
-    width: calc(100vw - 24px) !important;
-    height: 74px !important;
-    min-height: 74px !important;
-    max-height: 74px !important;
-    padding: 7px !important;
-    border-radius: 26px !important;
-  }
-
-  .bottom-nav button {
-    height: 58px !important;
-    min-height: 58px !important;
-    max-height: 58px !important;
-    border-radius: 20px !important;
-  }
-
-  .bottom-nav svg {
-    width: 21px !important;
-    height: 21px !important;
-  }
-
-  .bottom-nav span {
-    font-size: 0.61rem !important;
-  }
-
-  .mobile-app {
-    padding-bottom: 104px !important;
-  }
-
-  .main-fab {
-    bottom: 96px !important;
-    right: 14px !important;
-  }
-}
-/* =========================================================
-   DueWise FAB Higher Position Fix
-   Paste at the very bottom of src/index.css.
-   Moves the floating plus button higher so it does not crowd
-   the bottom navigation.
-   ========================================================= */
-
-.main-fab {
-  bottom: 126px !important;
-  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
-  width: 58px !important;
-  height: 58px !important;
-  min-width: 58px !important;
-  min-height: 58px !important;
-  z-index: 90 !important;
-}
-
-/* Move opened quick-action buttons together with the FAB */
-.fab-actions {
-  bottom: 194px !important;
-  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
-  z-index: 95 !important;
-}
-
-/* Add extra bottom breathing room so content is not hidden */
-.mobile-app {
-  padding-bottom: 132px !important;
-}
-
-/* Small phones */
-@media (max-width: 390px) {
-  .main-fab {
-    bottom: 120px !important;
-    right: 14px !important;
-    width: 54px !important;
-    height: 54px !important;
-    min-width: 54px !important;
-    min-height: 54px !important;
-  }
-
-  .fab-actions {
-    bottom: 184px !important;
-    right: 14px !important;
-  }
-
-  .mobile-app {
-    padding-bottom: 128px !important;
-  }
-}
-/* =========================================================
-   DueWise FAB Subtle Radar Ripple
-   Paste at the very bottom of src/index.css.
-   Adds a calm radar-like ripple around the floating plus button.
-   ========================================================= */
-
-.main-fab {
-  position: fixed !important;
-  overflow: visible !important;
-  isolation: isolate !important;
-}
-
-/* Outer ripple */
-.main-fab::before {
-  content: "" !important;
-  position: absolute !important;
-  inset: -10px !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(249, 115, 22, 0.34) !important;
-  background: rgba(249, 115, 22, 0.08) !important;
-  z-index: -1 !important;
-  opacity: 0 !important;
-  transform: scale(0.86) !important;
-  animation: duewiseFabRadar 2.8s ease-out infinite !important;
-  pointer-events: none !important;
-}
-
-/* Inner delayed ripple */
-.main-fab::after {
-  content: "" !important;
-  position: absolute !important;
-  inset: -5px !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(47, 125, 90, 0.28) !important;
-  background: rgba(47, 125, 90, 0.06) !important;
-  z-index: -1 !important;
-  opacity: 0 !important;
-  transform: scale(0.88) !important;
-  animation: duewiseFabRadar 2.8s ease-out infinite 1.15s !important;
-  pointer-events: none !important;
-}
-
-.theme-dark .main-fab::before {
-  border-color: rgba(251, 146, 60, 0.38) !important;
-  background: rgba(251, 146, 60, 0.08) !important;
-}
-
-.theme-dark .main-fab::after {
-  border-color: rgba(126, 224, 169, 0.30) !important;
-  background: rgba(126, 224, 169, 0.06) !important;
-}
-
-@keyframes duewiseFabRadar {
-  0% {
-    opacity: 0;
-    transform: scale(0.86);
-  }
-
-  18% {
-    opacity: 0.55;
-  }
-
-  72% {
-    opacity: 0.08;
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.62);
-  }
-}
-
-/* Pause ripple when the FAB menu is open so it does not look busy */
-.main-fab.open::before,
-.main-fab.open::after {
-  animation: none !important;
-  opacity: 0 !important;
-}
-
-/* Respect users who prefer reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .main-fab::before,
-  .main-fab::after {
-    animation: none !important;
-    opacity: 0 !important;
-  }
-}
-/* =========================================================
-   DueWise Plan Control + Custom Budget UX
-   Paste at the very bottom of src/index.css.
-   Adds Plan-only quick buttons beside the FAB and improves
-   user-controlled custom budget cards.
-   ========================================================= */
-
-/* ---------- Plan-only quick add buttons beside FAB ---------- */
-.plan-fab-actions {
-  position: fixed !important;
-  right: max(86px, calc((100vw - 430px) / 2 + 86px)) !important;
-  bottom: 126px !important;
-  z-index: 91 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 7px !important;
-  max-width: calc(100vw - 112px) !important;
-  overflow: hidden !important;
-  pointer-events: auto !important;
-}
-
-.plan-fab-actions button {
-  min-height: 42px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 5px !important;
-  padding: 0 10px !important;
-  border-radius: 999px !important;
-  color: var(--dw-clean-text, #171717) !important;
-  background: rgba(255, 253, 248, 0.96) !important;
-  border: 1px solid rgba(23, 23, 23, 0.10) !important;
-  box-shadow: none !important;
-  font-size: 0.72rem !important;
-  font-weight: 950 !important;
-  white-space: nowrap !important;
-}
-
-.theme-dark .plan-fab-actions button {
-  color: var(--dw-clean-text, #f8f5ee) !important;
-  background: rgba(34, 38, 34, 0.96) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-}
-
-.plan-fab-actions button:first-child {
-  border-color: rgba(249, 115, 22, 0.38) !important;
-  background:
-    linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(255, 253, 248, 0.96)) !important;
-}
-
-.theme-dark .plan-fab-actions button:first-child {
-  border-color: rgba(251, 146, 60, 0.42) !important;
-  background:
-    linear-gradient(135deg, rgba(251, 146, 60, 0.16), rgba(34, 38, 34, 0.96)) !important;
-}
-
-.plan-fab-actions svg {
-  width: 14px !important;
-  height: 14px !important;
-}
-
-.plan-fab-actions span {
-  color: inherit !important;
-  font-size: inherit !important;
-  line-height: 1 !important;
-}
-
-/* Hide plan quick buttons when a modal/backdrop is open */
-.fab-backdrop.visible ~ .plan-fab-actions {
-  display: none !important;
-}
-
-/* ---------- Inline Add Budget button inside Budget section ---------- */
-.plan-inline-actions {
-  width: 100% !important;
-  margin-top: 10px !important;
-}
-
-.plan-inline-actions button {
-  width: 100% !important;
-  min-height: 48px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  padding: 0 14px !important;
-  border-radius: 20px !important;
+/* Dark mode */
+.theme-dark .statement-file-picker {
   color: #ffffff !important;
-  background: #171717 !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  font-size: 0.86rem !important;
-  font-weight: 950 !important;
+  background: #111111 !important;
+  border-color: #111411 !important;
 }
 
-.theme-dark .plan-inline-actions button {
-  color: #171717 !important;
-  background: #f8f5ee !important;
+.theme-dark .statement-file-picker::after {
+  color: #111111 !important;
+  background: rgba(248, 245, 238, 0.94) !important;
 }
 
-.plan-inline-actions button span,
-.plan-inline-actions button strong {
-  color: inherit !important;
+/* Small phone */
+@media (max-width: 390px) {
+  .statement-file-picker {
+    min-height: 54px !important;
+    padding: 12px 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .statement-file-picker::after {
+    right: 11px !important;
+    padding: 6px 8px !important;
+    font-size: 0.63rem !important;
+  }
+
+  .statement-file-picker span,
+  .statement-file-picker small {
+    padding-right: 84px !important;
+  }
+}
+/* =========================================================
+   DueWise SOA Import V2: Debt Components + Avalanche Preview
+   Paste at the very bottom of src/index.css.
+   ========================================================= */
+
+.statement-avalanche-card,
+.statement-warning-card,
+.statement-components-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(23, 23, 23, 0.07);
 }
 
-/* ---------- Custom budget empty card ---------- */
-.budget-empty-card {
-  margin-top: 12px !important;
-  min-height: 88px !important;
-  align-items: center !important;
-  border-style: dashed !important;
-  border-color: rgba(249, 115, 22, 0.28) !important;
-  background:
-    linear-gradient(135deg, rgba(249, 115, 22, 0.08), #fffdf8) !important;
+.statement-avalanche-card {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.theme-dark .budget-empty-card {
-  border-color: rgba(251, 146, 60, 0.30) !important;
-  background:
-    linear-gradient(135deg, rgba(251, 146, 60, 0.10), #222622) !important;
+.statement-avalanche-card > div {
+  display: grid;
+  gap: 5px;
+  min-height: 78px;
+  align-content: center;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(250, 248, 243, 0.84);
+  border: 1px solid rgba(23, 23, 23, 0.06);
 }
 
-.budget-empty-card h3 {
-  color: var(--dw-clean-text, #171717) !important;
+.statement-avalanche-card .statement-avalanche-focus {
+  grid-column: 1 / -1;
+  background: rgba(249, 115, 22, 0.10);
+  border-color: rgba(249, 115, 22, 0.18);
 }
 
-.budget-empty-card p {
-  color: var(--dw-clean-muted, #676159) !important;
+.statement-avalanche-card span,
+.statement-component-item span {
+  color: #6f685f;
+  font-size: 0.69rem;
+  font-weight: 950;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-/* ---------- Budget cards should look editable and user-owned ---------- */
-.goal-card {
-  box-shadow: none !important;
+.statement-avalanche-card strong {
+  color: #171717;
+  font-size: 1.02rem;
+  font-weight: 950;
+  line-height: 1.15;
 }
 
-.goal-card .goal-header h3 {
-  color: var(--dw-clean-text, #171717) !important;
+.statement-avalanche-card p,
+.statement-components-note,
+.statement-component-item p,
+.statement-component-item small {
+  margin: 0;
+  color: #6f685f;
+  font-size: 0.73rem;
+  font-weight: 780;
+  line-height: 1.35;
 }
 
-.goal-card .goal-header p {
-  color: var(--dw-clean-muted, #676159) !important;
+.statement-warning-card {
+  background: rgba(254, 242, 242, 0.82);
+  border-color: rgba(239, 68, 68, 0.18);
 }
 
-.goal-values span,
-.goal-values strong {
-  color: var(--dw-clean-text, #171717) !important;
+.statement-warning-card h3,
+.statement-components-card h3 {
+  margin: 0;
+  color: #171717;
+  font-size: 0.9rem;
+  letter-spacing: -0.02em;
 }
 
-/* ---------- Plan card selected state remains strong ---------- */
-.plan-summary-card.active {
-  border: 2px solid rgba(249, 115, 22, 0.76) !important;
-  outline: 3px solid rgba(249, 115, 22, 0.13) !important;
-  background:
-    linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(47, 125, 90, 0.08)),
-    #fffdf8 !important;
+.statement-warning-card p {
+  margin: 0;
+  color: #7f1d1d;
+  font-size: 0.76rem;
+  font-weight: 850;
+  line-height: 1.4;
 }
 
-.theme-dark .plan-summary-card.active {
-  border-color: rgba(251, 146, 60, 0.82) !important;
-  outline-color: rgba(251, 146, 60, 0.15) !important;
+.statement-component-list {
+  display: grid;
+  gap: 10px;
 }
 
-/* ---------- Modal field readability for custom budget names ---------- */
-div[style*="position: fixed"] input {
+.statement-component-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px;
+  border-radius: 19px;
+  background: rgba(250, 248, 243, 0.88);
+  border: 1px solid rgba(23, 23, 23, 0.06);
+}
+
+.statement-component-item > div {
+  display: grid;
+  gap: 4px;
+}
+
+.statement-component-item > div:last-child {
+  text-align: right;
+}
+
+.statement-component-item strong {
+  color: #171717;
+  font-size: 0.9rem;
+  font-weight: 950;
+  line-height: 1.2;
+}
+
+.statement-component-item > div:last-child > strong {
+  font-size: 0.95rem;
+}
+
+.statement-component-item.high {
+  border-color: rgba(239, 68, 68, 0.22);
+  background: rgba(254, 242, 242, 0.78);
+}
+
+.statement-component-item.medium {
+  border-color: rgba(249, 115, 22, 0.20);
+  background: rgba(255, 247, 237, 0.78);
+}
+
+.statement-component-item.low {
+  border-color: rgba(47, 125, 90, 0.16);
+  background: rgba(240, 253, 244, 0.62);
+}
+
+/* Dark mode */
+.theme-dark .statement-avalanche-card,
+.theme-dark .statement-components-card {
+  background: rgba(34, 38, 34, 0.92);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.theme-dark .statement-avalanche-card > div,
+.theme-dark .statement-component-item {
+  background: rgba(17, 20, 17, 0.74);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.theme-dark .statement-avalanche-card .statement-avalanche-focus {
+  background: rgba(251, 146, 60, 0.12);
+  border-color: rgba(251, 146, 60, 0.20);
+}
+
+.theme-dark .statement-avalanche-card span,
+.theme-dark .statement-component-item span,
+.theme-dark .statement-avalanche-card p,
+.theme-dark .statement-components-note,
+.theme-dark .statement-component-item p,
+.theme-dark .statement-component-item small {
+  color: #b8b0a3;
+}
+
+.theme-dark .statement-avalanche-card strong,
+.theme-dark .statement-components-card h3,
+.theme-dark .statement-component-item strong {
+  color: #f8f5ee;
+}
+
+.theme-dark .statement-warning-card {
+  background: rgba(69, 10, 10, 0.28);
+  border-color: rgba(248, 113, 113, 0.16);
+}
+
+.theme-dark .statement-warning-card h3 {
+  color: #fecaca;
+}
+
+.theme-dark .statement-warning-card p {
+  color: #fecaca;
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .statement-avalanche-card {
+    gap: 10px;
+  }
+
+  .statement-avalanche-card > div {
+    min-height: 72px;
+    padding: 11px;
+  }
+
+  .statement-component-item {
+    grid-template-columns: 1fr;
+  }
+
+  .statement-component-item > div:last-child {
+    text-align: left;
+  }
+}
+/* =========================================================
+   DueWise SOA Import V2 Manual Correction
+   Paste at the very bottom of src/index.css.
+   Lets user manually correct minimum due and installment debts.
+   ========================================================= */
+
+.statement-manual-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+}
+
+.statement-manual-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.statement-manual-header.compact {
+  align-items: center;
+}
+
+.statement-manual-header h3 {
+  margin: 0 0 4px;
+  color: #171717;
+  font-size: 0.92rem;
+  letter-spacing: -0.02em;
+}
+
+.statement-manual-header p {
+  margin: 0;
+  color: #6f685f;
+  font-size: 0.76rem;
+  font-weight: 780;
+  line-height: 1.4;
+}
+
+.statement-manual-header button,
+.statement-manual-installment-title button {
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #111111;
+  padding: 10px 12px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.statement-manual-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statement-manual-installments {
+  display: grid;
+  gap: 10px;
+}
+
+.statement-empty-installment {
+  display: grid;
+  gap: 4px;
+  padding: 13px;
+  border-radius: 18px;
+  background: rgba(250, 248, 243, 0.88);
+  border: 1px dashed rgba(23, 23, 23, 0.16);
+}
+
+.statement-empty-installment strong {
+  color: #171717;
+  font-size: 0.86rem;
+}
+
+.statement-empty-installment p {
+  margin: 0;
+  color: #6f685f;
+  font-size: 0.74rem;
+  font-weight: 780;
+  line-height: 1.35;
+}
+
+.statement-manual-installment-list {
+  display: grid;
+  gap: 11px;
+}
+
+.statement-manual-installment-item {
+  display: grid;
+  gap: 11px;
+  padding: 13px;
+  border-radius: 20px;
+  background: rgba(250, 248, 243, 0.9);
+  border: 1px solid rgba(23, 23, 23, 0.07);
+}
+
+.statement-manual-installment-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.statement-manual-installment-title strong {
+  color: #171717;
+  font-size: 0.88rem;
+  letter-spacing: -0.01em;
+}
+
+.statement-manual-installment-title button {
+  color: #7f1d1d;
+  background: rgba(254, 226, 226, 0.9);
+  padding: 8px 10px;
+}
+
+/* Make manual inputs feel intentional */
+.statement-manual-card input,
+.statement-manual-card select,
+.statement-manual-card textarea {
   font-size: 16px !important;
 }
 
-/* ---------- Small phone layout ---------- */
+/* Dark mode */
+.theme-dark .statement-manual-card {
+  background: rgba(34, 38, 34, 0.92);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.theme-dark .statement-manual-header h3,
+.theme-dark .statement-empty-installment strong,
+.theme-dark .statement-manual-installment-title strong {
+  color: #f8f5ee;
+}
+
+.theme-dark .statement-manual-header p,
+.theme-dark .statement-empty-installment p {
+  color: #b8b0a3;
+}
+
+.theme-dark .statement-empty-installment,
+.theme-dark .statement-manual-installment-item {
+  background: rgba(17, 20, 17, 0.74);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.theme-dark .statement-manual-header button {
+  color: #111111;
+  background: #f8f5ee;
+}
+
+.theme-dark .statement-manual-installment-title button {
+  color: #fecaca;
+  background: rgba(69, 10, 10, 0.45);
+}
+
+/* Small phones */
 @media (max-width: 390px) {
-  .plan-fab-actions {
-    right: 76px !important;
-    bottom: 120px !important;
-    gap: 5px !important;
-    max-width: calc(100vw - 96px) !important;
+  .statement-manual-card {
+    padding: 13px;
+    border-radius: 20px;
   }
 
-  .plan-fab-actions button {
-    min-height: 38px !important;
-    padding: 0 8px !important;
-    font-size: 0.66rem !important;
+  .statement-manual-header {
+    flex-direction: column;
   }
 
-  .plan-fab-actions svg {
-    width: 13px !important;
-    height: 13px !important;
+  .statement-manual-header.compact {
+    align-items: stretch;
   }
 
-  .plan-inline-actions button {
-    min-height: 46px !important;
-    border-radius: 18px !important;
+  .statement-manual-header button {
+    width: 100%;
+  }
+
+  .statement-manual-grid {
+    grid-template-columns: 1fr;
   }
 }
 /* =========================================================
-   DueWise Plan FAB Stack Fix
+   DueWise SOA V2 Compact Editable Review
    Paste at the very bottom of src/index.css.
-   Makes Budget / Savings / Debt appear as a clean vertical
-   mini-FAB stack above the main plus button on Plan page.
+   Shortens SOA review and makes warning/low-confidence data editable.
    ========================================================= */
 
-/* Plan page mini FAB stack */
-.plan-fab-actions {
-  position: fixed !important;
-  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
-  bottom: 194px !important;
-  z-index: 92 !important;
-
-  width: auto !important;
-  max-width: none !important;
-
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-end !important;
-  justify-content: flex-end !important;
-  gap: 9px !important;
-
-  overflow: visible !important;
-  pointer-events: auto !important;
+.statement-compact-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
-/* Mini FAB buttons */
-.plan-fab-actions button {
-  width: 124px !important;
-  min-width: 124px !important;
-  height: 42px !important;
+.statement-compact-card {
+  min-height: 76px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 13px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+}
+
+.statement-compact-card.full {
+  grid-column: 1 / -1;
+}
+
+.statement-compact-card.needs-review,
+.statement-manual-installment-item.needs-review {
+  background: rgba(254, 242, 242, 0.82) !important;
+  border-color: rgba(239, 68, 68, 0.22) !important;
+}
+
+.statement-compact-card span,
+.statement-details-drawer summary span {
+  color: #6f685f;
+  font-size: 0.69rem;
+  font-weight: 950;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.statement-compact-card strong {
+  color: #171717;
+  font-size: 0.98rem;
+  font-weight: 950;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.statement-compact-card small {
+  color: #7c746a;
+  font-size: 0.72rem;
+  font-weight: 820;
+  line-height: 1.25;
+}
+
+.compact-warning {
+  padding: 13px !important;
+  gap: 7px !important;
+}
+
+.compact-warning h3 {
+  margin-bottom: 2px !important;
+}
+
+.compact-warning p {
+  font-size: 0.73rem !important;
+}
+
+.compact-manual-card {
+  padding: 13px !important;
+  gap: 12px !important;
+}
+
+.compact-manual-card .statement-manual-header p {
+  max-width: 34ch;
+}
+
+.statement-details-drawer {
+  display: grid;
+  gap: 0;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(23, 23, 23, 0.07);
+  overflow: hidden;
+}
+
+.statement-details-drawer summary {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.statement-details-drawer summary::-webkit-details-marker {
+  display: none;
+}
+
+.statement-details-drawer summary::after {
+  content: "+";
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #111111;
+  font-size: 1rem;
+  font-weight: 950;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.statement-details-drawer[open] summary::after {
+  content: "−";
+}
+
+.statement-details-drawer summary strong {
+  color: #171717;
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-align: right;
+  padding-right: 34px;
+}
+
+.statement-details-drawer > .statement-manual-installments,
+.statement-details-drawer > .statement-manual-grid,
+.statement-details-drawer > section,
+.statement-details-drawer > div {
+  margin: 0 13px 13px;
+}
+
+.compact-installment-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.statement-advanced-edit-grid {
+  padding-top: 2px;
+}
+
+.compact-projection-card {
+  padding: 13px !important;
+}
+
+.compact-components-card,
+.compact-notes-card {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+.compact-components-card .statement-component-list {
+  margin-top: 10px;
+}
+
+/* Make long installment lists less tall */
+.statement-manual-installment-item {
+  padding: 12px !important;
+  gap: 10px !important;
+}
+
+.statement-manual-installment-title strong {
+  line-height: 1.25;
+}
+
+/* Dark mode */
+.theme-dark .statement-compact-card,
+.theme-dark .statement-details-drawer {
+  background: rgba(34, 38, 34, 0.92);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.theme-dark .statement-compact-card.needs-review,
+.theme-dark .statement-manual-installment-item.needs-review {
+  background: rgba(69, 10, 10, 0.34) !important;
+  border-color: rgba(248, 113, 113, 0.20) !important;
+}
+
+.theme-dark .statement-compact-card span,
+.theme-dark .statement-details-drawer summary span,
+.theme-dark .statement-compact-card small {
+  color: #b8b0a3;
+}
+
+.theme-dark .statement-compact-card strong,
+.theme-dark .statement-details-drawer summary strong {
+  color: #f8f5ee;
+}
+
+.theme-dark .statement-details-drawer summary::after {
+  color: #111111;
+  background: #f8f5ee;
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .statement-compact-summary {
+    gap: 9px;
+  }
+
+  .statement-compact-card {
+    min-height: 70px;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .statement-compact-card strong {
+    font-size: 0.91rem;
+  }
+
+  .statement-details-drawer summary {
+    min-height: 54px;
+    padding: 12px 13px;
+  }
+
+  .statement-details-drawer summary strong {
+    font-size: 0.76rem;
+    padding-right: 31px;
+  }
+}
+/* =========================================================
+   DueWise SOA Saved Birthday Efficiency Patch
+   Paste at the very bottom of src/index.css.
+   - Keeps SOA birthday ready by default.
+   - Hides the birthday field unless user needs to change it.
+   ========================================================= */
+
+.saved-birthday-card {
+  padding: 13px !important;
+  gap: 10px !important;
+}
+
+.saved-birthday-card h3 {
+  margin: 0 0 4px !important;
+  font-size: 0.92rem !important;
+}
+
+.saved-birthday-card p {
+  line-height: 1.38 !important;
+}
+
+.saved-birthday-card .statement-password-preview {
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+  font-size: 0.72rem !important;
+}
+
+.birthday-change-drawer {
+  margin: 0 !important;
+  border-radius: 16px !important;
+  background: rgba(250, 248, 243, 0.84) !important;
+  border: 1px solid rgba(23, 23, 23, 0.06) !important;
+  overflow: hidden !important;
+}
+
+.birthday-change-drawer summary {
   min-height: 42px !important;
-
-  display: grid !important;
-  grid-template-columns: 22px 1fr !important;
+  display: flex !important;
   align-items: center !important;
-  justify-content: center !important;
-  column-gap: 8px !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  color: #6f685f !important;
+  font-size: 0.73rem !important;
+  font-weight: 900 !important;
+  cursor: pointer !important;
+  list-style: none !important;
+}
 
-  padding: 0 13px !important;
+.birthday-change-drawer summary::-webkit-details-marker {
+  display: none !important;
+}
+
+.birthday-change-drawer summary::after {
+  content: "+" !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: grid !important;
+  place-items: center !important;
   border-radius: 999px !important;
+  color: #ffffff !important;
+  background: #111111 !important;
+  font-size: 0.95rem !important;
+  font-weight: 950 !important;
+}
 
+.birthday-change-drawer[open] summary::after {
+  content: "−" !important;
+}
+
+.birthday-change-drawer .field-group {
+  margin: 0 12px 12px !important;
+}
+
+.theme-dark .birthday-change-drawer {
+  background: rgba(17, 20, 17, 0.74) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+.theme-dark .birthday-change-drawer summary {
+  color: #b8b0a3 !important;
+}
+
+.theme-dark .birthday-change-drawer summary::after {
+  color: #111111 !important;
+  background: #f8f5ee !important;
+}
+/* =========================================================
+   DueWise SOA Import V3 Parser Profiles
+   Paste at the very bottom of src/index.css.
+   Adds bank-specific parser profile polish for SOA import.
+   ========================================================= */
+
+/* Make parser/profile notes easier to scan inside collapsed notes */
+.compact-notes-card p:first-child,
+.statement-notes-card p:first-child {
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+  color: #5f3b19 !important;
+  background: rgba(249, 115, 22, 0.10) !important;
+  border: 1px solid rgba(249, 115, 22, 0.18) !important;
+  font-weight: 900 !important;
+}
+
+/* Warnings caused by low confidence should stand out but not lengthen the page */
+.compact-warning p {
+  border-radius: 13px !important;
+}
+
+.statement-compact-card.needs-review strong::after {
+  content: "  Review" !important;
+  display: inline-block !important;
+  margin-left: 6px !important;
+  padding: 3px 7px !important;
+  border-radius: 999px !important;
+  color: #7f1d1d !important;
+  background: rgba(254, 226, 226, 0.95) !important;
+  font-size: 0.62rem !important;
+  font-weight: 950 !important;
+  vertical-align: middle !important;
+}
+
+/* Dark mode */
+.theme-dark .compact-notes-card p:first-child,
+.theme-dark .statement-notes-card p:first-child {
+  color: #f8f5ee !important;
+  background: rgba(251, 146, 60, 0.12) !important;
+  border-color: rgba(251, 146, 60, 0.20) !important;
+}
+
+.theme-dark .statement-compact-card.needs-review strong::after {
+  color: #fecaca !important;
+  background: rgba(69, 10, 10, 0.55) !important;
+}
+/* =========================================================
+   DueWise Manual SOA Balance Builder Upgrade
+   Paste at the very bottom of src/index.css.
+   Adds previous balance, payments, current charges, current
+   installment billed, and cleaner computed balance review.
+   ========================================================= */
+
+.manual-soa-hero.improved {
+  background:
+    linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(255, 255, 255, 0.84)) !important;
+}
+
+.balance-builder-card {
+  border-color: rgba(249, 115, 22, 0.18) !important;
+  background: rgba(255, 252, 247, 0.88) !important;
+}
+
+.soa-balance-formula-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 2px;
+}
+
+.soa-balance-formula-card article {
+  min-height: 76px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(250, 248, 243, 0.9);
+  border: 1px solid rgba(23, 23, 23, 0.06);
+}
+
+.soa-balance-formula-card article:nth-child(2) {
+  background: rgba(249, 115, 22, 0.11);
+  border-color: rgba(249, 115, 22, 0.20);
+}
+
+.soa-balance-formula-card article.warning {
+  background: rgba(254, 242, 242, 0.86);
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+.soa-balance-formula-card span {
+  color: #6f685f;
+  font-size: 0.66rem;
+  font-weight: 950;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.soa-balance-formula-card strong {
+  color: #171717;
+  font-size: 0.94rem;
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.improved-preview {
+  border-color: rgba(47, 125, 90, 0.14) !important;
+}
+
+/* Make optional Actual SOA balance less confusing */
+.balance-builder-card .field-group:last-child {
+  grid-column: 1 / -1;
+}
+
+/* Dark mode */
+.theme-dark .manual-soa-hero.improved {
+  background:
+    linear-gradient(135deg, rgba(251, 146, 60, 0.14), rgba(34, 38, 34, 0.92)) !important;
+}
+
+.theme-dark .balance-builder-card {
+  background: rgba(34, 38, 34, 0.92) !important;
+  border-color: rgba(251, 146, 60, 0.18) !important;
+}
+
+.theme-dark .soa-balance-formula-card article {
+  background: rgba(17, 20, 17, 0.74);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.theme-dark .soa-balance-formula-card article:nth-child(2) {
+  background: rgba(251, 146, 60, 0.12);
+  border-color: rgba(251, 146, 60, 0.20);
+}
+
+.theme-dark .soa-balance-formula-card article.warning {
+  background: rgba(69, 10, 10, 0.28);
+  border-color: rgba(248, 113, 113, 0.16);
+}
+
+.theme-dark .soa-balance-formula-card span {
+  color: #b8b0a3;
+}
+
+.theme-dark .soa-balance-formula-card strong {
+  color: #f8f5ee;
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .soa-balance-formula-card {
+    grid-template-columns: 1fr;
+  }
+
+  .soa-balance-formula-card article {
+    min-height: 68px;
+  }
+}
+/* =========================================================
+   DueWise Manual SOA - Module UI
+   Paste at the very bottom of src/index.css.
+   Splits manual SOA into modules so the page feels shorter.
+   ========================================================= */
+
+.manual-soa-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.manual-soa-summary-strip article {
+  display: grid;
+  gap: 4px;
+  min-height: 72px;
+  align-content: center;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+}
+
+.manual-soa-summary-strip span,
+.manual-soa-module-nav button small,
+.manual-soa-tip-card strong {
+  color: #6f685f;
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.manual-soa-summary-strip strong {
+  color: #171717;
+  font-size: 0.92rem;
+  font-weight: 950;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.manual-soa-module-nav {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.manual-soa-module-nav button {
+  min-height: 60px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  border-radius: 18px;
+  color: #171717;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.manual-soa-module-nav button strong {
+  font-size: 0.78rem;
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.manual-soa-module-nav button.active {
+  color: #171717;
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.22);
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.08);
+}
+
+.module-card,
+.module-preview-grid,
+.manual-soa-warning-list,
+.manual-soa-summary-strip,
+.manual-soa-module-nav,
+.manual-soa-footer-actions {
+  margin-top: 0;
+}
+
+.module-hero {
+  margin-bottom: 0;
+}
+
+.manual-soa-tip-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(240, 253, 244, 0.72);
+  border: 1px solid rgba(47, 125, 90, 0.14);
+}
+
+.manual-soa-tip-card p {
+  margin: 0;
+  color: #4f4a43;
+  font-size: 0.75rem;
+  font-weight: 780;
+  line-height: 1.38;
+}
+
+.compact-preview {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  grid-template-columns: 1fr !important;
+}
+
+.compact-preview article {
+  min-height: 74px;
+}
+
+.manual-soa-footer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  padding: 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.manual-soa-footer-actions button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 16px;
+  font-size: 0.82rem;
+  font-weight: 950;
+  letter-spacing: -0.01em;
+  color: #171717;
+  background: rgba(23, 23, 23, 0.06);
+}
+
+.manual-soa-footer-actions button.primary {
+  color: #ffffff;
+  background: #111111;
+}
+
+.manual-soa-footer-actions button:disabled {
+  opacity: 0.45;
+}
+
+/* Dark mode */
+.theme-dark .manual-soa-summary-strip article,
+.theme-dark .manual-soa-module-nav button,
+.theme-dark .manual-soa-footer-actions {
+  background: rgba(34, 38, 34, 0.92);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.theme-dark .manual-soa-summary-strip span,
+.theme-dark .manual-soa-module-nav button small,
+.theme-dark .manual-soa-tip-card strong {
+  color: #b8b0a3;
+}
+
+.theme-dark .manual-soa-summary-strip strong,
+.theme-dark .manual-soa-module-nav button,
+.theme-dark .manual-soa-module-nav button strong {
+  color: #f8f5ee;
+}
+
+.theme-dark .manual-soa-module-nav button.active {
+  background: rgba(251, 146, 60, 0.12);
+  border-color: rgba(251, 146, 60, 0.22);
+  box-shadow: none;
+}
+
+.theme-dark .manual-soa-tip-card {
+  background: rgba(20, 83, 45, 0.22);
+  border-color: rgba(74, 222, 128, 0.12);
+}
+
+.theme-dark .manual-soa-tip-card p {
+  color: #d9d2c7;
+}
+
+.theme-dark .manual-soa-footer-actions button {
+  color: #f8f5ee;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.theme-dark .manual-soa-footer-actions button.primary {
+  color: #111111;
+  background: #f8f5ee;
+}
+
+/* Small phones */
+@media (max-width: 390px) {
+  .manual-soa-summary-strip,
+  .manual-soa-module-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .manual-soa-footer-actions {
+    grid-template-columns: 1fr;
+    padding: 10px;
+  }
+}
+/* =========================================================
+   DueWise Manual SOA - Clean Wizard UI Polish
+   Paste at the very bottom of src/index.css.
+   Fixes the module UI to be cleaner, shorter, and more app-like.
+   ========================================================= */
+
+/* Remove the bulky intro card inside the modal */
+.module-hero {
+  display: none !important;
+}
+
+/* Make the modal form cleaner */
+.modal-content form {
+  gap: 12px !important;
+}
+
+/* Compact summary at the top */
+.manual-soa-summary-strip {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.manual-soa-summary-strip article {
+  min-height: 58px !important;
+  padding: 10px 11px !important;
+  border-radius: 17px !important;
+  background: rgba(250, 248, 243, 0.86) !important;
+  border: 1px solid rgba(23, 23, 23, 0.07) !important;
+}
+
+.manual-soa-summary-strip span {
+  color: #7b7369 !important;
+  font-size: 0.63rem !important;
+  font-weight: 950 !important;
+  line-height: 1.1 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.045em !important;
+}
+
+.manual-soa-summary-strip strong {
   color: #171717 !important;
-  background: rgba(255, 253, 248, 0.97) !important;
-  border: 1px solid rgba(23, 23, 23, 0.11) !important;
-  box-shadow: none !important;
+  font-size: 0.82rem !important;
+  font-weight: 950 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Replace blocky step cards with a compact segmented stepper */
+.manual-soa-module-nav {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 8 !important;
+
+  display: flex !important;
+  gap: 7px !important;
+  padding: 8px !important;
+  margin: 0 !important;
+
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+
+  border-radius: 22px !important;
+  background: rgba(255, 255, 255, 0.90) !important;
+  border: 1px solid rgba(23, 23, 23, 0.07) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
+}
 
-  font-size: 0.76rem !important;
+.manual-soa-module-nav::-webkit-scrollbar {
+  display: none !important;
+}
+
+.manual-soa-module-nav button {
+  flex: 0 0 auto !important;
+  min-width: 86px !important;
+  min-height: 40px !important;
+  display: grid !important;
+  place-items: center !important;
+
+  padding: 9px 11px !important;
+  border-radius: 999px !important;
+
+  color: #5f5a52 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.manual-soa-module-nav button small {
+  display: none !important;
+}
+
+.manual-soa-module-nav button strong {
+  font-size: 0.74rem !important;
   font-weight: 950 !important;
-  text-align: left !important;
+  line-height: 1 !important;
+  color: inherit !important;
+  text-align: center !important;
   white-space: nowrap !important;
 }
 
-/* Primary mini FAB: Budget */
-.plan-fab-actions button:first-child {
+.manual-soa-module-nav button.active {
+  color: #ffffff !important;
+  background: #111111 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Cleaner module cards */
+.manual-soa-card.module-card,
+.manual-soa-card.balance-builder-card.module-card {
+  padding: 14px !important;
+  border-radius: 24px !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  border: 1px solid rgba(23, 23, 23, 0.07) !important;
+  box-shadow: none !important;
+}
+
+.manual-soa-header {
+  padding-bottom: 2px !important;
+}
+
+.manual-soa-header h3 {
+  margin: 0 0 4px !important;
   color: #171717 !important;
-  background:
-    linear-gradient(135deg, rgba(249, 115, 22, 0.16), rgba(255, 253, 248, 0.97)) !important;
-  border-color: rgba(249, 115, 22, 0.42) !important;
+  font-size: 1rem !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.035em !important;
 }
 
-/* Dark mode */
-.theme-dark .plan-fab-actions button {
-  color: #f8f5ee !important;
-  background: rgba(34, 38, 34, 0.97) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
+.manual-soa-header p {
+  margin: 0 !important;
+  color: #6f685f !important;
+  font-size: 0.76rem !important;
+  font-weight: 760 !important;
+  line-height: 1.35 !important;
 }
 
-.theme-dark .plan-fab-actions button:first-child {
-  color: #f8f5ee !important;
-  background:
-    linear-gradient(135deg, rgba(251, 146, 60, 0.18), rgba(34, 38, 34, 0.97)) !important;
-  border-color: rgba(251, 146, 60, 0.46) !important;
-}
-
-/* Icon and label alignment */
-.plan-fab-actions button svg {
-  width: 15px !important;
-  height: 15px !important;
-  justify-self: center !important;
-  color: inherit !important;
-}
-
-.plan-fab-actions button span {
-  color: inherit !important;
-  font-size: inherit !important;
-  font-weight: inherit !important;
-  line-height: 1 !important;
-  text-align: left !important;
-}
-
-/* Main plus stays below the mini FAB stack */
-.main-fab {
-  bottom: 126px !important;
-  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
-  z-index: 90 !important;
-}
-
-/* Hide Plan mini FABs when the general FAB menu is open */
-.fab-backdrop.visible ~ .plan-fab-actions {
-  display: none !important;
-}
-
-/* Add bottom clearance so content does not sit under the FAB stack */
-.mobile-app {
-  padding-bottom: 136px !important;
-}
-
-/* Small phones */
-@media (max-width: 390px) {
-  .plan-fab-actions {
-    right: 14px !important;
-    bottom: 184px !important;
-    gap: 8px !important;
-  }
-
-  .plan-fab-actions button {
-    width: 112px !important;
-    min-width: 112px !important;
-    height: 39px !important;
-    min-height: 39px !important;
-    grid-template-columns: 20px 1fr !important;
-    column-gap: 7px !important;
-    padding: 0 11px !important;
-    font-size: 0.7rem !important;
-  }
-
-  .main-fab {
-    right: 14px !important;
-    bottom: 120px !important;
-  }
-
-  .mobile-app {
-    padding-bottom: 130px !important;
-  }
-}
-/* =========================================================
-   DueWise Plan Mini FAB Icon-Only Circles
-   Paste at the very bottom of src/index.css.
-   Makes Plan quick actions uniform circular icon buttons above
-   the main plus FAB: Budget, Savings, Debt.
-   ========================================================= */
-
-/* Stack the Plan-only mini FABs above the main plus button */
-.plan-fab-actions {
-  position: fixed !important;
-  right: max(20px, calc((100vw - 430px) / 2 + 20px)) !important;
-  bottom: 194px !important;
-  z-index: 92 !important;
-
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  gap: 10px !important;
-
-  width: 54px !important;
-  max-width: 54px !important;
-  overflow: visible !important;
-  pointer-events: auto !important;
-}
-
-/* Make Budget / Savings / Debt circular and icon-only */
-.plan-fab-actions button {
-  width: 54px !important;
-  height: 54px !important;
-  min-width: 54px !important;
-  min-height: 54px !important;
-  max-width: 54px !important;
-  max-height: 54px !important;
-
+/* Better input grouping */
+.manual-soa-grid {
   display: grid !important;
-  place-items: center !important;
-  padding: 0 !important;
-
-  border-radius: 999px !important;
-  color: #171717 !important;
-  background: rgba(255, 253, 248, 0.98) !important;
-  border: 1px solid rgba(23, 23, 23, 0.12) !important;
-  box-shadow: none !important;
-
-  font-size: 0 !important;
-  line-height: 1 !important;
-}
-
-/* Hide text label but keep button behavior */
-.plan-fab-actions button span {
-  display: none !important;
-}
-
-/* Icon sizing */
-.plan-fab-actions button svg {
-  width: 22px !important;
-  height: 22px !important;
-  color: inherit !important;
-  stroke-width: 2.6 !important;
-}
-
-/* Give each icon a subtle identity using border/background only */
-.plan-fab-actions button:nth-child(1) {
-  background:
-    linear-gradient(135deg, rgba(249, 115, 22, 0.16), rgba(255, 253, 248, 0.98)) !important;
-  border-color: rgba(249, 115, 22, 0.42) !important;
-}
-
-.plan-fab-actions button:nth-child(2) {
-  background:
-    linear-gradient(135deg, rgba(47, 125, 90, 0.13), rgba(255, 253, 248, 0.98)) !important;
-  border-color: rgba(47, 125, 90, 0.32) !important;
-}
-
-.plan-fab-actions button:nth-child(3) {
-  background:
-    linear-gradient(135deg, rgba(120, 113, 108, 0.12), rgba(255, 253, 248, 0.98)) !important;
-  border-color: rgba(120, 113, 108, 0.28) !important;
-}
-
-/* Dark mode */
-.theme-dark .plan-fab-actions button {
-  color: #f8f5ee !important;
-  background: rgba(34, 38, 34, 0.98) !important;
-  border-color: rgba(255, 255, 255, 0.13) !important;
-  box-shadow: none !important;
-}
-
-.theme-dark .plan-fab-actions button:nth-child(1) {
-  background:
-    linear-gradient(135deg, rgba(251, 146, 60, 0.18), rgba(34, 38, 34, 0.98)) !important;
-  border-color: rgba(251, 146, 60, 0.46) !important;
-}
-
-.theme-dark .plan-fab-actions button:nth-child(2) {
-  background:
-    linear-gradient(135deg, rgba(126, 224, 169, 0.14), rgba(34, 38, 34, 0.98)) !important;
-  border-color: rgba(126, 224, 169, 0.36) !important;
-}
-
-.theme-dark .plan-fab-actions button:nth-child(3) {
-  background:
-    linear-gradient(135deg, rgba(148, 141, 131, 0.16), rgba(34, 38, 34, 0.98)) !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
-}
-
-/* Main plus remains same size and aligned with the mini stack */
-.main-fab {
-  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
-  bottom: 126px !important;
-  width: 58px !important;
-  height: 58px !important;
-  min-width: 58px !important;
-  min-height: 58px !important;
-  z-index: 90 !important;
-}
-
-/* Hide mini FAB stack when main FAB menu/backdrop is open */
-.fab-backdrop.visible ~ .plan-fab-actions {
-  display: none !important;
-}
-
-/* Keep enough bottom clearance */
-.mobile-app {
-  padding-bottom: 136px !important;
-}
-
-/* Small phones */
-@media (max-width: 390px) {
-  .plan-fab-actions {
-    right: 16px !important;
-    bottom: 184px !important;
-    width: 50px !important;
-    max-width: 50px !important;
-    gap: 9px !important;
-  }
-
-  .plan-fab-actions button {
-    width: 50px !important;
-    height: 50px !important;
-    min-width: 50px !important;
-    min-height: 50px !important;
-    max-width: 50px !important;
-    max-height: 50px !important;
-  }
-
-  .plan-fab-actions button svg {
-    width: 20px !important;
-    height: 20px !important;
-  }
-
-  .main-fab {
-    right: 14px !important;
-    bottom: 120px !important;
-    width: 54px !important;
-    height: 54px !important;
-    min-width: 54px !important;
-    min-height: 54px !important;
-  }
-
-  .mobile-app {
-    padding-bottom: 130px !important;
-  }
-}
-/* =========================================================
-   DueWise Plan Mini FAB Icon Polish
-   Paste at the very bottom of src/index.css.
-   Makes Plan quick actions clean icon-only floating buttons:
-   Budget, Savings, Debt.
-   ========================================================= */
-
-/* Plan-only mini FABs: floating stack above main plus */
-.plan-fab-actions {
-  position: fixed !important;
-  right: max(20px, calc((100vw - 430px) / 2 + 20px)) !important;
-  bottom: 194px !important;
-  z-index: 92 !important;
-
-  width: 54px !important;
-  max-width: 54px !important;
-
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
+  grid-template-columns: 1fr !important;
   gap: 10px !important;
-
-  overflow: visible !important;
-  pointer-events: auto !important;
 }
 
-/* Circle mini FAB base */
-.plan-mini-fab,
-.plan-fab-actions button {
-  width: 54px !important;
-  height: 54px !important;
-  min-width: 54px !important;
-  min-height: 54px !important;
-  max-width: 54px !important;
-  max-height: 54px !important;
-
-  display: grid !important;
-  place-items: center !important;
-  padding: 0 !important;
-
-  border-radius: 999px !important;
-  color: #171717 !important;
-  background: rgba(255, 253, 248, 0.98) !important;
-  border: 1px solid rgba(23, 23, 23, 0.12) !important;
-  box-shadow: none !important;
-
-  font-size: 0 !important;
-  line-height: 1 !important;
-  position: relative !important;
-  overflow: visible !important;
-  isolation: isolate !important;
-
-  animation: duewiseMiniFabFloat 3.2s ease-in-out infinite !important;
+@media (min-width: 391px) {
+  .manual-soa-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }
 
-/* Hide text labels but keep aria-label/title */
-.plan-mini-fab span,
-.plan-fab-actions button span {
-  display: none !important;
+/* Make fields feel less cramped */
+.manual-soa-card .field-group {
+  gap: 6px !important;
 }
 
-/* Chosen icons */
-.plan-mini-fab svg,
-.plan-fab-actions button svg {
-  width: 22px !important;
-  height: 22px !important;
-  stroke-width: 2.35 !important;
-  color: inherit !important;
+.manual-soa-card .field-group label {
+  color: #6f685f !important;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
 }
 
-/* Same subtle radar/pulse language as main FAB */
-.plan-mini-fab::before,
-.plan-fab-actions button::before {
-  content: "" !important;
-  position: absolute !important;
-  inset: -5px !important;
-  border-radius: inherit !important;
-  border: 1px solid currentColor !important;
-  opacity: 0 !important;
-  transform: scale(0.86) !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-  animation: duewiseMiniFabPulse 3.2s ease-out infinite !important;
+.manual-soa-card input,
+.manual-soa-card select,
+.manual-soa-card textarea {
+  min-height: 46px !important;
+  border-radius: 16px !important;
+  font-size: 16px !important;
+  font-weight: 850 !important;
+  background: rgba(250, 248, 243, 0.92) !important;
+  border: 1px solid rgba(23, 23, 23, 0.08) !important;
 }
 
-/* Stagger movement */
-.plan-mini-fab:nth-child(1),
-.plan-fab-actions button:nth-child(1) {
-  animation-delay: 0s !important;
+/* Cleaner tip card */
+.manual-soa-tip-card {
+  padding: 11px 12px !important;
+  border-radius: 17px !important;
+  background: rgba(47, 125, 90, 0.08) !important;
+  border: 1px solid rgba(47, 125, 90, 0.12) !important;
 }
 
-.plan-mini-fab:nth-child(2),
-.plan-fab-actions button:nth-child(2) {
-  animation-delay: 0.18s !important;
-}
-
-.plan-mini-fab:nth-child(3),
-.plan-fab-actions button:nth-child(3) {
-  animation-delay: 0.36s !important;
-}
-
-.plan-mini-fab:nth-child(1)::before,
-.plan-fab-actions button:nth-child(1)::before {
-  animation-delay: 0.25s !important;
-}
-
-.plan-mini-fab:nth-child(2)::before,
-.plan-fab-actions button:nth-child(2)::before {
-  animation-delay: 0.55s !important;
-}
-
-.plan-mini-fab:nth-child(3)::before,
-.plan-fab-actions button:nth-child(3)::before {
-  animation-delay: 0.85s !important;
-}
-
-/* Identity colors by action */
-.plan-mini-fab.budget,
-.plan-fab-actions button:nth-child(1) {
-  color: #f97316 !important;
-  background:
-    linear-gradient(135deg, rgba(249, 115, 22, 0.16), rgba(255, 253, 248, 0.98)) !important;
-  border-color: rgba(249, 115, 22, 0.42) !important;
-}
-
-.plan-mini-fab.savings,
-.plan-fab-actions button:nth-child(2) {
+.manual-soa-tip-card strong {
   color: #2f7d5a !important;
-  background:
-    linear-gradient(135deg, rgba(47, 125, 90, 0.13), rgba(255, 253, 248, 0.98)) !important;
-  border-color: rgba(47, 125, 90, 0.34) !important;
+  font-size: 0.72rem !important;
+  font-weight: 950 !important;
 }
 
-.plan-mini-fab.debt,
-.plan-fab-actions button:nth-child(3) {
-  color: #57534e !important;
-  background:
-    linear-gradient(135deg, rgba(87, 83, 78, 0.10), rgba(255, 253, 248, 0.98)) !important;
-  border-color: rgba(87, 83, 78, 0.28) !important;
+.manual-soa-tip-card p {
+  color: #5f5a52 !important;
+  font-size: 0.74rem !important;
+}
+
+/* Balance formula cards */
+.soa-balance-formula-card {
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+}
+
+.soa-balance-formula-card article {
+  min-height: 56px !important;
+  padding: 11px 12px !important;
+  border-radius: 17px !important;
+}
+
+.soa-balance-formula-card span {
+  font-size: 0.64rem !important;
+}
+
+.soa-balance-formula-card strong {
+  font-size: 0.92rem !important;
+}
+
+/* Preview cards */
+.module-preview-grid,
+.manual-soa-preview.improved-preview {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  grid-template-columns: 1fr !important;
+}
+
+.manual-soa-preview article {
+  min-height: 72px !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  border: 1px solid rgba(23, 23, 23, 0.07) !important;
+}
+
+.manual-soa-preview article.full {
+  background: rgba(249, 115, 22, 0.10) !important;
+  border-color: rgba(249, 115, 22, 0.18) !important;
+}
+
+/* Installment list */
+.manual-soa-empty,
+.manual-soa-installment {
+  border-radius: 20px !important;
+}
+
+.manual-soa-installment {
+  padding: 12px !important;
+}
+
+/* Footer actions: cleaner, not huge */
+.manual-soa-footer-actions {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 12 !important;
+
+  display: grid !important;
+  grid-template-columns: 0.85fr 1.15fr !important;
+  gap: 9px !important;
+
+  padding: 10px !important;
+  border-radius: 22px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid rgba(23, 23, 23, 0.08) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+}
+
+.manual-soa-footer-actions button {
+  min-height: 46px !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+
+  color: #171717 !important;
+  background: rgba(23, 23, 23, 0.06) !important;
+
+  font-size: 0.8rem !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.manual-soa-footer-actions button.primary {
+  color: #ffffff !important;
+  background: #111111 !important;
+}
+
+.manual-soa-footer-actions button:disabled {
+  opacity: 0.42 !important;
 }
 
 /* Dark mode */
-.theme-dark .plan-mini-fab,
-.theme-dark .plan-fab-actions button {
+.theme-dark .manual-soa-summary-strip article,
+.theme-dark .manual-soa-module-nav,
+.theme-dark .manual-soa-card.module-card,
+.theme-dark .manual-soa-card.balance-builder-card.module-card,
+.theme-dark .manual-soa-preview article,
+.theme-dark .manual-soa-footer-actions {
+  background: rgba(34, 38, 34, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+.theme-dark .manual-soa-summary-strip span,
+.theme-dark .manual-soa-header p,
+.theme-dark .manual-soa-card .field-group label,
+.theme-dark .manual-soa-module-nav button,
+.theme-dark .manual-soa-tip-card p {
+  color: #b8b0a3 !important;
+}
+
+.theme-dark .manual-soa-summary-strip strong,
+.theme-dark .manual-soa-header h3 {
   color: #f8f5ee !important;
-  background: rgba(34, 38, 34, 0.98) !important;
-  border-color: rgba(255, 255, 255, 0.13) !important;
-  box-shadow: none !important;
 }
 
-.theme-dark .plan-mini-fab.budget,
-.theme-dark .plan-fab-actions button:nth-child(1) {
-  color: #fb923c !important;
-  background:
-    linear-gradient(135deg, rgba(251, 146, 60, 0.16), rgba(34, 38, 34, 0.98)) !important;
-  border-color: rgba(251, 146, 60, 0.44) !important;
-}
-
-.theme-dark .plan-mini-fab.savings,
-.theme-dark .plan-fab-actions button:nth-child(2) {
-  color: #7ee0a9 !important;
-  background:
-    linear-gradient(135deg, rgba(126, 224, 169, 0.13), rgba(34, 38, 34, 0.98)) !important;
-  border-color: rgba(126, 224, 169, 0.36) !important;
-}
-
-.theme-dark .plan-mini-fab.debt,
-.theme-dark .plan-fab-actions button:nth-child(3) {
-  color: #d6d3d1 !important;
-  background:
-    linear-gradient(135deg, rgba(214, 211, 209, 0.10), rgba(34, 38, 34, 0.98)) !important;
-  border-color: rgba(214, 211, 209, 0.22) !important;
-}
-
-/* Main FAB alignment */
-.main-fab {
-  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
-  bottom: 126px !important;
-  width: 58px !important;
-  height: 58px !important;
-  min-width: 58px !important;
-  min-height: 58px !important;
-  z-index: 90 !important;
-}
-
-/* Hide mini stack when regular FAB menu is open */
-.fab-backdrop.visible ~ .plan-fab-actions {
-  display: none !important;
-}
-
-/* Motion */
-@keyframes duewiseMiniFabFloat {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-3px) scale(1.015);
-  }
-}
-
-@keyframes duewiseMiniFabPulse {
-  0% {
-    opacity: 0;
-    transform: scale(0.82);
-  }
-
-  22% {
-    opacity: 0.22;
-  }
-
-  70% {
-    opacity: 0.05;
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.42);
-  }
-}
-
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .plan-mini-fab,
-  .plan-fab-actions button,
-  .plan-mini-fab::before,
-  .plan-fab-actions button::before {
-    animation: none !important;
-  }
-}
-
-/* Small phones */
-@media (max-width: 390px) {
-  .plan-fab-actions {
-    right: 16px !important;
-    bottom: 184px !important;
-    width: 50px !important;
-    max-width: 50px !important;
-    gap: 9px !important;
-  }
-
-  .plan-mini-fab,
-  .plan-fab-actions button {
-    width: 50px !important;
-    height: 50px !important;
-    min-width: 50px !important;
-    min-height: 50px !important;
-    max-width: 50px !important;
-    max-height: 50px !important;
-  }
-
-  .plan-mini-fab svg,
-  .plan-fab-actions button svg {
-    width: 20px !important;
-    height: 20px !important;
-  }
-
-  .main-fab {
-    right: 14px !important;
-    bottom: 120px !important;
-    width: 54px !important;
-    height: 54px !important;
-    min-width: 54px !important;
-    min-height: 54px !important;
-  }
-}
-/* =========================================================
-   DueWise Uniform Black FAB Stack
-   Paste at the very bottom of src/index.css.
-   Makes Plan mini-FABs match the main plus button:
-   black circles, centered white icons, uniform float/ripple.
-   ========================================================= */
-
-/* Shared placement */
-.plan-fab-actions {
-  position: fixed !important;
-  right: max(20px, calc((100vw - 430px) / 2 + 20px)) !important;
-  bottom: 194px !important;
-  z-index: 92 !important;
-
-  width: 54px !important;
-  max-width: 54px !important;
-
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: flex-end !important;
-  gap: 10px !important;
-
-  overflow: visible !important;
-  pointer-events: auto !important;
-}
-
-/* All four FABs use the same visual language */
-.main-fab,
-.plan-mini-fab,
-.plan-fab-actions button {
-  width: 58px !important;
-  height: 58px !important;
-  min-width: 58px !important;
-  min-height: 58px !important;
-  max-width: 58px !important;
-  max-height: 58px !important;
-
-  display: grid !important;
-  place-items: center !important;
-  align-items: center !important;
-  justify-items: center !important;
-
-  padding: 0 !important;
-  border-radius: 999px !important;
-
-  color: #ffffff !important;
-  background: #111111 !important;
-  border: 4px solid #f7f2e8 !important;
-  box-shadow: none !important;
-
-  line-height: 1 !important;
-  font-size: 0 !important;
-  text-align: center !important;
-
-  position: fixed !important;
-  overflow: visible !important;
-  isolation: isolate !important;
-
-  animation: duewiseUniformFabFloat 3.1s ease-in-out infinite !important;
-}
-
-/* Main plus location */
-.main-fab {
-  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
-  bottom: 126px !important;
-  z-index: 90 !important;
-}
-
-/* Plan mini-FABs are positioned by their parent stack, not individually fixed */
-.plan-mini-fab,
-.plan-fab-actions button {
-  position: relative !important;
-  right: auto !important;
-  bottom: auto !important;
-  z-index: 92 !important;
-}
-
-/* Hide labels but keep aria-label/title */
-.plan-mini-fab span,
-.plan-fab-actions button span {
-  display: none !important;
-}
-
-/* Center every icon exactly */
-.main-fab svg,
-.plan-mini-fab svg,
-.plan-fab-actions button svg {
-  width: 24px !important;
-  height: 24px !important;
-  display: block !important;
-  margin: 0 !important;
-  transform: none !important;
-  justify-self: center !important;
-  align-self: center !important;
-  color: #ffffff !important;
-  stroke: currentColor !important;
-  stroke-width: 2.5 !important;
-}
-
-/* Remove previous colored identities */
-.plan-mini-fab.budget,
-.plan-mini-fab.savings,
-.plan-mini-fab.debt,
-.plan-fab-actions button:nth-child(1),
-.plan-fab-actions button:nth-child(2),
-.plan-fab-actions button:nth-child(3) {
-  color: #ffffff !important;
-  background: #111111 !important;
-  border-color: #f7f2e8 !important;
-}
-
-/* Same dark-mode look, only border changes to match background */
-.theme-dark .main-fab,
-.theme-dark .plan-mini-fab,
-.theme-dark .plan-fab-actions button,
-.theme-dark .plan-mini-fab.budget,
-.theme-dark .plan-mini-fab.savings,
-.theme-dark .plan-mini-fab.debt,
-.theme-dark .plan-fab-actions button:nth-child(1),
-.theme-dark .plan-fab-actions button:nth-child(2),
-.theme-dark .plan-fab-actions button:nth-child(3) {
-  color: #ffffff !important;
-  background: #111111 !important;
-  border-color: #111411 !important;
-  box-shadow: none !important;
-}
-
-/* Uniform subtle radar ripple for all FABs */
-.main-fab::before,
-.plan-mini-fab::before,
-.plan-fab-actions button::before {
-  content: "" !important;
-  position: absolute !important;
-  inset: -8px !important;
-  border-radius: inherit !important;
-  border: 1px solid rgba(17, 17, 17, 0.28) !important;
-  background: rgba(17, 17, 17, 0.06) !important;
-  opacity: 0 !important;
-  transform: scale(0.9) !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-  animation: duewiseUniformFabPulse 3.1s ease-out infinite !important;
-}
-
-.theme-dark .main-fab::before,
-.theme-dark .plan-mini-fab::before,
-.theme-dark .plan-fab-actions button::before {
-  border-color: rgba(255, 255, 255, 0.20) !important;
-  background: rgba(255, 255, 255, 0.045) !important;
-}
-
-/* Uniform movement timing: all four move together */
-.main-fab,
-.plan-mini-fab:nth-child(1),
-.plan-mini-fab:nth-child(2),
-.plan-mini-fab:nth-child(3),
-.plan-fab-actions button:nth-child(1),
-.plan-fab-actions button:nth-child(2),
-.plan-fab-actions button:nth-child(3),
-.main-fab::before,
-.plan-mini-fab:nth-child(1)::before,
-.plan-mini-fab:nth-child(2)::before,
-.plan-mini-fab:nth-child(3)::before,
-.plan-fab-actions button:nth-child(1)::before,
-.plan-fab-actions button:nth-child(2)::before,
-.plan-fab-actions button:nth-child(3)::before {
-  animation-delay: 0s !important;
-}
-
-/* When the main FAB menu is opened, keep it still and hide Plan mini-FABs */
-.main-fab.open {
-  animation: none !important;
-  transform: none !important;
-}
-
-.main-fab.open::before,
-.main-fab.open::after {
-  animation: none !important;
-  opacity: 0 !important;
-}
-
-.fab-backdrop.visible ~ .plan-fab-actions {
-  display: none !important;
-}
-
-/* Keep enough content clearance */
-.mobile-app {
-  padding-bottom: 136px !important;
-}
-
-@keyframes duewiseUniformFabFloat {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-3px) scale(1.015);
-  }
-}
-
-@keyframes duewiseUniformFabPulse {
-  0% {
-    opacity: 0;
-    transform: scale(0.88);
-  }
-
-  22% {
-    opacity: 0.24;
-  }
-
-  70% {
-    opacity: 0.06;
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.45);
-  }
-}
-
-/* Respect reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .main-fab,
-  .plan-mini-fab,
-  .plan-fab-actions button,
-  .main-fab::before,
-  .plan-mini-fab::before,
-  .plan-fab-actions button::before {
-    animation: none !important;
-  }
-}
-
-/* Small phones */
-@media (max-width: 390px) {
-  .plan-fab-actions {
-    right: 16px !important;
-    bottom: 184px !important;
-    width: 50px !important;
-    max-width: 50px !important;
-    gap: 9px !important;
-  }
-
-  .main-fab,
-  .plan-mini-fab,
-  .plan-fab-actions button {
-    width: 54px !important;
-    height: 54px !important;
-    min-width: 54px !important;
-    min-height: 54px !important;
-    max-width: 54px !important;
-    max-height: 54px !important;
-  }
-
-  .main-fab {
-    right: 14px !important;
-    bottom: 120px !important;
-  }
-
-  .plan-mini-fab,
-  .plan-fab-actions button {
-    width: 50px !important;
-    height: 50px !important;
-    min-width: 50px !important;
-    min-height: 50px !important;
-    max-width: 50px !important;
-    max-height: 50px !important;
-  }
-
-  .main-fab svg,
-  .plan-mini-fab svg,
-  .plan-fab-actions button svg {
-    width: 22px !important;
-    height: 22px !important;
-  }
-
-  .mobile-app {
-    padding-bottom: 130px !important;
-  }
-}
-/* =========================================================
-   DueWise FAB Icon Center Correction
-   Paste at the very bottom of src/index.css.
-   Forces Plan mini-FAB icons to the true visual center and
-   keeps all four FABs using the same movement.
-   ========================================================= */
-
-/* Keep the Plan mini-FAB stack aligned with the main plus FAB */
-.plan-fab-actions {
-  right: max(20px, calc((100vw - 430px) / 2 + 20px)) !important;
-  bottom: 194px !important;
-  width: 54px !important;
-  max-width: 54px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  gap: 10px !important;
-}
-
-/* Remove all old two-column/grid label layout from previous patches */
-.plan-mini-fab,
-.plan-fab-actions button {
-  width: 58px !important;
-  height: 58px !important;
-  min-width: 58px !important;
-  min-height: 58px !important;
-  max-width: 58px !important;
-  max-height: 58px !important;
-
-  display: block !important;
-  grid-template-columns: none !important;
-  grid-template-rows: none !important;
-  place-items: unset !important;
-  align-items: unset !important;
-  justify-items: unset !important;
-  justify-content: unset !important;
-  align-content: unset !important;
-  column-gap: 0 !important;
-  gap: 0 !important;
-
-  padding: 0 !important;
-  border-radius: 999px !important;
-  position: relative !important;
-  overflow: visible !important;
-  isolation: isolate !important;
-
-  color: #ffffff !important;
-  background: #111111 !important;
-  border: 4px solid #f7f2e8 !important;
-  box-shadow: none !important;
-
-  font-size: 0 !important;
-  line-height: 0 !important;
-  text-align: center !important;
-
-  animation: duewiseFabUnifiedFloat 3.1s ease-in-out infinite !important;
-}
-
-/* Main FAB uses same motion and visual style */
-.main-fab {
-  width: 58px !important;
-  height: 58px !important;
-  min-width: 58px !important;
-  min-height: 58px !important;
-
-  display: block !important;
-  padding: 0 !important;
-  border-radius: 999px !important;
-  position: fixed !important;
-
-  right: max(18px, calc((100vw - 430px) / 2 + 18px)) !important;
-  bottom: 126px !important;
-
-  color: #ffffff !important;
-  background: #111111 !important;
-  border: 4px solid #f7f2e8 !important;
-  box-shadow: none !important;
-
-  animation: duewiseFabUnifiedFloat 3.1s ease-in-out infinite !important;
-}
-
-/* Hide text labels from Plan mini-FABs */
-.plan-mini-fab span,
-.plan-fab-actions button span {
-  display: none !important;
-}
-
-/* TRUE CENTER: absolute-position every mini-FAB SVG */
-.plan-mini-fab > svg,
-.plan-fab-actions button > svg {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-
-  width: 23px !important;
-  height: 23px !important;
-  min-width: 23px !important;
-  min-height: 23px !important;
-
-  margin: 0 !important;
-  padding: 0 !important;
-
-  transform: translate(-50%, -50%) !important;
-  transform-origin: center center !important;
-
-  display: block !important;
-  color: #ffffff !important;
-  stroke: currentColor !important;
-  stroke-width: 2.45 !important;
-  line-height: 1 !important;
-}
-
-/* TRUE CENTER: absolute-position the main plus SVG also */
-.main-fab > svg {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
-
-  margin: 0 !important;
-  padding: 0 !important;
-
-  transform: translate(-50%, -50%) !important;
-  transform-origin: center center !important;
-
-  display: block !important;
-  color: #ffffff !important;
-  stroke: currentColor !important;
-  stroke-width: 2.45 !important;
-}
-
-/* Remove old colored FAB identities */
-.plan-mini-fab.budget,
-.plan-mini-fab.savings,
-.plan-mini-fab.debt,
-.plan-fab-actions button:nth-child(1),
-.plan-fab-actions button:nth-child(2),
-.plan-fab-actions button:nth-child(3) {
-  color: #ffffff !important;
-  background: #111111 !important;
-  border-color: #f7f2e8 !important;
-}
-
-/* Same dark-mode appearance */
-.theme-dark .main-fab,
-.theme-dark .plan-mini-fab,
-.theme-dark .plan-fab-actions button,
-.theme-dark .plan-mini-fab.budget,
-.theme-dark .plan-mini-fab.savings,
-.theme-dark .plan-mini-fab.debt,
-.theme-dark .plan-fab-actions button:nth-child(1),
-.theme-dark .plan-fab-actions button:nth-child(2),
-.theme-dark .plan-fab-actions button:nth-child(3) {
-  color: #ffffff !important;
-  background: #111111 !important;
-  border-color: #111411 !important;
-  box-shadow: none !important;
-}
-
-/* Uniform ripple on all four buttons */
-.main-fab::before,
-.plan-mini-fab::before,
-.plan-fab-actions button::before {
-  content: "" !important;
-  position: absolute !important;
-  inset: -8px !important;
-  border-radius: inherit !important;
-  border: 1px solid rgba(17, 17, 17, 0.28) !important;
-  background: rgba(17, 17, 17, 0.06) !important;
-  opacity: 0 !important;
-  transform: scale(0.88) !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-  animation: duewiseFabUnifiedPulse 3.1s ease-out infinite !important;
-}
-
-.theme-dark .main-fab::before,
-.theme-dark .plan-mini-fab::before,
-.theme-dark .plan-fab-actions button::before {
-  border-color: rgba(255, 255, 255, 0.20) !important;
-  background: rgba(255, 255, 255, 0.045) !important;
-}
-
-/* Remove old secondary pseudo-ripple if it exists */
-.plan-mini-fab::after,
-.plan-fab-actions button::after {
-  content: none !important;
-  display: none !important;
-}
-
-/* All four buttons move together */
-.main-fab,
-.plan-mini-fab,
-.plan-fab-actions button,
-.main-fab::before,
-.plan-mini-fab::before,
-.plan-fab-actions button::before {
-  animation-delay: 0s !important;
-}
-
-/* Hide Plan mini-FABs when main FAB menu is open */
-.fab-backdrop.visible ~ .plan-fab-actions {
-  display: none !important;
-}
-
-.main-fab.open {
-  animation: none !important;
-  transform: none !important;
-}
-
-.main-fab.open::before,
-.main-fab.open::after {
-  animation: none !important;
-  opacity: 0 !important;
-}
-
-@keyframes duewiseFabUnifiedFloat {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-3px) scale(1.015);
-  }
-}
-
-@keyframes duewiseFabUnifiedPulse {
-  0% {
-    opacity: 0;
-    transform: scale(0.88);
-  }
-
-  22% {
-    opacity: 0.24;
-  }
-
-  70% {
-    opacity: 0.06;
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.45);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .main-fab,
-  .plan-mini-fab,
-  .plan-fab-actions button,
-  .main-fab::before,
-  .plan-mini-fab::before,
-  .plan-fab-actions button::before {
-    animation: none !important;
-  }
-}
-
-@media (max-width: 390px) {
-  .plan-fab-actions {
-    right: 16px !important;
-    bottom: 184px !important;
-    width: 50px !important;
-    max-width: 50px !important;
-    gap: 9px !important;
-  }
-
-  .plan-mini-fab,
-  .plan-fab-actions button {
-    width: 54px !important;
-    height: 54px !important;
-    min-width: 54px !important;
-    min-height: 54px !important;
-    max-width: 54px !important;
-    max-height: 54px !important;
-  }
-
-  .main-fab {
-    right: 14px !important;
-    bottom: 120px !important;
-    width: 54px !important;
-    height: 54px !important;
-    min-width: 54px !important;
-    min-height: 54px !important;
-  }
-
-  .plan-mini-fab > svg,
-  .plan-fab-actions button > svg {
-    width: 22px !important;
-    height: 22px !important;
-    min-width: 22px !important;
-    min-height: 22px !important;
-  }
-
-  .main-fab > svg {
-    width: 27px !important;
-    height: 27px !important;
-    min-width: 27px !important;
-    min-height: 27px !important;
-  }
-}
-/* =========================================================
-   DueWise FAB Sync Motion Fix
-   Paste at the very bottom of src/index.css.
-   Forces the 3 Plan mini-FABs and the main plus FAB to move
-   and pulse in the exact same timing.
-   ========================================================= */
-
-/* The parent stack must not animate, only the buttons animate */
-.plan-fab-actions {
-  animation: none !important;
-  transform: none !important;
-}
-
-/* Reset old mixed animations from previous patches */
-.main-fab,
-.plan-mini-fab,
-.plan-fab-actions button {
-  animation-name: duewiseAllFabFloatSync !important;
-  animation-duration: 3.1s !important;
-  animation-timing-function: ease-in-out !important;
-  animation-iteration-count: infinite !important;
-  animation-delay: 0s !important;
-  animation-direction: normal !important;
-  animation-fill-mode: both !important;
-  transform-origin: center center !important;
-}
-
-/* Same synchronized ripple for all buttons */
-.main-fab::before,
-.plan-mini-fab::before,
-.plan-fab-actions button::before {
-  animation-name: duewiseAllFabPulseSync !important;
-  animation-duration: 3.1s !important;
-  animation-timing-function: ease-out !important;
-  animation-iteration-count: infinite !important;
-  animation-delay: 0s !important;
-  animation-direction: normal !important;
-  animation-fill-mode: both !important;
-
-  content: "" !important;
-  position: absolute !important;
-  inset: -8px !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(17, 17, 17, 0.28) !important;
-  background: rgba(17, 17, 17, 0.06) !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-}
-
-/* Remove the old second ripple on the main FAB that made it look off-beat */
-.main-fab::after,
-.plan-mini-fab::after,
-.plan-fab-actions button::after {
-  content: none !important;
-  display: none !important;
-  animation: none !important;
-}
-
-/* Keep opened plus button still */
-.main-fab.open {
-  animation: none !important;
-  transform: none !important;
-}
-
-.main-fab.open::before,
-.main-fab.open::after {
-  animation: none !important;
-  opacity: 0 !important;
-}
-
-/* Synchronized movement: all 4 rise together, then return together */
-@keyframes duewiseAllFabFloatSync {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-3px) scale(1.015);
-  }
-}
-
-/* Synchronized pulse: all 4 ripple together */
-@keyframes duewiseAllFabPulseSync {
-  0% {
-    opacity: 0;
-    transform: scale(0.88);
-  }
-
-  22% {
-    opacity: 0.24;
-  }
-
-  70% {
-    opacity: 0.06;
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.45);
-  }
-}
-
-/* Respect reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .main-fab,
-  .plan-mini-fab,
-  .plan-fab-actions button,
-  .main-fab::before,
-  .plan-mini-fab::before,
-  .plan-fab-actions button::before {
-    animation: none !important;
-  }
-}
-/* =========================================================
-   DueWise Dynamic Calendar + Transparent FAB Polish
-   Paste at the very bottom of src/index.css.
-   - Today calendar now uses the real browser date from App.tsx.
-   - FAB stack is slightly transparent so content behind is visible.
-   - Keeps FABs synchronized and readable.
-   ========================================================= */
-
-/* Make FABs translucent but still clear */
-.main-fab,
-.plan-mini-fab,
-.plan-fab-actions button {
-  opacity: 0.86 !important;
-  background: rgba(17, 17, 17, 0.88) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  transition:
-    opacity 160ms ease,
-    transform 160ms ease,
-    background 160ms ease !important;
-}
-
-/* Fully visible while tapping/hovering/focused */
-.main-fab:hover,
-.main-fab:active,
-.main-fab:focus-visible,
-.plan-mini-fab:hover,
-.plan-mini-fab:active,
-.plan-mini-fab:focus-visible,
-.plan-fab-actions button:hover,
-.plan-fab-actions button:active,
-.plan-fab-actions button:focus-visible {
-  opacity: 1 !important;
-  background: #111111 !important;
-}
-
-/* Keep icons centered and fully visible */
-.main-fab > svg,
-.plan-mini-fab > svg,
-.plan-fab-actions button > svg {
-  opacity: 1 !important;
-  color: #ffffff !important;
-}
-
-/* Slightly lighter border so transparent black does not look heavy */
-.main-fab,
-.plan-mini-fab,
-.plan-fab-actions button {
-  border-color: rgba(247, 242, 232, 0.92) !important;
-}
-
-.theme-dark .main-fab,
-.theme-dark .plan-mini-fab,
-.theme-dark .plan-fab-actions button {
-  border-color: rgba(17, 20, 17, 0.92) !important;
-}
-
-/* Date strip selected day: make the real today obvious */
-.date-strip button.selected {
-  background: #111111 !important;
-  color: #ffffff !important;
-  border-color: #111111 !important;
-  opacity: 1 !important;
-}
-
-.date-strip button.selected span,
-.date-strip button.selected strong {
-  color: #ffffff !important;
-}
-
-.theme-dark .date-strip button.selected {
+.theme-dark .manual-soa-module-nav button.active {
+  color: #111111 !important;
   background: #f8f5ee !important;
-  color: #111111 !important;
-  border-color: #f8f5ee !important;
 }
 
-.theme-dark .date-strip button.selected span,
-.theme-dark .date-strip button.selected strong {
-  color: #111111 !important;
+.theme-dark .manual-soa-card input,
+.theme-dark .manual-soa-card select,
+.theme-dark .manual-soa-card textarea {
+  color: #f8f5ee !important;
+  background: rgba(17, 20, 17, 0.78) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
 }
+
+.theme-dark .manual-soa-tip-card {
+  background: rgba(47, 125, 90, 0.16) !important;
+  border-color: rgba(126, 224, 169, 0.15) !important;
+}
+
+.theme-dark .manual-soa-tip-card strong {
+  color: #7ee0a9 !important;
+}
+
+.theme-dark .manual-soa-preview article.full {
+  background: rgba(251, 146, 60, 0.12) !important;
+  border-color: rgba(251, 146, 60, 0.20) !important;
+}
+
+.theme-dark .manual-soa-footer-actions button {
+  color: #f8f5ee !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.theme-dark .manual-soa-footer-actions button.primary {
+  color: #111111 !important;
+  background: #f8f5ee !important;
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  .manual-soa-module-nav button {
+    min-width: 78px !important;
+    padding-inline: 9px !important;
+  }
+
+  .manual-soa-summary-strip {
+    grid-template-columns: 1fr !important;
+  }
+}
+/* =========================================================
+   DueWise Manual SOA Clean V2
+   Paste at the very bottom of src/index.css.
+   Rebuilds Manual SOA into a cleaner mobile wizard.
+   ========================================================= */
+
+/* Hide older manual SOA blocks/polish conflicts when this V2 form is active */
+.manual-soa-clean-form .module-hero,
+.manual-soa-clean-form .manual-soa-summary-strip,
+.manual-soa-clean-form .manual-soa-module-nav,
+.manual-soa-clean-form .manual-soa-footer-actions {
+  display: none !important;
+}
+
+.manual-soa-clean-form {
+  gap: 12px !important;
+  padding-bottom: 4px !important;
+}
+
+/* Top progress card */
+.soa-clean-top-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.14), transparent 36%),
+    rgba(255, 255, 255, 0.90);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+}
+
+.soa-clean-progress-copy {
+  min-width: 0;
+}
+
+.soa-clean-progress-copy span,
+.soa-clean-balance-pill span,
+.soa-clean-mini-summary span,
+.soa-clean-balance-flow span,
+.soa-clean-result-grid span,
+.soa-clean-focus-card span,
+.soa-clean-review-grid span,
+.soa-clean-details summary span {
+  display: block;
+  color: #7b7369;
+  font-size: 0.64rem;
+  font-weight: 950;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.soa-clean-progress-copy h3 {
+  margin: 5px 0 4px;
+  color: #171717;
+  font-size: 1.08rem;
+  font-weight: 950;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+}
+
+.soa-clean-progress-copy p {
+  margin: 0;
+  color: #6f685f;
+  font-size: 0.76rem;
+  font-weight: 780;
+  line-height: 1.35;
+}
+
+.soa-clean-balance-pill {
+  align-self: start;
+  min-width: 120px;
+  display: grid;
+  gap: 5px;
+  padding: 10px 11px;
+  border-radius: 19px;
+  background: #111111;
+  text-align: right;
+}
+
+.soa-clean-balance-pill span {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.soa-clean-balance-pill strong {
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.soa-clean-progress-track {
+  grid-column: 1 / -1;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(23, 23, 23, 0.08);
+}
+
+.soa-clean-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #111111;
+  transition: width 180ms ease;
+}
+
+/* Stepper */
+.soa-clean-stepper {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: flex;
+  gap: 7px;
+  padding: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.soa-clean-stepper::-webkit-scrollbar {
+  display: none;
+}
+
+.soa-clean-stepper button {
+  flex: 0 0 auto;
+  min-width: 78px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 999px;
+  color: #5f5a52;
+  background: transparent;
+  padding: 7px 10px;
+}
+
+.soa-clean-stepper button span {
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: inherit;
+  background: rgba(23, 23, 23, 0.06);
+  font-size: 0.68rem;
+  font-weight: 950;
+}
+
+.soa-clean-stepper button strong {
+  color: inherit;
+  font-size: 0.74rem;
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.soa-clean-stepper button.active {
+  color: #ffffff;
+  background: #111111;
+}
+
+.soa-clean-stepper button.active span {
+  color: #111111;
+  background: #ffffff;
+}
+
+/* Mini summary */
+.soa-clean-mini-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.72fr;
+  gap: 8px;
+}
+
+.soa-clean-mini-summary article {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  min-height: 58px;
+  align-content: center;
+  padding: 10px 11px;
+  border-radius: 18px;
+  background: rgba(250, 248, 243, 0.9);
+  border: 1px solid rgba(23, 23, 23, 0.07);
+}
+
+.soa-clean-mini-summary strong {
+  color: #171717;
+  font-size: 0.82rem;
+  font-weight: 950;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Main panel */
+.soa-clean-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.90);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+}
+
+.soa-clean-panel-title {
+  display: grid;
+  gap: 4px;
+}
+
+.soa-clean-panel-title h3 {
+  margin: 0;
+  color: #171717;
+  font-size: 1.02rem;
+  font-weight: 950;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.soa-clean-panel-title p {
+  margin: 0;
+  color: #6f685f;
+  font-size: 0.76rem;
+  font-weight: 780;
+  line-height: 1.35;
+}
+
+.soa-clean-panel-title.action-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.soa-clean-panel-title.action-title button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #111111;
+  padding: 9px 12px;
+  font-size: 0.74rem;
+  font-weight: 950;
+}
+
+/* Inputs */
+.soa-clean-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 430px) {
+  .soa-clean-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.soa-clean-panel .field-group {
+  gap: 6px !important;
+}
+
+.soa-clean-panel .field-group label {
+  color: #6f685f !important;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
+}
+
+.soa-clean-panel input,
+.soa-clean-panel select,
+.soa-clean-panel textarea {
+  min-height: 46px !important;
+  border-radius: 16px !important;
+  color: #171717 !important;
+  background: rgba(250, 248, 243, 0.94) !important;
+  border: 1px solid rgba(23, 23, 23, 0.08) !important;
+  font-size: 16px !important;
+  font-weight: 850 !important;
+}
+
+/* Helper */
+.soa-clean-helper,
+.soa-clean-empty {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(47, 125, 90, 0.08);
+  border: 1px solid rgba(47, 125, 90, 0.12);
+}
+
+.soa-clean-helper strong,
+.soa-clean-empty strong {
+  color: #2f7d5a;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.soa-clean-helper p,
+.soa-clean-empty p {
+  margin: 0;
+  color: #5f5a52;
+  font-size: 0.75rem;
+  font-weight: 780;
+  line-height: 1.35;
+}
+
+/* Balance module */
+.soa-clean-balance-flow,
+.soa-clean-result-grid,
+.soa-clean-review-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 430px) {
+  .soa-clean-balance-flow,
+  .soa-clean-result-grid,
+  .soa-clean-review-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.soa-clean-balance-flow article,
+.soa-clean-result-grid article,
+.soa-clean-focus-card,
+.soa-clean-review-grid article {
+  display: grid;
+  gap: 5px;
+  min-height: 66px;
+  align-content: center;
+  padding: 12px;
+  border-radius: 19px;
+  background: rgba(250, 248, 243, 0.92);
+  border: 1px solid rgba(23, 23, 23, 0.07);
+}
+
+.soa-clean-balance-flow strong,
+.soa-clean-result-grid strong,
+.soa-clean-focus-card strong,
+.soa-clean-review-grid strong {
+  color: #171717;
+  font-size: 0.95rem;
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.soa-clean-result-grid article.primary,
+.soa-clean-review-grid article.wide {
+  background: rgba(249, 115, 22, 0.10);
+  border-color: rgba(249, 115, 22, 0.18);
+}
+
+.soa-clean-result-grid article.warning,
+.soa-clean-warning-list {
+  background: rgba(254, 242, 242, 0.9);
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+.soa-clean-review-grid article.wide {
+  grid-column: 1 / -1;
+}
+
+.soa-clean-focus-card p,
+.soa-clean-review-grid p {
+  margin: 0;
+  color: #6f685f;
+  font-size: 0.74rem;
+  font-weight: 780;
+  line-height: 1.32;
+}
+
+/* Installments */
+.soa-clean-installment-list {
+  display: grid;
+  gap: 10px;
+}
+
+.soa-clean-installment {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 21px;
+  background: rgba(250, 248, 243, 0.92);
+  border: 1px solid rgba(23, 23, 23, 0.07);
+}
+
+.soa-clean-installment-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.soa-clean-installment-title strong {
+  color: #171717;
+  font-size: 0.88rem;
+  font-weight: 950;
+}
+
+.soa-clean-installment-title button {
+  border: 0;
+  border-radius: 999px;
+  color: #7f1d1d;
+  background: rgba(254, 226, 226, 0.92);
+  padding: 8px 10px;
+  font-size: 0.7rem;
+  font-weight: 950;
+}
+
+/* Warnings/details */
+.soa-clean-warning-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.soa-clean-warning-list p {
+  margin: 0;
+  color: #7f1d1d;
+  font-size: 0.75rem;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.soa-clean-details {
+  overflow: hidden;
+  border-radius: 20px;
+  background: rgba(250, 248, 243, 0.86);
+  border: 1px solid rgba(23, 23, 23, 0.07);
+}
+
+.soa-clean-details summary {
+  display: grid;
+  grid-template-columns: 1fr auto 26px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.soa-clean-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.soa-clean-details summary::after {
+  content: "+";
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #111111;
+  font-weight: 950;
+}
+
+.soa-clean-details[open] summary::after {
+  content: "−";
+}
+
+.soa-clean-details summary strong {
+  color: #171717;
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.soa-clean-details .manual-soa-component-list {
+  padding: 0 12px 12px !important;
+  margin: 0 !important;
+}
+
+/* Footer */
+.soa-clean-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: 0.82fr 1.18fr;
+  gap: 9px;
+  padding: 10px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.soa-clean-footer button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 16px;
+  color: #171717;
+  background: rgba(23, 23, 23, 0.06);
+  font-size: 0.82rem;
+  font-weight: 950;
+  letter-spacing: -0.01em;
+}
+
+.soa-clean-footer button.primary {
+  color: #ffffff;
+  background: #111111;
+}
+
+.soa-clean-footer button:disabled {
+  opacity: 0.42;
+}
+
+/* Dark mode */
+.theme-dark .soa-clean-top-card,
+.theme-dark .soa-clean-stepper,
+.theme-dark .soa-clean-mini-summary article,
+.theme-dark .soa-clean-panel,
+.theme-dark .soa-clean-footer {
+  background: rgba(34, 38, 34, 0.94);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.theme-dark .soa-clean-balance-pill,
+.theme-dark .soa-clean-stepper button.active,
+.theme-dark .soa-clean-panel-title.action-title button,
+.theme-dark .soa-clean-footer button.primary {
+  color: #111111;
+  background: #f8f5ee;
+}
+
+.theme-dark .soa-clean-balance-pill span {
+  color: rgba(17, 17, 17, 0.62);
+}
+
+.theme-dark .soa-clean-balance-pill strong,
+.theme-dark .soa-clean-stepper button.active strong {
+  color: #111111;
+}
+
+.theme-dark .soa-clean-stepper button.active span {
+  color: #f8f5ee;
+  background: #111111;
+}
+
+.theme-dark .soa-clean-progress-track {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.theme-dark .soa-clean-progress-track i {
+  background: #f8f5ee;
+}
+
+.theme-dark .soa-clean-progress-copy span,
+.theme-dark .soa-clean-balance-pill span,
+.theme-dark .soa-clean-mini-summary span,
+.theme-dark .soa-clean-balance-flow span,
+.theme-dark .soa-clean-result-grid span,
+.theme-dark .soa-clean-focus-card span,
+.theme-dark .soa-clean-review-grid span,
+.theme-dark .soa-clean-details summary span,
+.theme-dark .soa-clean-panel-title p,
+.theme-dark .soa-clean-panel .field-group label,
+.theme-dark .soa-clean-focus-card p,
+.theme-dark .soa-clean-review-grid p,
+.theme-dark .soa-clean-stepper button {
+  color: #b8b0a3;
+}
+
+.theme-dark .soa-clean-progress-copy h3,
+.theme-dark .soa-clean-mini-summary strong,
+.theme-dark .soa-clean-panel-title h3,
+.theme-dark .soa-clean-balance-flow strong,
+.theme-dark .soa-clean-result-grid strong,
+.theme-dark .soa-clean-focus-card strong,
+.theme-dark .soa-clean-review-grid strong,
+.theme-dark .soa-clean-installment-title strong,
+.theme-dark .soa-clean-details summary strong {
+  color: #f8f5ee;
+}
+
+.theme-dark .soa-clean-panel input,
+.theme-dark .soa-clean-panel select,
+.theme-dark .soa-clean-panel textarea,
+.theme-dark .soa-clean-balance-flow article,
+.theme-dark .soa-clean-result-grid article,
+.theme-dark .soa-clean-focus-card,
+.theme-dark .soa-clean-review-grid article,
+.theme-dark .soa-clean-installment,
+.theme-dark .soa-clean-details {
+  color: #f8f5ee;
+  background: rgba(17, 20, 17, 0.78);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.theme-dark .soa-clean-helper,
+.theme-dark .soa-clean-empty {
+  background: rgba(47, 125, 90, 0.16);
+  border-color: rgba(126, 224, 169, 0.15);
+}
+
+.theme-dark .soa-clean-helper strong,
+.theme-dark .soa-clean-empty strong {
+  color: #7ee0a9;
+}
+
+.theme-dark .soa-clean-helper p,
+.theme-dark .soa-clean-empty p {
+  color: #d9d2c7;
+}
+
+.theme-dark .soa-clean-result-grid article.primary,
+.theme-dark .soa-clean-review-grid article.wide {
+  background: rgba(251, 146, 60, 0.12);
+  border-color: rgba(251, 146, 60, 0.20);
+}
+
+.theme-dark .soa-clean-result-grid article.warning,
+.theme-dark .soa-clean-warning-list {
+  background: rgba(69, 10, 10, 0.28);
+  border-color: rgba(248, 113, 113, 0.16);
+}
+
+.theme-dark .soa-clean-warning-list p {
+  color: #fecaca;
+}
+
+.theme-dark .soa-clean-footer button {
+  color: #f8f5ee;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.theme-dark .soa-clean-details summary::after {
+  color: #111111;
+  background: #f8f5ee;
+}
+
+/* Small screens */
+@media (max-width: 390px) {
+  .soa-clean-top-card {
+    grid-template-columns: 1fr;
+  }
+
+  .soa-clean-balance-pill {
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .soa-clean-mini-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .soa-clean-mini-summary article:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .soa-clean-footer {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===================================================
+   Due₱oint · SOA refinement / brand palette
+   Keep existing mobile and desktop shell unchanged.
+   =================================================== */
+:root {
+  --duewise-brand: #1579ff;
+  --duewise-brand-soft: rgba(21, 121, 255, .12);
+}
+.brand-name { color: #0c2a56 !important; letter-spacing: -0.045em; }
+.theme-dark .brand-name { color: #70b7ff !important; }
+.balance-hero { background: linear-gradient(125deg,#061b3a,#0b3567) !important; }
+.manual-soa-clean-form { gap: 12px !important; }
+.manual-soa-clean-form .soa-clean-top-card {
+  display: grid !important; grid-template-columns: 1fr !important;
+  padding: 12px 14px !important; gap: 9px !important; border-radius: 17px !important;
+  background: #f1f6fd !important; border: 1px solid #dce7f6 !important;
+  box-shadow: none !important;
+}
+.manual-soa-clean-form .soa-clean-progress-copy h3 { font-size: 1.04rem !important; margin: 4px 0 0 !important; }
+.manual-soa-clean-form .soa-clean-progress-copy span { color: #54779e !important; }
+.manual-soa-clean-form .soa-clean-progress-track {height: 5px !important; background: #dce9fb !important;}
+.manual-soa-clean-form .soa-clean-progress-track i {background:#1673ed !important;}
+.manual-soa-clean-form .soa-clean-stepper {
+  position: static !important; display: grid !important;
+  grid-template-columns: repeat(5,minmax(0,1fr)) !important;
+  gap: 5px !important; padding: 5px !important;
+  background:#f3f6fb !important; border: 1px solid #e3eaf3 !important;
+  border-radius: 14px !important; overflow: visible !important;
+  box-shadow: none !important;
+}
+.manual-soa-clean-form .soa-clean-stepper button {
+  min-width: 0 !important; min-height: 50px !important; padding: 5px 2px !important;
+  display: flex !important; flex-direction: column !important; gap: 4px !important;
+  border-radius: 11px !important; background: transparent !important;
+  color: #687d95 !important;
+}
+.manual-soa-clean-form .soa-clean-stepper button span {
+  width: 17px !important; height: 17px !important; font-size: 10px !important;
+  background: #e3ebf6 !important;
+}
+.manual-soa-clean-form .soa-clean-stepper button strong { font-size: 10px !important; }
+.manual-soa-clean-form .soa-clean-stepper button.active { background: #0b3670 !important; color: white !important; }
+.manual-soa-clean-form .soa-clean-stepper button.active span { background: #2287ff !important; color: white !important; }
+.manual-soa-clean-form .soa-clean-panel {
+  gap: 13px !important; padding: 16px !important; border-radius: 18px !important;
+  background: #fff !important; border: 1px solid #e6edf5 !important;
+  box-shadow:none !important;
+}
+.manual-soa-clean-form .soa-clean-panel-title h3 {font-size: 1rem !important; color: #0c2a56 !important;}
+.manual-soa-clean-form .soa-clean-panel-title p {font-size:.76rem !important; line-height:1.45 !important;}
+.manual-soa-clean-form .soa-clean-grid {grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap:11px !important;}
+.manual-soa-clean-form .soa-clean-grid > label {min-width:0 !important;}
+.manual-soa-clean-form label input,
+.manual-soa-clean-form label select {min-width:0; width:100%; border-radius: 12px !important; box-sizing:border-box;}
+.dp-money-control { position:relative; width:100%; }
+.dp-money-control > span { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-weight:850; color:#5075a2; pointer-events:none; z-index:1; }
+.dp-money-control > input { padding-left:33px !important; width:100%; font-variant-numeric:tabular-nums; }
+.dp-primary-amount { display:grid; gap:8px; padding:14px; border-radius:14px; background:#eef5ff; border:1px solid #d7e8ff; }
+.dp-primary-amount .dp-money-field span {color:#194b84 !important; font-weight:850 !important;}
+.dp-primary-amount p {margin:0; font-size:12px; line-height:1.4; color:#56708b;}
+.dp-reconcile { background:white; border:1px solid #e6edf5; border-radius:14px; overflow:hidden; }
+.dp-reconcile summary {display:flex; justify-content:space-between; align-items:center; gap:8px; padding:14px; font-size:13px; font-weight:850; color:#15375f; cursor:pointer;}
+.dp-reconcile summary span {font-size:11px; color:#7890a9; font-weight:650;}
+.dp-reconcile[open] summary {border-bottom:1px solid #e6edf5;}
+.dp-reconcile > .soa-clean-grid {padding:13px;}
+.dp-reconcile-total {display:flex; justify-content:space-between; gap:8px; padding:10px 13px; background:#f1f5fb; font-size:12px;}
+.dp-reconcile-total strong {color:#0b3670; font-variant-numeric:tabular-nums;}
+.dp-difference-note {padding:10px 13px; margin:0; color:#a64725; font-size:12px; background:#fff7ed; line-height:1.4;}
+.dp-current-balance {display:flex; justify-content:space-between; gap:12px; align-items:center; padding:15px; border-radius:14px; background:#092d61; color:white;}
+.dp-current-balance span {font-size:12px; font-weight:700; opacity:.85;}
+.dp-current-balance strong {font-size:17px; white-space:nowrap; font-weight:950; font-variant-numeric:tabular-nums;}
+.dp-installment-guidance {margin:0; padding:11px 12px; border-radius:12px; background:#eef5ff; font-size:12px; color:#285a8f; line-height:1.4;}
+.dp-final-check {display:grid; grid-template-columns:1fr auto; gap:10px 12px; padding:15px; background:#f1f6fc; border-radius:14px;}
+.dp-final-check span {font-size:12px; color:#5e748a;}
+.dp-final-check strong {font-size:13px; color:#0a2d5e; text-align:right; font-variant-numeric:tabular-nums;}
+.manual-soa-clean-form .soa-clean-footer {position:static !important; padding:0 !important; background:transparent !important; border:0 !important; box-shadow:none !important; backdrop-filter:none !important;}
+.manual-soa-clean-form .soa-clean-footer button {min-height:46px !important; border-radius:13px !important;}
+.manual-soa-clean-form .soa-clean-footer button.primary {background:#1269dc !important; color:white !important;}
+.manual-soa-clean-form .soa-clean-footer button:disabled {opacity:.35;}
+.manual-soa-clean-form .soa-clean-review-grid {grid-template-columns:1fr 1fr !important;}
+.manual-soa-clean-form .soa-clean-review-grid article.wide {grid-column:1/-1;}
+.manual-soa-clean-form .soa-clean-review-grid article {min-width:0;}
+.manual-soa-clean-form .soa-clean-review-grid strong {overflow-wrap:anywhere;}
+.theme-dark .manual-soa-clean-form .soa-clean-top-card,
+.theme-dark .manual-soa-clean-form .soa-clean-panel,
+.theme-dark .manual-soa-clean-form .soa-clean-stepper,
+.theme-dark .dp-reconcile {background:#172943 !important; border-color:#315071 !important;}
+.theme-dark .manual-soa-clean-form .soa-clean-panel-title h3,
+.theme-dark .dp-reconcile summary {color:#ebf4ff !important;}
+.theme-dark .manual-soa-clean-form .soa-clean-stepper button.active {background:#1569cb !important;}
+.theme-dark .dp-primary-amount,
+.theme-dark .dp-final-check {background:#102b4a; border-color:#315071;}
+.theme-dark .dp-primary-amount p,
+.theme-dark .dp-final-check span {color:#acbdda;}
+.theme-dark .dp-final-check strong,
+.theme-dark .dp-primary-amount .dp-money-field span {color:#e4f0ff !important;}
+.theme-dark .dp-reconcile-total {background:#213854; color:#dceafa;}
+.theme-dark .dp-reconcile-total strong {color:#b7d7ff;}
+.theme-dark .dp-current-balance {background:#0b376c;}
+.theme-dark .dp-installment-guidance {background:#133757; color:#c6dcf5;}
+.theme-dark .dp-money-control > span {color:#90bfff;}
+@media (max-width: 360px) {
+  .manual-soa-clean-form .soa-clean-grid {grid-template-columns:1fr !important;}
+  .manual-soa-clean-form .soa-clean-stepper button strong {font-size:9px !important;}
+  .manual-soa-clean-form .soa-clean-review-grid {grid-template-columns:1fr !important;}
+  .dp-current-balance {flex-direction:column; align-items:start;}
+}
+
+.dp-brand-lockup {display:flex; align-items:center; gap:8px;}
+.dp-brand-lockup > img {width:25px; height:25px; flex:0 0 25px; border-radius:7px; object-fit:cover;}
+.dp-brand-lockup .brand-name {margin:0 !important;}
+/* ==============================================================
+   Due₱oint · Mobile Screen & Contrast Repair (October 2026)
+   This scoped finishing layer replaces contradictory legacy colors
+   on the main shell without changing forms, data, or desktop grids.
+   ============================================================== */
+:root {
+  --dp-shell-ink: #12223c;
+  --dp-shell-muted: #617083;
+  --dp-shell-blue: #125bca;
+  --dp-shell-border: rgba(22, 49, 87, .09);
+}
+
+/* Keep the navy hero readable even against older global !important rules. */
+.app-shell .mobile-app .balance-hero {
+  color: #fff !important;
+  background: linear-gradient(125deg, #082148 0%, #0b356c 95%) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: 0 12px 28px rgba(6, 36, 79, .13) !important;
+}
+.app-shell .mobile-app .balance-hero h2 {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+  font-variant-numeric: tabular-nums !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.app-shell .mobile-app .balance-hero .hero-label {
+  color: #c2d7f3 !important;
+  opacity: 1 !important;
+}
+.app-shell .mobile-app .balance-hero .hero-description {
+  color: #d1e1f5 !important;
+  opacity: 1 !important;
+}
+.theme-dark .mobile-app .balance-hero h2,
+.theme-dark .mobile-app .balance-hero .hero-label,
+.theme-dark .mobile-app .balance-hero .hero-description {
+  color: #fff !important;
+}
+
+/* The plus action lives in the clear center lane of a 5-slot dock. */
+.app-shell .mobile-app .bottom-nav {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 2px !important;
+  width: min(calc(100% - 24px), 404px) !important;
+  min-height: 70px !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+  padding: 7px 8px !important;
+  border-radius: 26px !important;
+  border: 1px solid rgba(13, 39, 75, .10) !important;
+  background: rgba(255,255,255,.97) !important;
+  box-shadow: 0 6px 26px rgba(27, 48, 74, .12) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  transform: translateX(-50%) !important;
+  animation: none !important;
+}
+.app-shell .mobile-app .bottom-nav > button {
+  min-width: 0 !important;
+  min-height: 54px !important;
+  padding: 5px 1px !important;
+  gap: 3px !important;
+  border-radius: 16px !important;
+  color: #758193 !important;
+  background: transparent !important;
+}
+.app-shell .mobile-app .bottom-nav > button:nth-child(1) { grid-column: 1 !important; }
+.app-shell .mobile-app .bottom-nav > button:nth-child(2) { grid-column: 2 !important; }
+.app-shell .mobile-app .bottom-nav > button:nth-child(3) { grid-column: 4 !important; }
+.app-shell .mobile-app .bottom-nav > button:nth-child(4) { grid-column: 5 !important; }
+.app-shell .mobile-app .bottom-nav > button.active {
+  color: #0c408f !important;
+  background: #eaf2ff !important;
+}
+.app-shell .mobile-app .bottom-nav > button.active svg,
+.app-shell .mobile-app .bottom-nav > button.active span { color: #0c408f !important; }
+.app-shell .mobile-app .bottom-nav > button svg { width: 21px !important; height: 21px !important; }
+.app-shell .mobile-app .bottom-nav > button span {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: -.01em !important;
+  opacity: 1 !important;
+}
+.app-shell .mobile-app .bottom-nav > button::after { display: none !important; }
+.app-shell .mobile-app .main-fab {
+  left: 50% !important;
+  right: auto !important;
+  bottom: calc(21px + env(safe-area-inset-bottom)) !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  color: #fff !important;
+  background: #125ed2 !important;
+  box-shadow: 0 5px 11px rgba(14, 82, 190, .23) !important;
+  transform: translateX(-50%) !important;
+  animation: none !important;
+  z-index: 90 !important;
+}
+.app-shell .mobile-app .main-fab.open { transform: translateX(-50%) !important; }
+.app-shell .mobile-app .main-fab svg { width: 23px !important; height: 23px !important; }
+.app-shell .mobile-app .fab-actions {
+  left: 50% !important;
+  right: auto !important;
+  bottom: calc(103px + env(safe-area-inset-bottom)) !important;
+  z-index: 95 !important;
+  transform: translate(-50%, 12px) scale(.97) !important;
+}
+.app-shell .mobile-app .fab-actions.visible { transform: translate(-50%,0) scale(1) !important; }
+.app-shell .mobile-app .fab-action { box-shadow: 0 6px 18px rgba(9, 31, 65, .18) !important; }
+.app-shell .mobile-app {
+  padding-bottom: calc(116px + env(safe-area-inset-bottom)) !important;
+}
+.app-shell .mobile-app .page-content {
+  padding-bottom: 14px !important;
+}
+
+/* Dark mode: restore contrast in navigation/brand. */
+.theme-dark .mobile-app .bottom-nav {
+  background: rgba(28, 37, 55, .98) !important;
+  border-color: rgba(255,255,255,.12) !important;
+}
+.theme-dark .mobile-app .bottom-nav > button { color: #b4c3d9 !important; }
+.theme-dark .mobile-app .bottom-nav > button.active {
+  color: #fff !important;
+  background: #193b6a !important;
+}
+.theme-dark .mobile-app .bottom-nav > button.active svg,
+.theme-dark .mobile-app .bottom-nav > button.active span { color: #fff !important; }
+.theme-dark .mobile-app .main-fab { color: #fff !important; background: #176fe6 !important; }
+
+/* Mobile layout and tap targets */
+@media (max-width: 699px) {
+  .app-shell .mobile-app {
+    width: min(100%, 430px) !important;
+    max-width: 430px !important;
+    padding-top: calc(8px + env(safe-area-inset-top)) !important;
+    padding-inline: 14px !important;
+  }
+  .app-shell .mobile-app .app-header {
+    position: relative !important;
+    top: auto !important;
+    z-index: 5 !important;
+    margin: 0 0 12px !important;
+    padding: 3px 0 4px !important;
+    align-items: center !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  .app-shell .mobile-app .app-header::before { display: none !important; }
+  .app-shell .mobile-app .dp-brand-lockup { gap: 8px !important; }
+  .app-shell .mobile-app .dp-brand-lockup > img {
+    width: 25px !important; height: 25px !important; flex: 0 0 25px !important;
+    border-radius: 7px !important;
+  }
+  .app-shell .mobile-app .brand-name {
+    font-size: 11px !important; letter-spacing: .16em !important;
+    color: #123d75 !important; line-height: 1.2 !important;
+  }
+  .app-shell .mobile-app .app-header h1 {
+    font-size: clamp(32px, 9vw, 42px) !important;
+    letter-spacing: -.055em !important;
+    line-height: 1.04 !important;
+    margin: 4px 0 0 !important;
+    color: #14253e !important;
+  }
+  .app-shell .mobile-app .header-actions { gap: 7px !important; }
+  .app-shell .mobile-app .theme-toggle-button,
+  .app-shell .mobile-app .profile-button {
+    width: 41px !important; height: 41px !important;
+    min-width: 41px !important; min-height: 41px !important;
+    border: 1px solid #e5e9f0 !important;
+    box-shadow: 0 2px 7px rgba(17, 41, 77, .05) !important;
+    color: #27466c !important;
+    background: #fff !important;
+  }
+  .app-shell .mobile-app .balance-hero {
+    min-height: 0 !important;
+    margin: 0 0 14px !important;
+    padding: 19px 20px !important;
+    border-radius: 24px !important;
+  }
+  .app-shell .mobile-app .balance-hero h2 {
+    font-size: clamp(29px, 9vw, 42px) !important;
+    line-height: 1.12 !important;
+    margin: 5px 0 7px !important;
+    letter-spacing: -.047em !important;
+  }
+  .app-shell .mobile-app .hero-label {
+    font-size: 12px !important; font-weight: 800 !important;
+    margin: 0 !important;
+  }
+  .app-shell .mobile-app .hero-description {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    max-width: 270px !important;
+    margin: 0 !important;
+  }
+  .app-shell .mobile-app .page-content {
+    gap: 12px !important;
+    padding-top: 0 !important;
+    overflow: visible !important;
+  }
+  .app-shell .mobile-app .date-strip {
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    margin: 0 0 5px !important;
+    overflow: visible !important;
+  }
+  .app-shell .mobile-app .date-strip button {
+    min-width: 0 !important;
+    min-height: 57px !important;
+    padding: 8px 1px !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+  }
+  .app-shell .mobile-app .date-strip button span { font-size: 10px !important; }
+  .app-shell .mobile-app .date-strip button strong { font-size: 15px !important; margin-top: 3px !important; }
+  .app-shell .mobile-app .date-strip button.selected {
+    color: #fff !important; background: #0d3264 !important;
+  }
+  .app-shell .mobile-app .date-strip button.selected span,
+  .app-shell .mobile-app .date-strip button.selected strong { color: #fff !important; }
+  .app-shell .mobile-app .recommendation-card {
+    padding: 14px !important;
+    margin: 0 !important;
+    border-radius: 22px !important;
+    gap: 11px !important;
+    box-shadow: none !important;
+  }
+  .app-shell .mobile-app .recommendation-icon {
+    width: 43px !important; min-width: 43px !important;
+    height: 43px !important; min-height: 43px !important;
+    border-radius: 14px !important;
+  }
+  .app-shell .mobile-app .recommendation-icon svg { width: 23px !important; height: 23px !important; }
+  .app-shell .mobile-app .recommendation-card p { font-size: 12px !important; margin: 0 0 3px !important; }
+  .app-shell .mobile-app .recommendation-card h2 { font-size: 17px !important; line-height: 1.22 !important; margin: 0 0 5px !important; }
+  .app-shell .mobile-app .recommendation-card span { font-size: 12px !important; line-height: 1.42 !important; }
+  .app-shell .mobile-app .mini-grid { gap: 8px !important; margin: 0 !important; }
+  .app-shell .mobile-app .info-card { min-width: 0; min-height: 73px !important; padding: 12px !important; border-radius: 20px !important; }
+  .app-shell .mobile-app .info-card p { font-size: 11px !important; margin: 0 0 5px !important; }
+  .app-shell .mobile-app .info-card strong {
+    font-size: clamp(13px, 4.2vw, 17px) !important;
+    color: #162841 !important;
+    font-variant-numeric: tabular-nums !important;
+    white-space: nowrap;
+    letter-spacing: -.04em !important;
+  }
+  .app-shell .mobile-app .section-heading { margin: 2px 0 0 !important; }
+  .app-shell .mobile-app .section-heading h2 { font-size: 17px !important; line-height: 1.15 !important; }
+  .app-shell .mobile-app .section-heading p { font-size: 12px !important; line-height: 1.3 !important; }
+  .app-shell .mobile-app .card-list { gap: 9px !important; }
+  .app-shell .mobile-app .event-card {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 68px !important;
+    gap: 10px !important;
+    padding: 11px 12px !important;
+    border-radius: 18px !important;
+    overflow: hidden;
+  }
+  .app-shell .mobile-app .event-indicator { width: 6px !important; height: 38px !important; }
+  .app-shell .mobile-app .event-card .card-main-content {
+    min-width: 0 !important; flex: 1 1 auto !important;
+  }
+  .app-shell .mobile-app .event-card h3 {
+    font-size: 13px !important; line-height: 1.2 !important;
+    overflow-wrap: anywhere;
+  }
+  .app-shell .mobile-app .event-card p { font-size: 11px !important; }
+  .app-shell .mobile-app .event-card > strong {
+    flex: 0 0 auto !important; max-width: 50% !important;
+    font-size: 12px !important; color: #192b46 !important;
+    white-space: nowrap !important; font-variant-numeric: tabular-nums !important;
+  }
+  .theme-dark .mobile-app .app-header h1,
+  .theme-dark .mobile-app .info-card strong,
+  .theme-dark .mobile-app .event-card > strong { color: #f2f6ff !important; }
+  .theme-dark .mobile-app .brand-name { color: #91c3ff !important; }
+  .theme-dark .mobile-app .theme-toggle-button,
+  .theme-dark .mobile-app .profile-button {
+    color: #e9f2ff !important;
+    background: #263853 !important; border-color: rgba(255,255,255,.13) !important;
+  }
+}
+@media (max-width: 359px) {
+  .app-shell .mobile-app { padding-inline: 10px !important; }
+  .app-shell .mobile-app .date-strip { gap: 3px !important; }
+  .app-shell .mobile-app .bottom-nav { width: calc(100% - 14px) !important; }
+  .app-shell .mobile-app .bottom-nav > button span { font-size: 9px !important; }
+}
+
+/* Due₱oint — FULL FLAT PILL UPDATE (2026-10-20)
+   Intentionally the last rules in src/index.css.
+   Removes the old layered drop/inset shadows from all UI cards,
+   pills, chips, action buttons and the bottom dock.
+   Preserves colors, rounded corners, borders, and financial logic. */
+
+.app-shell .mobile-app {
+  --duewise-shadow: none;
+  --dw-shadow: none;
+  --dw-shadow-soft: none;
+}
+
+/* The old stylesheet contains many card-level !important shadow rules.
+   A single scoped override also catches inline and pseudo-element shadows. */
+html body .app-shell .mobile-app,
+html body .app-shell .mobile-app *,
+html body .app-shell .mobile-app *::before,
+html body .app-shell .mobile-app *::after {
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+/* Some older pills use filter: drop-shadow instead of box-shadow.
+   Scope this filter reset to surfaces so decorative icons keep their look. */
+html body .app-shell .mobile-app :is(
+  .info-card, .event-card, .account-card, .recurring-card,
+  .credit-card, .goal-card, .debt-card, .strategy-card,
+  .balance-hero, .recommendation-card, .plan-summary-card,
+  .recurring-summary, .debt-summary, .insight-card,
+  .insights-chart-card, .financial-health-card,
+  .insights-section-card, .smart-insight-card,
+  .overview-row, .bottom-nav, .main-fab, .fab-action,
+  .plan-mini-fab, .action-tile, .theme-toggle-button,
+  .profile-button, .date-strip button
+) {
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+
+/* Maintain a quiet 1px edge so shadowless white pills are still distinct. */
+html body .app-shell .mobile-app :is(
+  .info-card, .event-card, .account-card, .recurring-card,
+  .credit-card, .goal-card, .debt-card, .strategy-card,
+  .plan-summary-card, .recurring-summary, .debt-summary,
+  .insight-card, .insights-chart-card, .insights-section-card,
+  .overview-row
+) {
+  border: 1px solid rgba(20, 42, 68, 0.10) !important;
+}
+
+html body .app-shell.theme-dark .mobile-app :is(
+  .info-card, .event-card, .account-card, .recurring-card,
+  .credit-card, .goal-card, .debt-card, .strategy-card,
+  .plan-summary-card, .recurring-summary, .debt-summary,
+  .insight-card, .insights-chart-card, .insights-section-card,
+  .overview-row
+) {
+  border-color: rgba(220, 232, 251, 0.15) !important;
+}
+
+/* DUEPOINT MOBILE TYPE V3 — October 2026
+   Mobile-only finishing layer: type hierarchy, restrained spacing and no shadows.
+   Do not change credit card math or saved finance data. */
+@media (max-width: 699px) {
+  /* If an older header is still present, remove the in-app wordmark only.
+     Home screen icons, page titles and PWA metadata remain unchanged. */
+  html body .app-shell .mobile-app .app-header .dp-brand-lockup,
+  html body .app-shell .mobile-app .app-header .brand-name,
+  html body .app-shell .mobile-app .app-header .brand-logo,
+  html body .app-shell .mobile-app .app-header .app-logo {
+    display: none !important;
+  }
+
+  html body .app-shell .mobile-app {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, ui-sans-serif, system-ui, sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.43 !important;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* The title is the only heading needed in the header. */
+  html body .app-shell .mobile-app .app-header {
+    min-height: 44px !important;
+    margin-bottom: 13px !important;
+    padding: 0 !important;
+    align-items: center !important;
+  }
+  html body .app-shell .mobile-app .app-header > div:first-child {
+    min-width: 0 !important;
+  }
+  html body .app-shell .mobile-app .app-header h1 {
+    margin: 0 !important;
+    font-size: clamp(30px, 8.5vw, 36px) !important;
+    line-height: 1.08 !important;
+    font-weight: 760 !important;
+    letter-spacing: -0.045em !important;
+    overflow-wrap: anywhere;
+  }
+  html body .app-shell .mobile-app .header-actions {gap: 8px !important;}
+  html body .app-shell .mobile-app :is(.theme-toggle-button, .profile-button) {
+    height: 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    border-radius: 50% !important;
+  }
+
+  /* Today: primary number, supporting description and date strip. */
+  html body .app-shell .mobile-app .balance-hero {padding: 17px 18px !important;}
+  html body .app-shell .mobile-app .balance-hero .hero-label {
+    font-size: 13px !important;
+    line-height: 1.35 !important;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+  }
+  html body .app-shell .mobile-app .balance-hero h2 {
+    font-size: clamp(31px, 9.4vw, 41px) !important;
+    line-height: 1.08 !important;
+    font-weight: 760 !important;
+    letter-spacing: -0.035em !important;
+    font-variant-numeric: tabular-nums !important;
+    color: #fff !important;
+  }
+  html body .app-shell .mobile-app .balance-hero .hero-description {
+    font-size: 13px !important;
+    line-height: 1.42 !important;
+    font-weight: 400 !important;
+    max-width: 32ch !important;
+  }
+  html body .app-shell .mobile-app .date-strip button {min-height: 60px !important;}
+  html body .app-shell .mobile-app .date-strip button span {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+  }
+  html body .app-shell .mobile-app .date-strip button strong {
+    font-size: 16px !important;
+    font-weight: 750 !important;
+    line-height: 1.2 !important;
+  }
+  html body .app-shell .mobile-app .recommendation-card p {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+  }
+  html body .app-shell .mobile-app .recommendation-card h2 {
+    font-size: 17px !important;
+    line-height: 1.2 !important;
+    font-weight: 730 !important;
+    letter-spacing: -0.02em !important;
+  }
+  html body .app-shell .mobile-app .recommendation-card span {
+    font-size: 13px !important;
+    line-height: 1.42 !important;
+    font-weight: 400 !important;
+  }
+
+  /* Section headings and helper copy are consistent across tabs. */
+  html body .app-shell .mobile-app .page-content .section-heading h2 {
+    font-size: 19px !important;
+    line-height: 1.2 !important;
+    font-weight: 730 !important;
+    letter-spacing: -0.025em !important;
+  }
+  html body .app-shell .mobile-app .page-content .section-heading p {
+    font-size: 13px !important;
+    line-height: 1.38 !important;
+    font-weight: 400 !important;
+  }
+  html body .app-shell .mobile-app .page-content .info-card p {
+    margin: 0 0 5px !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    font-weight: 600 !important;
+  }
+  html body .app-shell .mobile-app .page-content .info-card strong {
+    font-size: clamp(15px, 4.4vw, 19px) !important;
+    line-height: 1.17 !important;
+    letter-spacing: -0.025em !important;
+    font-weight: 730 !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  /* Wallet, Plan, events and list rows: readable names, quiet metadata. */
+  html body .app-shell .mobile-app .page-content :is(
+    .card-main-content h3, .account-card h3, .event-card h3,
+    .recurring-card h3, .debt-card h3, .credit-card-header h3,
+    .goal-header h3
+  ) {
+    font-size: 15px !important;
+    line-height: 1.27 !important;
+    letter-spacing: -0.015em !important;
+    font-weight: 690 !important;
+  }
+  html body .app-shell .mobile-app .page-content :is(
+    .card-main-content p, .account-card p, .event-card p,
+    .recurring-card p, .debt-card p, .credit-card-header p,
+    .goal-header p, .card-main-content span
+  ) {
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+    font-weight: 400 !important;
+  }
+  html body .app-shell .mobile-app .page-content :is(
+    .event-card > strong, .account-card > strong,
+    .debt-card > strong, .recurring-card > strong
+  ) {
+    font-size: 14px !important;
+    line-height: 1.24 !important;
+    font-weight: 720 !important;
+    letter-spacing: -0.012em !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+  html body .app-shell .mobile-app .page-content .credit-details strong,
+  html body .app-shell .mobile-app .page-content .goal-values strong {
+    font-size: 14px !important;
+    line-height: 1.25 !important;
+    font-weight: 720 !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+  html body .app-shell .mobile-app .page-content .credit-details span,
+  html body .app-shell .mobile-app .page-content .goal-values span,
+  html body .app-shell .mobile-app .page-content .credit-dates {
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Summary tiles: preserve structure without letting prices overflow. */
+  html body .app-shell .mobile-app .page-content .plan-summary-card :is(span, small),
+  html body .app-shell .mobile-app .insights-section-card :is(span, small) {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+  html body .app-shell .mobile-app .page-content .plan-summary-card strong,
+  html body .app-shell .mobile-app .insights-section-card strong {
+    font-size: clamp(16px, 4.5vw, 19px) !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.025em !important;
+    font-weight: 740 !important;
+    font-variant-numeric: tabular-nums !important;
+    overflow-wrap: anywhere;
+  }
+  html body .app-shell .mobile-app .page-content :is(.recurring-summary, .debt-summary) h2 {
+    font-size: clamp(25px, 7.1vw, 32px) !important;
+    line-height: 1.12 !important;
+    font-weight: 760 !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+  html body .app-shell .mobile-app .page-content .financial-health-card h3 {
+    font-size: 18px !important;
+    line-height: 1.25 !important;
+    font-weight: 730 !important;
+  }
+  html body .app-shell .mobile-app .page-content .financial-health-card :is(p, span, small) {
+    font-size: 13px !important;
+    line-height: 1.38 !important;
+  }
+
+  /* Buttons and navigation use comfortable touch sizing, not micro-labels. */
+  html body .app-shell .mobile-app .page-content button:not(.icon-button) {
+    font-size: 14px !important;
+    font-weight: 650 !important;
+    letter-spacing: -0.008em !important;
+  }
+  html body .app-shell .mobile-app .bottom-nav > button span {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    font-weight: 650 !important;
+    letter-spacing: 0 !important;
+    opacity: 1 !important;
+  }
+  html body .app-shell .mobile-app .bottom-nav > button svg {
+    width: 21px !important;
+    height: 21px !important;
+  }
+  html body .app-shell .mobile-app .bottom-nav > button {gap: 4px !important;}
+
+  /* iOS: never zoom in when selecting a form field. */
+  html body .app-shell .mobile-app :is(input, select, textarea) {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+    font-variant-numeric: tabular-nums;
+  }
+  html body .app-shell .mobile-app label {
+    line-height: 1.35;
+  }
+
+  /* Preserve the flat UI requested for every pill, card and button. */
+  html body .app-shell .mobile-app,
+  html body .app-shell .mobile-app *,
+  html body .app-shell .mobile-app *::before,
+  html body .app-shell .mobile-app *::after {
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Restore a keyboard-visible focus affordance (not a glow). */
+  html body .app-shell .mobile-app button:focus-visible,
+  html body .app-shell .mobile-app :is(input, select, textarea):focus-visible {
+    outline: 2px solid #2579df !important;
+    outline-offset: 2px !important;
+  }
+
+  /* Keep larger balance amounts visible on narrow phones. */
+}
+@media (max-width: 370px) {
+  html body .app-shell .mobile-app .page-content .info-card strong {font-size: 15px !important;}
+  html body .app-shell .mobile-app .page-content .plan-summary-card strong {font-size: 16px !important;}
+  html body .app-shell .mobile-app .bottom-nav > button span {font-size: 10.5px !important;}
+  html body .app-shell .mobile-app .balance-hero h2 {font-size: 31px !important;}
+}
+
+/* DUEPOINT ORANGE WORDMARK PATCH V1
+   Small in-app wordmark only; PWA app icon remains unchanged. */
+
+html body .app-shell .mobile-app .app-header .dp-header-title {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body .app-shell .mobile-app .app-header .dp-header-wordmark {
+  display: block !important;
+  visibility: visible !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  color: #ea580c !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif !important;
+  font-size: 12px !important;
+  line-height: 1.1 !important;
+  font-weight: 800 !important;
+  letter-spacing: .19em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+
+html body .app-shell .mobile-app .app-header h1 {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: clamp(33px, 8.2vw, 42px) !important;
+  line-height: 1.03 !important;
+  font-weight: 770 !important;
+  letter-spacing: -.05em !important;
+}
+
+html body .app-shell .mobile-app .app-header {
+  align-items: center !important;
+  column-gap: 12px !important;
+  margin-bottom: 14px !important;
+}
+
+html body .app-shell.theme-dark .mobile-app .app-header .dp-header-wordmark {
+  color: #fb923c !important;
+}
+
+@media (max-width: 390px) {
+  html body .app-shell .mobile-app .app-header .dp-header-wordmark {
+    font-size: 11px !important;
+    letter-spacing: .16em !important;
+  }
+  html body .app-shell .mobile-app .app-header h1 {
+    font-size: clamp(32px, 8.8vw, 37px) !important;
+  }
+}
+
+/* DUEPOINT_COMPACT_NAV_V1_START
+   Compact, Facebook-inspired mobile bottom navigation.
+   Only the mobile dock changes: app logic / desktop views stay intact.
+*/
+@media (max-width: 699px) {
+  .app-shell .mobile-app .bottom-nav {
+    position: fixed !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    align-items: center !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: calc(7px + env(safe-area-inset-bottom)) !important;
+    width: min(calc(100% - 22px), 404px) !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    padding: 5px 7px !important;
+    gap: 2px !important;
+    border: 1px solid rgba(18, 45, 79, .10) !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, .97) !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: translateX(-50%) !important;
+    animation: none !important;
+    z-index: 80 !important;
+  }
+
+  .app-shell .mobile-app .bottom-nav > button {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 22px !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: #707f94 !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+
+  .app-shell .mobile-app .bottom-nav > button:nth-child(1) { grid-column: 1 !important; }
+  .app-shell .mobile-app .bottom-nav > button:nth-child(2) { grid-column: 2 !important; }
+  .app-shell .mobile-app .bottom-nav > button:nth-child(3) { grid-column: 4 !important; }
+  .app-shell .mobile-app .bottom-nav > button:nth-child(4) { grid-column: 5 !important; }
+
+  .app-shell .mobile-app .bottom-nav > button svg {
+    display: block !important;
+    width: 24px !important;
+    height: 24px !important;
+    flex: 0 0 24px !important;
+    transform: none !important;
+    color: currentColor !important;
+    stroke-width: 2.1 !important;
+  }
+
+  /* Visually hide text, keeping each tab's name for screen readers. */
+  .app-shell .mobile-app .bottom-nav > button span {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  .app-shell .mobile-app .bottom-nav > button.active {
+    background: #e9f2ff !important;
+    color: #1259b5 !important;
+    box-shadow: none !important;
+  }
+  .app-shell .mobile-app .bottom-nav > button.active svg {
+    color: #1259b5 !important;
+    stroke-width: 2.5 !important;
+    transform: none !important;
+  }
+  .app-shell .mobile-app .bottom-nav > button::after {
+    display: none !important;
+  }
+
+  /* Keep the + action centered in the unused middle column. */
+  .app-shell .mobile-app .main-fab,
+  .app-shell .mobile-app .main-fab.open {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: calc(13px + env(safe-area-inset-bottom)) !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border: 0 !important;
+    border-radius: 16px !important;
+    color: #fff !important;
+    background: #125ed2 !important;
+    transform: translateX(-50%) !important;
+    animation: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    z-index: 90 !important;
+  }
+  .app-shell .mobile-app .main-fab svg {
+    width: 23px !important;
+    height: 23px !important;
+  }
+  .app-shell .mobile-app .fab-actions {
+    bottom: calc(83px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Reduce the extra blank space reserved by the older, taller nav. */
+  .app-shell .mobile-app,
+  .app-shell .mobile-app:has(.insights-section-switcher) {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .app-shell.theme-dark .mobile-app .bottom-nav {
+    background: rgba(28, 38, 56, .98) !important;
+    border-color: rgba(230, 237, 249, .16) !important;
+  }
+  .app-shell.theme-dark .mobile-app .bottom-nav > button {
+    color: #aabbd5 !important;
+  }
+  .app-shell.theme-dark .mobile-app .bottom-nav > button.active {
+    background: #1e426e !important;
+    color: #fff !important;
+  }
+  .app-shell.theme-dark .mobile-app .bottom-nav > button.active svg {
+    color: #fff !important;
+  }
+  .app-shell.theme-dark .mobile-app .main-fab {
+    background: #176fe6 !important;
+    color: #fff !important;
+  }
+}
+/* DUEPOINT_COMPACT_NAV_V1_END */

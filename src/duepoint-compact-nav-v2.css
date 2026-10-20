@@ -1,0 +1,155 @@
+/* DUEPOINT_FACEBOOK_NAV_V2 — standalone last-loaded mobile dock */
+@media (max-width: 900px) {
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 {
+    position: fixed !important;
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-template-rows: 44px !important;
+    align-items: center !important;
+    justify-items: stretch !important;
+    gap: 2px !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+    width: min(calc(100% - 24px), 420px) !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    margin: 0 !important;
+    padding: 5px 8px !important;
+    border: 1px solid rgba(15, 38, 73, .10) !important;
+    border-radius: 999px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: translateX(-50%) !important;
+    animation: none !important;
+    z-index: 80 !important;
+  }
+
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button {
+    box-sizing: border-box !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    color: #7b879b !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: none !important;
+    animation: none !important;
+    font-size: 0 !important;
+  }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button:nth-child(1) { grid-column: 1 !important; }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button:nth-child(2) { grid-column: 2 !important; }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button:nth-child(3) { grid-column: 4 !important; }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button:nth-child(4) { grid-column: 5 !important; }
+
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button svg {
+    box-sizing: border-box !important;
+    display: block !important;
+    flex: none !important;
+    width: 22px !important;
+    height: 22px !important;
+    color: currentColor !important;
+    stroke-width: 2.1 !important;
+    transform: none !important;
+  }
+
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button.active {
+    color: #1452ac !important;
+    background: #e8f1ff !important;
+  }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button.active svg {
+    color: #1452ac !important;
+    stroke-width: 2.45 !important;
+  }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button::after { display: none !important; }
+  /* Safety fallback if previous text label markup remains. */
+  #root .app-shell .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button > span {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+  }
+
+  #root .app-shell .mobile-app button.main-fab.dp-mini-fab-v2,
+  #root .app-shell .mobile-app button.main-fab.dp-mini-fab-v2.open {
+    position: fixed !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: calc(15px + env(safe-area-inset-bottom)) !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    max-width: 42px !important;
+    max-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    color: #fff !important;
+    background: #145ed8 !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: translateX(-50%) !important;
+    animation: none !important;
+    z-index: 90 !important;
+  }
+  #root .app-shell .mobile-app button.main-fab.dp-mini-fab-v2 svg {
+    width: 23px !important;
+    height: 23px !important;
+    flex: none !important;
+    color: #fff !important;
+    stroke-width: 2.5 !important;
+  }
+
+  #root .app-shell .mobile-app .fab-actions {
+    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+  }
+  #root .app-shell .mobile-app .plan-fab-actions {
+    bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+  }
+  #root .app-shell .mobile-app {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #root .app-shell.theme-dark .mobile-app nav.bottom-nav.dp-mini-nav-v2 {
+    background: #202b3b !important;
+    border-color: rgba(233, 240, 255, .15) !important;
+  }
+  #root .app-shell.theme-dark .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button {
+    color: #b3bfd2 !important;
+  }
+  #root .app-shell.theme-dark .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button.active {
+    background: #294a77 !important;
+    color: #fff !important;
+  }
+  #root .app-shell.theme-dark .mobile-app nav.bottom-nav.dp-mini-nav-v2 > button.active svg {
+    color: #fff !important;
+  }
+}

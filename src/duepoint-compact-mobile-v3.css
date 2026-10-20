@@ -1,0 +1,422 @@
+/* DUEPOINT_MOBILE_DENSITY_V3
+   Loaded AFTER legacy index.css and navbar V2.
+   Target is mobile-only. All styles are flat: no box shadows.
+*/
+@media (max-width: 700px) {
+  /* Consistent compact rhythm in all tabs */
+  #root .app-shell .mobile-app {
+    --dp-ui-gap: 8px !important;
+    --dp-ui-gap-sm: 6px !important;
+    --dp-ui-radius: 16px !important;
+    box-sizing: border-box !important;
+    width: min(100%, 480px) !important;
+    max-width: 480px !important;
+    padding: calc(8px + env(safe-area-inset-top)) 12px calc(72px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #root .app-shell .mobile-app .app-header {
+    min-height: 0 !important;
+    margin: 0 0 10px !important;
+    padding: 0 0 3px !important;
+    gap: 10px !important;
+    align-items: center !important;
+  }
+  #root .app-shell .mobile-app .app-header h1 {
+    font-size: clamp(31px, 8.1vw, 37px) !important;
+    line-height: 1.02 !important;
+    margin: 0 !important;
+  }
+  #root .app-shell .mobile-app .brand-name {
+    font-size: 11px !important;
+    letter-spacing: .19em !important;
+    margin: 0 0 3px !important;
+  }
+  #root .app-shell .mobile-app .header-actions {
+    gap: 7px !important;
+  }
+  #root .app-shell .mobile-app .header-actions > button {
+    width: 39px !important;
+    height: 39px !important;
+    min-width: 39px !important;
+    min-height: 39px !important;
+    box-shadow: none !important;
+  }
+  #root .app-shell .mobile-app .header-actions svg {
+    width: 19px !important;
+    height: 19px !important;
+  }
+
+  #root .app-shell .mobile-app .page-content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 0 0 6px !important;
+  }
+  #root .app-shell .mobile-app .page-content > :is(
+    .date-strip, .recommendation-card, .mini-grid, .analysis-grid,
+    .section-heading, .card-list, .insights-section-switcher,
+    .financial-health-card, .recurring-summary, .debt-summary,
+    .insights-chart-card, .insight-card, .credit-card
+  ) {
+    margin: 0 !important;
+  }
+  #root .app-shell .mobile-app .page-content :is(
+    .mini-grid, .analysis-grid, .card-list, .overview-list,
+    .smart-insight-list, .insights-section-switcher,
+    .debt-plan-grid, .credit-details
+  ) {
+    gap: 7px !important;
+    margin: 0 !important;
+  }
+  #root .app-shell .mobile-app .page-content :is(
+    .plan-inline-actions, .plan-section-switcher
+  ) {
+    gap: 6px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Today main cash pill — substantially less padding and height */
+  #root .app-shell .mobile-app .balance-hero {
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 0 8px !important;
+    padding: 15px 15px 16px !important;
+    border-radius: 20px !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+  #root .app-shell .mobile-app .balance-hero .hero-label {
+    font-size: 12px !important;
+    margin: 0 0 5px !important;
+    line-height: 1.2 !important;
+  }
+  #root .app-shell .mobile-app .balance-hero h2 {
+    font-size: clamp(30px, 9vw, 39px) !important;
+    line-height: 1.05 !important;
+    letter-spacing: -.046em !important;
+    color: #fff !important;
+    white-space: nowrap !important;
+  }
+  #root .app-shell .mobile-app .balance-hero .hero-description {
+    margin: 6px 0 0 !important;
+    font-size: 11.5px !important;
+    line-height: 1.3 !important;
+    max-width: none !important;
+    color: #d0dff5 !important;
+  }
+
+  /* Weekly calendar reduced to 45px */
+  #root .app-shell .mobile-app .date-strip {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+  #root .app-shell .mobile-app .date-strip > button {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    min-height: 45px !important;
+    height: 45px !important;
+    max-height: 45px !important;
+    padding: 4px 1px !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+  }
+  #root .app-shell .mobile-app .date-strip > button span {
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+  }
+  #root .app-shell .mobile-app .date-strip > button strong {
+    margin-top: 3px !important;
+    font-size: 14px !important;
+    line-height: 1.1 !important;
+  }
+
+  /* Recommendation card — content stays readable at compact density */
+  #root .app-shell .mobile-app .recommendation-card {
+    min-height: 0 !important;
+    padding: 10px 11px !important;
+    gap: 9px !important;
+    border-radius: 17px !important;
+    margin: 0 !important;
+    align-items: center !important;
+    box-shadow: none !important;
+  }
+  #root .app-shell .mobile-app .recommendation-icon {
+    width: 35px !important;
+    min-width: 35px !important;
+    height: 35px !important;
+    min-height: 35px !important;
+    border-radius: 11px !important;
+  }
+  #root .app-shell .mobile-app .recommendation-icon svg {
+    width: 21px !important;
+    height: 21px !important;
+  }
+  #root .app-shell .mobile-app .recommendation-card p {
+    font-size: 11px !important;
+    margin: 0 0 2px !important;
+  }
+  #root .app-shell .mobile-app .recommendation-card h2 {
+    font-size: 15px !important;
+    line-height: 1.2 !important;
+    margin: 0 0 3px !important;
+  }
+  #root .app-shell .mobile-app .recommendation-card span {
+    font-size: 11.5px !important;
+    line-height: 1.32 !important;
+  }
+
+  /* Summary and listing pills in every tab */
+  #root .app-shell .mobile-app .mini-grid {
+    gap: 7px !important;
+  }
+  #root .app-shell .mobile-app .info-card {
+    min-height: 57px !important;
+    padding: 9px 10px !important;
+    border-radius: 15px !important;
+  }
+  #root .app-shell .mobile-app .info-card p {
+    font-size: 10.5px !important;
+    line-height: 1.15 !important;
+    margin: 0 0 4px !important;
+  }
+  #root .app-shell .mobile-app .info-card strong {
+    font-size: clamp(13px, 3.8vw, 16px) !important;
+    line-height: 1.15 !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+  #root .app-shell .mobile-app .section-heading {
+    margin: 3px 0 0 !important;
+    padding: 0 !important;
+  }
+  #root .app-shell .mobile-app .section-heading h2 {
+    font-size: 17px !important;
+    line-height: 1.2 !important;
+    margin: 0 0 3px !important;
+  }
+  #root .app-shell .mobile-app .section-heading p {
+    font-size: 11.5px !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+  }
+  #root .app-shell .mobile-app :is(
+    .event-card, .account-card, .recurring-card,
+    .goal-card, .debt-card, .credit-card, .plan-summary-card,
+    .insights-section-card, .insight-card, .strategy-card,
+    .smart-insight-card, .financial-health-card, .insights-chart-card
+  ) {
+    box-shadow: none !important;
+    filter: none !important;
+    border-radius: 16px !important;
+  }
+  #root .app-shell .mobile-app :is(
+    .event-card, .account-card, .recurring-card, .debt-card
+  ) {
+    min-height: 60px !important;
+    padding: 9px 11px !important;
+    gap: 8px !important;
+  }
+  #root .app-shell .mobile-app .event-indicator {
+    height: 32px !important;
+  }
+
+  /* Wallet: closer actions, accounts and credit cards */
+  #root .app-shell .mobile-app .page-content .statement-import-button,
+  #root .app-shell .mobile-app .page-content > div[style*="grid-template-columns"] > button {
+    min-height: 42px !important;
+    height: auto !important;
+    padding: 8px 10px !important;
+    border-radius: 15px !important;
+    box-shadow: none !important;
+  }
+
+  /* Plan switchers and metrics */
+  #root .app-shell .mobile-app .plan-summary-card {
+    min-height: 64px !important;
+    padding: 10px 11px !important;
+  }
+  #root .app-shell .mobile-app :is(.recurring-summary,.debt-summary) {
+    min-height: 0 !important;
+    padding: 12px !important;
+    border-radius: 17px !important;
+  }
+  #root .app-shell .mobile-app .insights-section-switcher {
+    gap: 7px !important;
+  }
+  #root .app-shell .mobile-app .insights-section-card {
+    min-height: 59px !important;
+    padding: 10px !important;
+    border-radius: 14px !important;
+  }
+  #root .app-shell .mobile-app :is(.financial-health-card, .insights-chart-card) {
+    padding: 11px !important;
+    border-radius: 16px !important;
+  }
+  #root .app-shell .mobile-app .analysis-grid {
+    gap: 7px !important;
+  }
+
+  /* NEW navbar, 48px height. Explicitly override older legacy pill constraints. */
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: calc(7px + env(safe-area-inset-bottom)) !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+    grid-template-rows: 35px !important;
+    align-items: center !important;
+    justify-items: stretch !important;
+    gap: 0 !important;
+    width: min(calc(100% - 24px), 420px) !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    padding: 5px 7px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(15,38,73,.11) !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: translateX(-50%) !important;
+    animation: none !important;
+    z-index: 85 !important;
+  }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 > button {
+    display: flex !important;
+    position: relative !important;
+    align-self: center !important;
+    justify-self: stretch !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 35px !important;
+    min-height: 35px !important;
+    max-height: 35px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    color: #75839a !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: none !important;
+    animation: none !important;
+    font-size: 0 !important;
+  }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 > button:nth-child(1) {grid-column:1 !important;}
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 > button:nth-child(2) {grid-column:2 !important;}
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 > button:nth-child(3) {grid-column:4 !important;}
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 > button:nth-child(4) {grid-column:5 !important;}
+
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 > button.active,
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 > button[aria-current="page"] {
+    color: #0f53b3 !important;
+    background: #e9f1fe !important;
+  }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 > button svg {
+    display: block !important;
+    flex: none !important;
+    width: 20px !important;
+    height: 20px !important;
+    stroke-width: 2.1 !important;
+    color: currentColor !important;
+  }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 > button > span {
+    display: none !important;
+  }
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3 > button::after {
+    display: none !important;
+  }
+
+  /* Center + matches navbar's vertical center */
+  #root .app-shell .mobile-app button.main-fab.dp-fab-v3,
+  #root .app-shell .mobile-app button.main-fab.dp-fab-v3.open {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    max-width: 38px !important;
+    max-height: 38px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: #1460d5 !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: translateX(-50%) !important;
+    animation: none !important;
+    z-index: 92 !important;
+  }
+  #root .app-shell .mobile-app button.main-fab.dp-fab-v3 svg {
+    display: block !important;
+    width: 21px !important;
+    height: 21px !important;
+    stroke-width: 2.5 !important;
+    color: #fff !important;
+  }
+  #root .app-shell .mobile-app .fab-actions {
+    bottom: calc(65px + env(safe-area-inset-bottom)) !important;
+  }
+  #root .app-shell .mobile-app .plan-fab-actions {
+    bottom: calc(65px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Universal flatness across all pills/buttons: no accidental old shadows */
+  #root .app-shell .mobile-app :is(
+    .balance-hero, .date-strip button, .recommendation-card,
+    .info-card, .account-card, .event-card, .credit-card,
+    .recurring-card, .goal-card, .debt-card, .strategy-card,
+    .plan-summary-card, .recurring-summary, .debt-summary,
+    .insight-card, .insights-chart-card, .financial-health-card,
+    .insights-section-card, .smart-insight-card, .debt-coach-card,
+    .debt-plan-mini-card, .debt-focus-card, .overview-row,
+    .bottom-nav, .main-fab, .fab-action, .plan-mini-fab,
+    .insight-action, .action-tile
+  ) {
+    box-shadow: none !important;
+  }
+
+  /* Night scheme */
+  #root .app-shell.theme-dark .mobile-app nav.bottom-nav.dp-navbar-v3 {
+    background: #202b3b !important;
+    border-color: rgba(233,240,255,.16) !important;
+  }
+  #root .app-shell.theme-dark .mobile-app nav.bottom-nav.dp-navbar-v3 > button {
+    color: #b2bfd2 !important;
+  }
+  #root .app-shell.theme-dark .mobile-app nav.bottom-nav.dp-navbar-v3 > button.active,
+  #root .app-shell.theme-dark .mobile-app nav.bottom-nav.dp-navbar-v3 > button[aria-current="page"] {
+    color: #fff !important;
+    background: #294a77 !important;
+  }
+  #root .app-shell.theme-dark .mobile-app .balance-hero h2 {
+    color: #fff !important;
+  }
+}
+@media (max-width: 360px) {
+  #root .app-shell .mobile-app {padding-left: 9px !important; padding-right: 9px !important;}
+  #root .app-shell .mobile-app .balance-hero h2 {font-size: 29px !important;}
+  #root .app-shell .mobile-app .date-strip {gap: 3px !important;}
+}

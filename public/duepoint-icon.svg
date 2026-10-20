@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Due₱oint app icon">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#102e54"/><stop offset="1" stop-color="#061831"/></linearGradient><linearGradient id="d" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#33b9f4"/><stop offset="1" stop-color="#076afa"/></linearGradient></defs>
+<rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bg)"/>
+<path d="M163 121 H264 C361 121 408 181 408 270 C408 360 355 416 264 416 H163 V350 H264 C314 350 339 316 339 270 C339 219 311 186 262 186 H163 Z" fill="url(#d)"/>
+<path d="M140 190 H190 C259 190 289 232 289 278 C289 318 259 343 206 343 H190 V409 H139 V190 M191 241 V298 H206 C227 298 237 289 237 277 C237 254 223 241 202 241 Z" fill="white"/>
+<path d="M128 263 H249" stroke="white" stroke-width="29" stroke-linecap="round"/>
+<circle cx="354" cy="375" r="46" fill="#22e19d" stroke="#06234a" stroke-width="11"/>
+</svg>
