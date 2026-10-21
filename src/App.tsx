@@ -1,4 +1,6 @@
 import './index.css'
+import { getBankBrand } from './bankBrands'
+import { enablePhonePush, disablePhonePush, getPhonePushEnabled, phonePushSupported, requiresHomeScreenInstall } from './pushNotifications'
 
 import { createClient, type Session } from '@supabase/supabase-js'
 import * as pdfjsLib from 'pdfjs-dist'
@@ -39,7 +41,6 @@ import {
   ClipboardList,
   CreditCard,
   Home,
-  Landmark,
   Moon,
   Pencil,
   Plus,
@@ -618,11 +619,16 @@ function MonthlyPayablesModal({items,onClose,onPay}: {
   )
 }
 
-function NotificationCenterPopover({items,onClose,onOpen,onCloud}: {
+function NotificationCenterPopover({items,onClose,onOpen,onCloud,onEnablePush,onDisablePush,pushEnabled,pushBusy,pushStatus}: {
   items: MonthlyObligation[]
   onClose: () => void
   onOpen: (item: MonthlyObligation) => void
   onCloud: () => void
+  onEnablePush: () => void
+  onDisablePush: () => void
+  pushEnabled: boolean
+  pushBusy: boolean
+  pushStatus: string
 }) {
   const today = startOfDay(new Date())
   const overdue = items.filter((item) => startOfDay(item.date).getTime() < today.getTime())
@@ -670,6 +676,15 @@ function NotificationCenterPopover({items,onClose,onOpen,onCloud}: {
           {dueToday.length > 0 && <div className="dp14-notif-group"><h3>Today</h3>{dueToday.map(renderItem)}</div>}
           {comingUp.length > 0 && <div className="dp14-notif-group"><h3>Next 7 days</h3>{comingUp.map(renderItem)}</div>}
         </div>
+        <div className="dp16-push-pref">
+          <div className="dp16-push-copy">
+            <strong>Phone reminders</strong>
+            <small>{pushStatus || 'Daily alerts for upcoming unpaid bills and dues'}</small>
+          </div>
+          <button type="button" disabled={pushBusy || !phonePushSupported()} onClick={pushEnabled ? onDisablePush : onEnablePush}>
+            {pushBusy ? 'Working…' : pushEnabled ? 'Turn off' : 'Enable'}
+          </button>
+        </div>
         <button type="button" className="dp14-notif-cloud" onClick={onCloud}>Cloud backup settings</button>
       </section>
     </>
@@ -687,8 +702,39 @@ function App() {
   const [transactionHistoryOpen, setTransactionHistoryOpen] = useState(false)
   const [cloudSyncOpen, setCloudSyncOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushStatus, setPushStatus] = useState('')
   const [payablesOpen, setPayablesOpen] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
+
+  useEffect(() => {
+    if (!notificationsOpen) return
+    void getPhonePushEnabled().then(setPushEnabled).catch(() => setPushEnabled(false))
+  }, [notificationsOpen])
+
+  async function togglePhoneReminders(enable: boolean) {
+    if (!supabase || !session) {
+      setPushStatus('Sign in to Cloud Backup first, then enable reminders.')
+      return
+    }
+    if (requiresHomeScreenInstall()) {
+      setPushStatus('Open Due₱oint from the iPhone Home Screen to enable reminders.')
+      return
+    }
+    setPushBusy(true)
+    try {
+      if (enable) await enablePhonePush(supabase, session.user.id)
+      else await disablePhonePush(supabase)
+      setPushEnabled(enable)
+      setPushStatus(enable ? 'Enabled · reminders checked daily at 8 AM (PH)' : 'Phone reminders disabled')
+    } catch (error) {
+      setPushStatus(error instanceof Error ? error.message : 'Could not update phone reminders')
+    } finally {
+      setPushBusy(false)
+    }
+  }
+
   const [cloudReady, setCloudReady] = useState(false)
   const [cloudSyncBusy, setCloudSyncBusy] = useState(false)
   const [syncStatus, setSyncStatus] = useState(
@@ -1086,6 +1132,13 @@ function App() {
     if (!supabase) return
 
     setCloudSyncBusy(true)
+    // Disconnect this phone before switching cloud accounts so it won't receive another account's reminders.
+    try {
+      await disablePhonePush(supabase)
+      setPushEnabled(false)
+    } catch {
+      // Signing out is still allowed; the user can also revoke the subscription in device settings.
+    }
     const { error } = await supabase.auth.signOut()
     setCloudSyncBusy(false)
 
@@ -1740,6 +1793,11 @@ function App() {
                     }
                   }}
                   onCloud={() => { setNotificationsOpen(false); setCloudSyncOpen(true) }}
+                  onEnablePush={() => { void togglePhoneReminders(true) }}
+                  onDisablePush={() => { void togglePhoneReminders(false) }}
+                  pushEnabled={pushEnabled}
+                  pushBusy={pushBusy}
+                  pushStatus={pushStatus}
                 />
               )}
             </div>
@@ -2362,6 +2420,20 @@ function TodayPage({
   )
 }
 
+function BankLogo({ name, accent = 'blue' }: { name: string; accent?: AccountAccent }) {
+  const brand = getBankBrand(name)
+  const [imageFailed, setImageFailed] = useState(false)
+  return (
+    <span className={`dp16-bank-logo dp16-bank-logo-${accent}`} aria-hidden="true" title={brand.label}>
+      {brand.src && !imageFailed ? (
+        <img src={brand.src} alt="" loading="lazy" onError={() => setImageFailed(true)} />
+      ) : (
+        <span>{brand.initials}</span>
+      )}
+    </span>
+  )
+}
+
 function WalletPage({
   accounts,
   creditCards,
@@ -2407,9 +2479,7 @@ function WalletPage({
       <div className="card-list">
         {accounts.map((account) => (
           <article key={account.id} className="account-card">
-            <div className={`account-icon ${account.accent}`}>
-              <Landmark size={22} />
-            </div>
+            <BankLogo name={account.name} accent={account.accent} />
 
             <div className="card-main-content">
               <h3>{account.name}</h3>
@@ -2453,7 +2523,7 @@ function WalletPage({
           return (
             <article key={card.id} className="credit-card dp-v9-credit-card">
               <div className="dp-v9-card-heading">
-                <h3>{card.name}</h3>
+                <div className="dp16-credit-title"><BankLogo name={card.name} /><h3>{card.name}</h3></div>
                 <span className="dp-v9-card-utilization">{utilization}% used</span>
               </div>
 

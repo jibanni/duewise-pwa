@@ -21,6 +21,7 @@ import './duepoint-v13-ui-polish.css'
 import './duepoint-v13-minimal-lock.css'
 import './duepoint-v13-nav-auto-hide.css'
 import './duepoint-v13-4-calendar-first.css'
+import './duepoint-v14-push-logos.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

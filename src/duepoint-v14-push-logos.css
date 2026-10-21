@@ -1,0 +1,66 @@
+/* V14 static bank artwork + native phone reminder control */
+.dp16-bank-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 43px;
+  height: 43px;
+  min-width: 43px;
+  border-radius: 13px;
+  background: #f0f4f8;
+  color: #21486e;
+  overflow: hidden;
+}
+.dp16-bank-logo img {
+  display: block;
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+}
+.dp16-bank-logo > span {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+.dp16-credit-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dp16-credit-title .dp16-bank-logo {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 9px;
+}
+.dp16-credit-title .dp16-bank-logo > span {font-size: 11px;}
+.dp16-credit-title h3 {margin: 0; min-width: 0;}
+.dp16-push-pref {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 12px 8px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(102,119,139,.18);
+}
+.dp16-push-copy {display: grid; gap: 3px; min-width: 0;}
+.dp16-push-copy strong {font-size: 13px; font-weight: 700;}
+.dp16-push-copy small {font-size: 11px; line-height: 1.35; color: #718096; overflow-wrap: anywhere;}
+.dp16-push-pref > button {
+  border: none;
+  border-radius: 9px;
+  min-width: 69px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #dfebfa;
+  color: #1355a3;
+  flex-shrink: 0;
+}
+.dp16-push-pref > button:disabled {opacity: .55; cursor: default;}
+.app-shell.theme-dark .dp16-bank-logo {background: #27384f; color: #c5e4ff;}
+.app-shell.theme-dark .dp16-push-copy small {color: #afbed2;}
+.app-shell.theme-dark .dp16-push-pref > button {background: #304b6c; color: #fff;}
