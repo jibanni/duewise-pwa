@@ -128,6 +128,7 @@ type RecurringExpense = {
   amount: number
   frequency: string
   nextDue: string
+  startDate?: string
   remainingBalance?: number
   periodKey?: string
   lastPaidAt?: string
@@ -595,24 +596,31 @@ function getUpcomingNotifications(financeData: FinanceData): MonthlyObligation[]
   }).sort((a,b)=>a.date.getTime()-b.date.getTime())
 }
 
-function MonthlyPayablesModal({items,onClose,onPay}: {
+function MonthlyPayablesModal({items,month,onClose,onPay}: {
   items: MonthlyObligation[]
+  month: Date
   onClose: () => void
   onPay: (item: MonthlyObligation) => void
 }) {
   const active = items.filter((item)=>!item.paid && (item.amount===null || item.amount>0))
   const total = active.reduce((sum,item)=>sum+(item.amount ?? 0),0)
   const unknown = active.filter((item)=>item.amount===null).length
+  const now = new Date()
+  const isCurrentMonth = month.getFullYear() === now.getFullYear() && month.getMonth() === now.getMonth()
+  const isPastMonth = month.getTime() < new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+  const monthLabel = month.toLocaleDateString('en-PH',{month:'long',year:'numeric'})
   return (
-    <ModalShell eyebrow="Payments" title="To Pay This Month" onClose={onClose}>
+    <ModalShell eyebrow="Payments" title={isCurrentMonth ? 'To Pay This Month' : `Payments · ${monthLabel}`} onClose={onClose}>
       <div className="dp13-sheet">
-        <div className="dp13-sheet-total"><span>Unpaid known amounts</span><strong>{peso.format(total)}</strong></div>
+        {!isCurrentMonth && <p className="dp13-sheet-note">{isPastMonth ? 'Scheduled amounts only; historical payments are not reconstructed.' : 'Future payment forecast; unconfirmed card minimums are excluded.'}</p>}
+        <div className="dp13-sheet-total"><span>{isCurrentMonth ? 'Unpaid known amounts' : 'Known scheduled payments'}</span><strong>{peso.format(total)}</strong></div>
         {unknown > 0 && <p className="dp13-sheet-note">{unknown} card minimum{unknown>1?'s':''} not entered and excluded from the total.</p>}
-        {active.length === 0 && <p className="dp13-sheet-note">No unpaid payments scheduled this month.</p>}
+        {active.length === 0 && <p className="dp13-sheet-note">{isCurrentMonth ? 'No unpaid payments scheduled this month.' : 'No known payments scheduled for this month.'}</p>}
         {active.map((item)=><div className="dp13-sheet-item" key={item.id}>
           <div><strong>{item.name}</strong><small>{item.kind === 'bill'?'Bill':item.kind==='card'?'Card minimum':'Loan'} · {item.date.toLocaleDateString('en-PH',{month:'short',day:'numeric'})}</small></div>
           <span>{item.amount === null?'Not entered':peso.format(item.amount)}</span>
-          <button type="button" onClick={()=>onPay(item)}>{item.amount===null?'Add minimum':'Pay'}</button>
+          {isCurrentMonth ? <button type="button" onClick={()=>onPay(item)}>{item.amount===null?'Add minimum':'Pay'}</button>
+            : <span className="dp-calendar-forecast-label">Forecast</span>}
         </div>)}
       </div>
     </ModalShell>
@@ -706,6 +714,10 @@ function App() {
   const [pushBusy, setPushBusy] = useState(false)
   const [pushStatus, setPushStatus] = useState('')
   const [payablesOpen, setPayablesOpen] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
   const [session, setSession] = useState<Session | null>(null)
 
   useEffect(() => {
@@ -897,20 +909,23 @@ function App() {
     [financeData.debts, totalCreditCardDebt],
   )
 
-  const recurringTotal = useMemo(
-    () => activeBills.reduce((total, expense) => total + getBillRemainingBalance(expense), 0),
-    [activeBills],
-  )
+  const recurringTotal = useMemo(() => {
+    const now = new Date()
+    return getMonthlyObligations(now.getFullYear(), now.getMonth(), financeData)
+      .filter((item) => item.kind === 'bill' && !item.paid)
+      .reduce((total, item) => total + (item.amount ?? 0), 0)
+  }, [financeData])
 
   const creditCardInsights = useMemo(
     () => getCreditCardInsights(financeData.creditCards),
     [financeData.creditCards],
   )
 
-  const monthlyObligations = useMemo(() => {
-    const date = new Date()
-    return getMonthlyObligations(date.getFullYear(), date.getMonth(), financeData)
-  }, [financeData])
+  const monthlyObligations = useMemo(() =>
+    getMonthlyObligations(calendarMonth.getFullYear(), calendarMonth.getMonth(), financeData),
+    [financeData, calendarMonth],
+  )
+  const calendarMonthLabel = calendarMonth.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })
   const monthlyOutstanding = monthlyObligations.filter((item) => !item.paid && item.amount !== null && item.amount > 0)
   const monthlyPayableTotal = monthlyOutstanding.reduce((sum, item) => sum + (item.amount ?? 0), 0)
   const cardMinimumTotal = monthlyOutstanding.filter((item) => item.kind === 'card').reduce((sum, item) => sum + (item.amount ?? 0), 0)
@@ -1532,6 +1547,8 @@ function App() {
     if (!bill || !account) return showAlert('Invalid Payment', 'Please select valid payment details.')
     if (amount > account.balance) return showAlert('Insufficient Balance', 'Your selected account has insufficient balance.')
 
+    const startsOn = parseValidIsoDate(bill.startDate)
+    if (startsOn && startsOn > startOfDay(new Date())) return showAlert('Bill Not Started', 'This bill starts on a future date.')
     const balanceDue = getBillRemainingBalance(bill)
     if (amount > balanceDue) return showAlert('Invalid Amount', 'Payment is higher than the remaining bill balance.')
 
@@ -1805,8 +1822,8 @@ function App() {
         </header>
 
         {activeTab === 'today' && (
-          <button type="button" className="balance-hero dp13-payables-hero dp134-payables-hero" onClick={() => setPayablesOpen(true)} aria-label={`Open monthly payables, ${peso.format(monthlyPayableTotal)}`}>
-            <span className="hero-label">To Pay This Month <ChevronRight size={19}/></span>
+          <button type="button" className="balance-hero dp13-payables-hero dp134-payables-hero" onClick={() => setPayablesOpen(true)} aria-label={`Open scheduled payments for ${calendarMonthLabel}, ${peso.format(monthlyPayableTotal)}`}>
+            <span className="hero-label">To Pay · {calendarMonthLabel} <ChevronRight size={19}/></span>
             <strong className="dp13-hero-amount">{peso.format(monthlyPayableTotal)}</strong>
             <span className="dp14-hero-breakdown">
               <span><small>Bills</small><strong>{peso.format(billsTotal)}</strong></span>
@@ -1820,6 +1837,8 @@ function App() {
         <section className="page-content">
           {activeTab === 'today' && (
             <TodayPage
+              displayMonth={calendarMonth}
+              onDisplayMonthChange={setCalendarMonth}
               creditCardInsights={creditCardInsights}
               recurringExpenses={financeData.recurringExpenses}
               debts={financeData.debts}
@@ -2065,6 +2084,7 @@ function App() {
 
         {payablesOpen && (
           <MonthlyPayablesModal
+            month={calendarMonth}
             items={monthlyObligations}
             onClose={() => setPayablesOpen(false)}
             onPay={(item) => {
@@ -2153,6 +2173,8 @@ function monthMoneyEvents(
   const currentMonth = year === new Date().getFullYear() && month === new Date().getMonth()
 
   const appendBill = (bill: RecurringExpense, date: Date) => {
+    const start = parseValidIsoDate(bill.startDate)
+    if (start && date.getTime() < start.getTime()) return
     if (date.getFullYear() !== year || date.getMonth() !== month) return
     const amount = currentMonth ? getBillRemainingBalance(bill) : bill.amount
     const isPaid = currentMonth && amount <= 0 && bill.periodKey === `${year}-${String(month + 1).padStart(2, '0')}` && Boolean(bill.lastPaidAt)
@@ -2181,13 +2203,31 @@ function monthMoneyEvents(
     }
 
     if (frequency.includes('year') || frequency.includes('annual')) {
-      const reference = new Date(`${raw} ${year}`)
-      if (!Number.isNaN(reference.getTime())) appendBill(bill, startOfDay(reference))
+      const storedDate = parseValidIsoDate(raw)
+      const start = parseValidIsoDate(bill.startDate)
+      const parsed = storedDate ?? new Date(`${raw} ${year}`)
+      const reference = !Number.isNaN(parsed.getTime())
+        ? new Date(year, parsed.getMonth(), parsed.getDate())
+        : start ? new Date(year, start.getMonth(), recurringDayFromText(raw) ?? start.getDate()) : null
+      if (reference) appendBill(bill, startOfDay(reference))
       continue
     }
 
-    // Repeating weekly/daily bills need a known anchor. Never invent a date.
-    const anchor = getUpcomingBillDueDate(bill)
+    // Quarterly cycles need an explicit anchor to avoid inventing past dates.
+    if (frequency.includes('quarter')) {
+      const start = parseValidIsoDate(bill.startDate)
+      if (!start) continue
+      const day = dayOfMonthForBill(bill.nextDue) ?? start.getDate()
+      for (let offset = 0; offset <= 600; offset += 3) {
+        const candidate = buildDateForDay(start.getFullYear(), start.getMonth() + offset, day)
+        if (candidate > monthEnd) break
+        appendBill(bill, candidate)
+      }
+      continue
+    }
+
+    // Daily/weekly recurrence uses the bill start as its anchor when available.
+    const anchor = parseValidIsoDate(bill.startDate) ?? getUpcomingBillDueDate(bill)
     const interval = frequency.includes('biweekly') || frequency.includes('fortnight') ? 14
       : frequency.includes('week') ? 7 : frequency.includes('daily') ? 1 : 0
     if (!anchor || !interval) continue
@@ -2251,6 +2291,8 @@ function monthMoneyEvents(
 }
 
 function TodayPage({
+  displayMonth,
+  onDisplayMonthChange,
   creditCardInsights,
   recurringExpenses,
   debts,
@@ -2259,6 +2301,8 @@ function TodayPage({
   onOpenBill,
   onOpenDebt,
 }: {
+  displayMonth: Date
+  onDisplayMonthChange: (month: Date) => void
   creditCardInsights: CreditCardInsight[]
   recurringExpenses: RecurringExpense[]
   debts: Debt[]
@@ -2268,7 +2312,6 @@ function TodayPage({
   onOpenDebt: (debt: Debt) => void
 }) {
   const today = startOfDay(new Date())
-  const [displayMonth, setDisplayMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
   const [selectedDay, setSelectedDay] = useState(() => today.getDate())
   const year = displayMonth.getFullYear()
   const month = displayMonth.getMonth()
@@ -2301,11 +2344,11 @@ function TodayPage({
 
   const moveMonth = (direction: number) => {
     const nextMonth = new Date(year, month + direction, 1)
-    setDisplayMonth(nextMonth)
+    onDisplayMonthChange(nextMonth)
     setSelectedDay(1)
   }
   const showCurrentMonth = () => {
-    setDisplayMonth(new Date(today.getFullYear(), today.getMonth(), 1))
+    onDisplayMonthChange(new Date(today.getFullYear(), today.getMonth(), 1))
     setSelectedDay(today.getDate())
   }
   const dailyRecommendation = getDailyRecommendation(creditCardInsights)
@@ -2668,7 +2711,7 @@ function PlanPage({
 
           <SectionTitle
             title="Bills"
-            subtitle="Only unpaid bills are shown here"
+            subtitle="Unpaid and scheduled bills"
           />
 
           <div className="card-list">
@@ -2684,6 +2727,8 @@ function PlanPage({
             {recurringExpenses.map((expense) => {
               const balanceDue = getBillRemainingBalance(expense)
               const hasPartialPayment = balanceDue < expense.amount
+              const startsOn = parseValidIsoDate(expense.startDate)
+              const startsLater = Boolean(startsOn && startsOn > startOfDay(new Date()))
 
               return (
                 <article key={expense.id} className="recurring-card">
@@ -2696,6 +2741,7 @@ function PlanPage({
                     <p>
                       {expense.category} · {expense.frequency}
                     </p>
+                    {startsLater && <span>Starts: {startsOn!.toLocaleDateString('en-PH', {month:'short',day:'numeric',year:'numeric'})}</span>}
                     <span>Next due: {getUpcomingBillDueDate(expense) ? formatChartDate(getUpcomingBillDueDate(expense)!) : expense.nextDue}</span>
                     {hasPartialPayment && (
                       <span>Original amount: {peso.format(expense.amount)}</span>
@@ -2705,12 +2751,12 @@ function PlanPage({
                   <div style={amountActionColumnStyle}>
                     <strong>{peso.format(balanceDue)}</strong>
                     <div style={miniActionRowStyle}>
-                      <IconButton
+                      {!startsLater && <IconButton
                         label={`Pay ${expense.name}`}
                         onClick={() => onPayBill(expense)}
                       >
                         <ArrowDownLeft size={14} />
-                      </IconButton>
+                      </IconButton>}
                       <IconButton
                         label={`Edit ${expense.name}`}
                         onClick={() => onEditBill(expense)}
@@ -4830,6 +4876,7 @@ function BillEditorModal({
   const [amount, setAmount] = useState(bill?.amount.toString() ?? '')
   const [frequency, setFrequency] = useState(bill?.frequency ?? 'Monthly')
   const [nextDue, setNextDue] = useState(bill?.nextDue ?? '')
+  const [startDate, setStartDate] = useState(bill?.startDate ?? (bill ? '' : localIsoDate(new Date())))
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -4838,6 +4885,8 @@ function BillEditorModal({
     if (!name.trim()) return onNotify('Bill Name Required', 'Please enter a bill name.')
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return onNotify('Invalid Amount', 'Please enter a valid amount.')
     if (!nextDue.trim()) return onNotify('Due Date Required', 'Please enter the next due date.')
+    if (!bill && !startDate) return onNotify('Start Date Required', 'Please choose when this new bill begins.')
+    if (startDate && !parseValidIsoDate(startDate)) return onNotify('Invalid Start Date', 'Please choose a valid calendar date.')
 
     onSave(
       {
@@ -4846,6 +4895,7 @@ function BillEditorModal({
         amount: parsedAmount,
         frequency,
         nextDue: nextDue.trim(),
+        startDate: startDate || undefined,
       },
       bill?.id,
     )
@@ -4874,6 +4924,8 @@ function BillEditorModal({
           <option>Quarterly</option>
           <option>Yearly</option>
         </SelectField>
+        <TextField label="Start date" type="date" value={startDate} onChange={setStartDate} />
+        <small style={{ opacity: 0.75 }}>The first bill appears on or after this date. Existing bills can leave this blank to keep their history.</small>
         <TextField label="Next due date" value={nextDue} onChange={setNextDue} placeholder="Example: July 10 or Every 10th" />
         <button type="submit" style={submitButtonStyle}>Save Bill</button>
       </form>
@@ -6157,37 +6209,65 @@ function formatChartDate(date: Date) {
   return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
 }
 
+function dayOfMonthForBill(label: string): number | null {
+  const iso = label.match(/^\d{4}-\d{2}-(\d{2})$/)
+  const regular = label.match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/i)
+  const day = Number(iso?.[1] ?? regular?.[1])
+  return Number.isInteger(day) && day >= 1 && day <= 31 ? day : null
+}
+
+function localIsoDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+}
+
 function getUpcomingBillDueDate(expense: RecurringExpense): Date | null {
   const today = startOfDay(new Date())
+  const start = parseValidIsoDate(expense.startDate)
+  const effective = start && start > today ? start : today
   const frequency = expense.frequency.toLowerCase()
   const label = expense.nextDue.trim()
+  const day = dayOfMonthForBill(label)
 
-  if (frequency.includes('month')) {
-    // "June 30" and "Every 30th" both mean the 30th of each MONTH.
-    // Recalculate on display; never rewrite the user's original bill record.
-    const dayMatch = label.match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/i)
-    if (dayMatch) {
-      const day = Math.max(1, Math.min(31, Number(dayMatch[1])))
-      const makeDate = (year: number, month: number) => {
-        const lastDay = new Date(year, month + 1, 0).getDate()
-        return new Date(year, month, Math.min(day, lastDay))
-      }
-      let dueDate = makeDate(today.getFullYear(), today.getMonth())
-      if (dueDate < today) dueDate = makeDate(today.getFullYear(), today.getMonth() + 1)
-      return dueDate
+  if (frequency.includes('month') && day !== null) {
+    for (let offset = 0; offset < 120; offset++) {
+      const date = buildDateForDay(effective.getFullYear(), effective.getMonth()+offset, day)
+      if (date >= effective) return date
     }
   }
 
   if (frequency.includes('year') || frequency.includes('annual')) {
-    const annualDate = new Date(`${label} ${today.getFullYear()}`)
-    if (!Number.isNaN(annualDate.getTime())) {
-      annualDate.setHours(0, 0, 0, 0)
-      if (annualDate < today) annualDate.setFullYear(annualDate.getFullYear() + 1)
-      return annualDate
+    const parsedIso = parseValidIsoDate(label)
+    const parsedDate = parsedIso ?? new Date(`${label} ${effective.getFullYear()}`)
+    const month = !Number.isNaN(parsedDate.getTime()) ? parsedDate.getMonth() : start?.getMonth()
+    const dueDay = !Number.isNaN(parsedDate.getTime()) ? parsedDate.getDate() : day ?? start?.getDate()
+    if (month !== undefined && dueDay !== undefined) {
+      for (let year = effective.getFullYear(); year < effective.getFullYear()+15; year++) {
+        const date = buildDateForDay(year, month, dueDay)
+        if (date >= effective) return date
+      }
     }
   }
 
-  return parseUpcomingMonthDay(label)
+  if (frequency.includes('quarter') && start) {
+    const dueDay = day ?? start.getDate()
+    for (let offset = 0; offset <= 600; offset += 3) {
+      const date = buildDateForDay(start.getFullYear(), start.getMonth()+offset, dueDay)
+      if (date >= effective) return date
+    }
+  }
+
+  const interval = frequency.includes('biweekly') || frequency.includes('fortnight') ? 14
+    : frequency.includes('week') ? 7 : frequency.includes('daily') ? 1 : 0
+  if (interval && start) {
+    const elapsedDays = Math.round((effective.getTime() - start.getTime()) / DAY_IN_MS)
+    const jumps = Math.max(0, Math.ceil(elapsedDays / interval))
+    return addDays(start, jumps * interval)
+  }
+
+  // Legacy entries without start dates retain the previous interpretation.
+  const fallback = parseUpcomingMonthDay(label)
+  if (fallback && start && fallback < start) return null
+  return fallback
 }
 
 function parseUpcomingMonthDay(label: string) {
@@ -7258,6 +7338,7 @@ function normalizeRecurringExpenses(rawRecurringExpenses: unknown): RecurringExp
       amount: safeAmount,
       frequency: String(expense.frequency ?? 'Monthly'),
       nextDue: String(expense.nextDue ?? 'Every month'),
+      ...(parseValidIsoDate(expense.startDate) ? { startDate: expense.startDate } : {}),
       remainingBalance: shouldResetForNewMonth
         ? safeAmount
         : Math.max(Math.min(savedRemaining, safeAmount), 0),

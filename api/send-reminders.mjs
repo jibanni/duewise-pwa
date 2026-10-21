@@ -44,6 +44,8 @@ function remindersFromCloud(finance, now) {
     const day = dayOfMonthFromText(bill.nextDue)
     if (!day) continue
     const date = isoDate(now.year, now.month, day)
+    // Start dates are inclusive. Bills must not trigger before their first cycle.
+    if (typeof bill.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(bill.startDate) && date < bill.startDate) continue
     const days = getDaysUntil(date, today)
     if (!threshold(days)) continue
     // A completed previous month does not mean the new month is paid.
