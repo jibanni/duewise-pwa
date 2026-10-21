@@ -1,0 +1,51 @@
+/* Due₱oint — iPhone status-bar/top-canvas clarity fix.
+   Removes the warm, cloud-like radial gradients behind the header.
+   Does not change transactions, payments, push notifications, or navigation. */
+@media (max-width: 700px) {
+  html,
+  body {
+    background-color: #f7f1e8 !important;
+    background-image: none !important;
+  }
+
+  #root .app-shell:not(.theme-dark) {
+    background: #f7f1e8 !important;
+    background-image: none !important;
+  }
+
+  html:has(#root .app-shell.theme-dark),
+  html:has(#root .app-shell.theme-dark) body {
+    background-color: #141614 !important;
+    background-image: none !important;
+  }
+
+  #root .app-shell.theme-dark {
+    background: #141614 !important;
+    background-image: none !important;
+  }
+
+  #root .app-shell .mobile-app .app-header {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    filter: none !important;
+  }
+
+  #root .app-shell .mobile-app .app-header::before {
+    display: none !important;
+  }
+
+  /* Remove any softening of the small orange DUEPOINT brand label. */
+  html body #root .app-shell .mobile-app .app-header .dp-header-wordmark {
+    filter: none !important;
+    -webkit-filter: none !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0 !important;
+    color: #b9430b !important;
+    font-weight: 900 !important;
+  }
+
+  html body #root .app-shell.theme-dark .mobile-app .app-header .dp-header-wordmark {
+    color: #fb923c !important;
+  }
+}
