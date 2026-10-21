@@ -34,7 +34,6 @@ import {
   BarChart3,
   ClipboardList,
   CreditCard,
-  FileText,
   Home,
   Landmark,
   Moon,
@@ -74,6 +73,8 @@ type CreditCardAccount = {
   dueDay: number
   annualRate?: number
   minimumDue?: number
+  statementDate?: string
+  paymentDueDate?: string
   lastPaymentAt?: string
 }
 
@@ -105,6 +106,14 @@ type Debt = {
   annualRate?: number
   source?: string
   kind?: 'loan' | 'credit-card-installment' | 'other'
+  linkedCardId?: number
+}
+
+type CardInstallmentInput = {
+  id?: number
+  description: string
+  remainingBalance: number
+  monthlyAmount: number
 }
 
 type RecurringExpense = {
@@ -1002,26 +1011,54 @@ function App() {
     })
   }
 
-  function saveCreditCard(card: Omit<CreditCardAccount, 'id' | 'lastPaymentAt'>, id?: number) {
-    setFinanceData((current) => ({
-      ...current,
-      creditCards:
-        typeof id === 'number'
-          ? current.creditCards.map((item) => (item.id === id ? { ...item, ...card } : item))
-          : [...current.creditCards, { ...card, id: createNumericId(current.creditCards) }],
-    }))
+  function saveCreditCard(
+    card: Omit<CreditCardAccount, 'id' | 'lastPaymentAt'>,
+    id?: number,
+    installments: CardInstallmentInput[] = [],
+  ) {
+    setFinanceData((current) => {
+      const cardId = typeof id === 'number' ? id : createNumericId(current.creditCards)
+      const creditCards = typeof id === 'number'
+        ? current.creditCards.map((item) => item.id === id ? { ...item, ...card } : item)
+        : [...current.creditCards, { ...card, id: cardId }]
+      const oldCard = current.creditCards.find((item) => item.id === id)
+      const linked = oldCard ? getLinkedCardInstallments(current.debts, oldCard) : []
+      const linkedIds = new Set(linked.map((item) => item.id))
+      const retainedDebts = current.debts.filter((debt) => !linkedIds.has(debt.id))
+      let nextId = createNumericId(current.debts)
+      const installmentDebts: Debt[] = installments.map((installment) => {
+        const existing = linked.find((debt) => debt.id === installment.id)
+        return {
+          ...existing,
+          id: existing?.id ?? nextId++,
+          name: `${card.name} - ${installment.description}`,
+          balance: installment.remainingBalance,
+          monthly: installment.monthlyAmount,
+          due: `Every ${formatOrdinalDay(card.dueDay)}`,
+          annualRate: existing?.annualRate ?? 0,
+          source: 'Credit card details',
+          kind: 'credit-card-installment',
+          linkedCardId: cardId,
+        }
+      })
+      return { ...current, creditCards, debts: [...retainedDebts, ...installmentDebts] }
+    })
     setCardEditor(null)
   }
 
   function deleteCreditCard(id: number) {
     showConfirm({
       title: 'Delete Credit Card?',
-      message: 'This will remove the selected credit card.',
+      message: 'This will remove the card and any future installments linked to it. Recorded payments will remain in your history.',
       confirmLabel: 'Delete',
       onConfirm: () =>
         setFinanceData((current) => ({
           ...current,
           creditCards: current.creditCards.filter((item) => item.id !== id),
+          debts: current.debts.filter((debt) => {
+            const card = current.creditCards.find((item) => item.id === id)
+            return !card || !getLinkedCardInstallments(current.debts, card).some((linked) => linked.id === debt.id)
+          }),
         })),
     })
   }
@@ -1451,8 +1488,6 @@ function App() {
               totalDebt={totalDebt}
               creditCardInsights={creditCardInsights}
               recurringExpenses={activeBills}
-              onOpenPlan={() => setActiveTab('plan')}
-              onOpenWallet={() => setActiveTab('wallet')}
             />
           )}
 
@@ -1465,7 +1500,6 @@ function App() {
               onEditAccount={setAccountEditor}
               onDeleteAccount={deleteAccount}
               onAddCreditCard={() => setCardEditor('new')}
-              onImportStatement={() => setStatementImporterOpen(true)}
               onEditCreditCard={setCardEditor}
               onDeleteCreditCard={deleteCreditCard}
               onPayCreditCard={setCardPaymentTarget}
@@ -1628,6 +1662,7 @@ function App() {
         {cardEditor && (
           <CreditCardEditorModal
             card={cardEditor === 'new' ? undefined : cardEditor}
+            installments={cardEditor === 'new' ? [] : getLinkedCardInstallments(financeData.debts, cardEditor)}
             onClose={() => setCardEditor(null)}
             onSave={saveCreditCard}
             onNotify={showAlert}
@@ -1769,15 +1804,11 @@ function TodayPage({
   totalDebt,
   creditCardInsights,
   recurringExpenses,
-  onOpenPlan,
-  onOpenWallet,
 }: {
   totalCash: number
   totalDebt: number
   creditCardInsights: CreditCardInsight[]
   recurringExpenses: RecurringExpense[]
-  onOpenPlan: () => void
-  onOpenWallet: () => void
 }) {
   const today = new Date()
   const mondayOffset = today.getDay() === 0 ? -6 : 1 - today.getDay()
@@ -1886,19 +1917,8 @@ function TodayPage({
         ))}
       </div>
 
-      <section style={previewCardStyle}>
-        <p>Showing your nearest unpaid bills and top card events.</p>
-        <button type="button" style={textLinkButtonStyle} onClick={onOpenPlan}>
-          View full plan
-        </button>
-      </section>
-
       <SectionTitle title="Best Cards" subtitle="Based on cut-off, due date, credit, and utilization" />
       <CreditCardRanking insights={creditCardInsights.slice(0, 2)} />
-
-      <button type="button" style={wideSoftButtonStyle} onClick={onOpenWallet}>
-        View wallet
-      </button>
 
     </>
   )
@@ -1912,7 +1932,6 @@ function WalletPage({
   onEditAccount,
   onDeleteAccount,
   onAddCreditCard,
-  onImportStatement,
   onEditCreditCard,
   onDeleteCreditCard,
   onPayCreditCard,
@@ -1924,7 +1943,6 @@ function WalletPage({
   onEditAccount: (account: Account) => void
   onDeleteAccount: (id: number) => void
   onAddCreditCard: () => void
-  onImportStatement: () => void
   onEditCreditCard: (card: CreditCardAccount) => void
   onDeleteCreditCard: (id: number) => void
   onPayCreditCard: (card: CreditCardAccount) => void
@@ -1939,10 +1957,6 @@ function WalletPage({
         <button type="button" style={softButtonStyle} onClick={onAddCreditCard}>
           <Plus size={16} />
           Add Card
-        </button>
-        <button type="button" className="statement-import-button" style={softButtonStyle} onClick={onImportStatement}>
-          <FileText size={16} />
-          Manual SOA Entry
         </button>
       </div>
 
@@ -2005,9 +2019,9 @@ function WalletPage({
                     <IconButton label={`Pay ${card.name}`} onClick={() => onPayCreditCard(card)}>
                       <ArrowDownLeft size={14} />
                     </IconButton>
-                    <IconButton label={`Edit ${card.name}`} onClick={() => onEditCreditCard(card)}>
-                      <Pencil size={14} />
-                    </IconButton>
+                    <button type="button" className="dp-card-details-action" onClick={() => onEditCreditCard(card)} aria-label={`Card details for ${card.name}`}>
+                      <Pencil size={14} /> Details
+                    </button>
                     <IconButton danger label={`Delete ${card.name}`} onClick={() => onDeleteCreditCard(card.id)}>
                       <Trash2 size={14} />
                     </IconButton>
@@ -2037,6 +2051,19 @@ function WalletPage({
                 <span>Cut-off: {formatOrdinalDay(card.cutOffDay)}</span>
                 <span>Due: {formatOrdinalDay(card.dueDay)}</span>
                 {typeof card.annualRate === 'number' && <span>APR: {Math.round(card.annualRate * 100)}%</span>}
+              </div>
+              {(card.statementDate || card.paymentDueDate) && (
+                <div className="dp-card-statement-meta">
+                  {card.statementDate && <span>SOA: {card.statementDate}</span>}
+                  {card.paymentDueDate && <span>Due: {card.paymentDueDate}</span>}
+                </div>
+              )}
+              <div className="card-minimum-row">
+                <div>
+                  <span>{typeof card.minimumDue === 'number' ? 'Remaining minimum due' : 'Estimated minimum due'}</span>
+                  <strong>{peso.format(getCreditCardMinimumPayment(card))}</strong>
+                </div>
+                <small>{typeof card.minimumDue === 'number' ? 'Latest SOA / manual entry' : 'Estimate only · Edit card to enter the SOA amount'}</small>
               </div>
             </article>
           )
@@ -2587,6 +2614,15 @@ function InsightsPage({
     () => getDebtPlanningItems(creditCardInsights, debts),
     [creditCardInsights, debts],
   )
+  const creditCardMinimums = creditCardInsights.reduce(
+    (total, insight) => total + getCreditCardMinimumPayment(insight.card), 0,
+  )
+  const loanMinimums = debts.reduce(
+    (total, debt) => total + getStandaloneDebtMinimum(debt), 0,
+  )
+  const minimumTotal = creditCardMinimums + loanMinimums
+  const mandatoryReserve = recurringTotal + minimumTotal
+  const reserveShortfall = Math.max(0, mandatoryReserve - totalCash)
 
   const healthSummary = useMemo(
     () =>
@@ -2594,7 +2630,7 @@ function InsightsPage({
         totalCash,
         totalSavings,
         totalDebt,
-        recurringTotal,
+        recurringTotal: mandatoryReserve,
         totalBudget,
         totalBudgetSpent,
         overBudgetCount,
@@ -2605,7 +2641,7 @@ function InsightsPage({
       totalCash,
       totalSavings,
       totalDebt,
-      recurringTotal,
+      mandatoryReserve,
       totalBudget,
       totalBudgetSpent,
       overBudgetCount,
@@ -2641,6 +2677,7 @@ function InsightsPage({
         netCashflow,
         budgetMetrics,
         creditCardInsights,
+        debts,
         debtPlan: debtComparison.recommended,
       }),
     [
@@ -2649,6 +2686,7 @@ function InsightsPage({
       netCashflow,
       budgetMetrics,
       creditCardInsights,
+      debts,
       debtComparison.recommended,
     ],
   )
@@ -2676,8 +2714,9 @@ function InsightsPage({
         totalCash,
         recurringTotal,
         creditCardInsights,
+        debts,
       }),
-    [parsedAffordAmount, totalCash, recurringTotal, creditCardInsights],
+    [parsedAffordAmount, totalCash, recurringTotal, creditCardInsights, debts],
   )
 
   const forecastLowPoint = forecastData.reduce(
@@ -2888,7 +2927,39 @@ function InsightsPage({
 
       {activeSection === 'debt' && (
         <>
-          <SectionTitle title="Debt Freedom Coach" subtitle="Compare payoff strategies without crowding the whole page" />
+          <SectionTitle title="Debt Freedom Coach" subtitle="Pay all minimums before directing extra money to your focus debt" />
+
+          <section className="minimum-summary-card" aria-label="Required minimum payments">
+            <div className="minimum-summary-heading">
+              <div>
+                <p>Minimum Payment Check</p>
+                <h3>{peso.format(minimumTotal)} <span>still required</span></h3>
+              </div>
+              <span className={reserveShortfall > 0 ? 'minimum-status-risk' : 'minimum-status-ok'}>
+                {reserveShortfall > 0 ? 'Cash shortfall' : 'Covered by cash'}
+              </span>
+            </div>
+            <div className="minimum-summary-grid">
+              <div><span>Credit cards</span><strong>{peso.format(creditCardMinimums)}</strong></div>
+              <div><span>Loans / debts</span><strong>{peso.format(loanMinimums)}</strong></div>
+              <div><span>Unpaid bills</span><strong>{peso.format(recurringTotal)}</strong></div>
+            </div>
+            <p className={reserveShortfall > 0 ? 'minimum-warning' : 'minimum-footnote'}>
+              {reserveShortfall > 0
+                ? `Current cash is ${peso.format(reserveShortfall)} short of bills and required minimums. Prioritize due dates; avoid allocating extra debt payments until covered.`
+                : `${peso.format(Math.max(0, totalCash - mandatoryReserve))} remains after reserving unpaid bills and debt minimums from current cash.`}
+            </p>
+            {creditCardInsights.length > 0 && (
+              <div className="minimum-card-list">
+                {creditCardInsights.map(({ card }) => (
+                  <div key={card.id}>
+                    <span>{card.name} · {typeof card.minimumDue === 'number' ? 'SOA/manual' : 'Estimated (edit in Wallet)'}</span>
+                    <strong>{peso.format(getCreditCardMinimumPayment(card))}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           <section className="debt-coach-card compact-debt-coach-card">
             <div className="debt-coach-header">
@@ -2921,12 +2992,13 @@ function InsightsPage({
               <span>Focus payment first</span>
               <strong>{debtComparison.recommended.focusName}</strong>
               <p>
-                Estimated debt-free date: {getDebtFreeDateLabel(debtComparison.recommended.months)} · Interest saved: {peso.format(debtComparison.interestSaved)}
+                Estimated debt-free date: {getDebtFreeDateLabel(debtComparison.recommended.months)} · Estimated interest saved: {peso.format(debtComparison.interestSaved)}
               </p>
             </div>
           </section>
 
-          <ChartCard title="Debt-free projection" subtitle="Projected total debt balance using the recommended strategy.">
+          <p className="minimum-field-help">Debt forecasts estimate future payment cycles; bank minimums and interest rates may change. Installment balances imported from an SOA are tracked as future exposure and are not added to this month's card minimum.</p>
+          <ChartCard title="Debt-free projection" subtitle="Illustrative balance projection using the recommended strategy.">
             {debtComparison.recommended.schedule.length > 0 ? (
               <ResponsiveContainer width="100%" height={208}>
                 <LineChart data={debtComparison.recommended.schedule} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -4102,13 +4174,15 @@ function StatementImportModal({
 
 function CreditCardEditorModal({
   card,
+  installments,
   onClose,
   onSave,
   onNotify,
 }: {
   card?: CreditCardAccount
+  installments: Debt[]
   onClose: () => void
-  onSave: (card: Omit<CreditCardAccount, 'id' | 'lastPaymentAt'>, id?: number) => void
+  onSave: (card: Omit<CreditCardAccount, 'id' | 'lastPaymentAt'>, id?: number, installments?: CardInstallmentInput[]) => void
   onNotify: (title: string, message: string) => void
 }) {
   const [name, setName] = useState(card?.name ?? '')
@@ -4116,19 +4190,55 @@ function CreditCardEditorModal({
   const [creditLimit, setCreditLimit] = useState(card?.creditLimit.toString() ?? '')
   const [cutOffDay, setCutOffDay] = useState(card?.cutOffDay.toString() ?? '')
   const [dueDay, setDueDay] = useState(card?.dueDay.toString() ?? '')
+  const [statementDate, setStatementDate] = useState(card?.statementDate ?? '')
+  const [paymentDueDate, setPaymentDueDate] = useState(card?.paymentDueDate ?? '')
+  const [minimumDue, setMinimumDue] = useState(card?.minimumDue?.toString() ?? '')
+  const [annualRate, setAnnualRate] = useState(
+    typeof card?.annualRate === 'number' ? (card.annualRate * 100).toString() : '',
+  )
+  const [installmentRows, setInstallmentRows] = useState<{ key: string; id?: number; description: string; remainingBalance: string; monthlyAmount: string }[]>(
+    installments.map((debt) => ({
+      key: `existing-${debt.id}`,
+      id: debt.id,
+      description: debt.name.startsWith(`${card?.name} - `) ? debt.name.slice(`${card?.name} - `.length) : debt.name,
+      remainingBalance: debt.balance.toString(),
+      monthlyAmount: debt.monthly.toString(),
+    })),
+  )
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const parsedBalance = Number(currentBalance)
     const parsedLimit = Number(creditLimit)
     const parsedCutOff = Number(cutOffDay)
-    const parsedDue = Number(dueDay)
+    const parsedDue = paymentDueDate ? Number(paymentDueDate.slice(8, 10)) : Number(dueDay)
+    const parsedMinimum = minimumDue.trim() === '' ? undefined : Number(minimumDue)
+    const parsedAnnualRate = annualRate.trim() === '' ? undefined : Number(annualRate)
 
     if (!name.trim()) return onNotify('Card Name Required', 'Please enter a credit card name.')
     if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) return onNotify('Invalid Credit Limit', 'Please enter a valid credit limit.')
-    if (!Number.isFinite(parsedBalance) || parsedBalance < 0 || parsedBalance > parsedLimit) return onNotify('Invalid Balance', 'Please enter a valid current balance.')
-    if (!isValidDayOfMonth(parsedCutOff)) return onNotify('Invalid Cut-off Day', 'Please enter a valid cut-off day from 1 to 31.')
-    if (!isValidDayOfMonth(parsedDue)) return onNotify('Invalid Due Day', 'Please enter a valid due day from 1 to 31.')
+    if (!Number.isFinite(parsedBalance) || parsedBalance < 0 || parsedBalance > parsedLimit) return onNotify('Invalid Balance', 'Enter the latest outstanding amount, not higher than your credit limit.')
+    if (!isValidDayOfMonth(parsedCutOff)) return onNotify('Invalid Cut-off Day', 'Enter a cut-off day from 1 to 31 under Card Settings.')
+    if (!isValidDayOfMonth(parsedDue)) return onNotify('Invalid Due Date', 'Enter the bank payment due date or a valid recurring due day.')
+    if (statementDate && !/^\d{4}-\d{2}-\d{2}$/.test(statementDate)) return onNotify('Invalid SOA Date', 'Check the statement date.')
+    if (paymentDueDate && !/^\d{4}-\d{2}-\d{2}$/.test(paymentDueDate)) return onNotify('Invalid Due Date', 'Check the payment due date.')
+    if (statementDate && paymentDueDate && paymentDueDate < statementDate) return onNotify('Due Date Before SOA', 'The payment due date cannot be before the statement date.')
+    if (parsedMinimum !== undefined && (!Number.isFinite(parsedMinimum) || parsedMinimum < 0 || parsedMinimum > parsedBalance)) {
+      return onNotify('Invalid Minimum Due', 'Enter the unpaid minimum from your latest SOA, not exceeding the outstanding balance.')
+    }
+    if (parsedAnnualRate !== undefined && (!Number.isFinite(parsedAnnualRate) || parsedAnnualRate < 0 || parsedAnnualRate > 100)) {
+      return onNotify('Invalid APR', 'Enter an annual rate between 0% and 100%.')
+    }
+
+    const parsedInstallments: CardInstallmentInput[] = []
+    for (const row of installmentRows) {
+      const balance = Number(row.remainingBalance)
+      const monthly = Number(row.monthlyAmount)
+      if (!row.description.trim() || !Number.isFinite(balance) || balance <= 0 || !Number.isFinite(monthly) || monthly <= 0) {
+        return onNotify('Check Installment', 'Every added plan requires a description, positive unbilled balance, and monthly amount. Delete an empty row if not needed.')
+      }
+      parsedInstallments.push({ id: row.id, description: row.description.trim(), remainingBalance: balance, monthlyAmount: monthly })
+    }
 
     onSave(
       {
@@ -4137,20 +4247,67 @@ function CreditCardEditorModal({
         creditLimit: parsedLimit,
         cutOffDay: parsedCutOff,
         dueDay: parsedDue,
+        statementDate: statementDate || undefined,
+        paymentDueDate: paymentDueDate || undefined,
+        minimumDue: parsedMinimum,
+        annualRate: parsedAnnualRate === undefined ? undefined : parsedAnnualRate / 100,
       },
       card?.id,
+      parsedInstallments,
     )
   }
 
   return (
-    <ModalShell eyebrow="Credit Card" title={card ? 'Edit Credit Card' : 'Add Credit Card'} onClose={onClose}>
-      <form onSubmit={submit} style={modalFormStyle}>
-        <TextField label="Card name" value={name} onChange={setName} placeholder="Example: BPI Visa" autoFocus />
-        <TextField label="Current balance" type="number" value={currentBalance} onChange={setCurrentBalance} placeholder="0.00" />
-        <TextField label="Credit limit" type="number" value={creditLimit} onChange={setCreditLimit} placeholder="50000" />
-        <TextField label="Cut-off day" type="number" value={cutOffDay} onChange={setCutOffDay} placeholder="Example: 12" />
-        <TextField label="Due day" type="number" value={dueDay} onChange={setDueDay} placeholder="Example: 2" />
-        <button type="submit" style={submitButtonStyle}>Save Credit Card</button>
+    <ModalShell eyebrow="Wallet / Credit Card" title={card ? `${card.name} Details` : 'Add Credit Card'} onClose={onClose}>
+      <form onSubmit={submit} style={modalFormStyle} className="dp-card-details-form">
+        <div className="dp-card-modal-section">
+          <strong>Card</strong>
+          <TextField label="Card name" value={name} onChange={setName} placeholder="Example: BPI Visa" autoFocus />
+          <TextField label="Credit limit" type="number" value={creditLimit} onChange={setCreditLimit} placeholder="50000.00" />
+        </div>
+        <div className="dp-card-modal-section">
+          <div className="dp-card-modal-section-title">
+            <strong>Monthly statement</strong>
+            <span>Just two amounts + due date</span>
+          </div>
+          <TextField label="Outstanding balance (latest SOA)" type="number" value={currentBalance} onChange={setCurrentBalance} placeholder="0.00" />
+          <TextField label="Remaining minimum payment" type="number" value={minimumDue} onChange={setMinimumDue} placeholder="0.00" />
+          <TextField label="Payment due date" type="date" value={paymentDueDate} onChange={setPaymentDueDate} />
+          <p className="minimum-field-help">When your new SOA arrives, replace the balance and minimum above. Recorded payments automatically reduce both amounts. Leave the minimum blank only when unknown (estimates will be labelled).</p>
+        </div>
+        <details className="dp-card-advanced" open={!card}>
+          <summary>Card settings <span>Usually set once</span></summary>
+          <div className="dp-card-advanced-content">
+            <TextField label="Statement date (optional)" type="date" value={statementDate} onChange={setStatementDate} />
+            <TextField label="Cut-off day" type="number" value={cutOffDay} onChange={setCutOffDay} placeholder="Example: 12" />
+            <TextField label="Recurring due day (if no SOA date)" type="number" value={dueDay} onChange={setDueDay} placeholder="Example: 2" />
+            <TextField label="Annual interest rate (%) (optional)" type="number" value={annualRate} onChange={setAnnualRate} placeholder="Example: 36" />
+            <p className="minimum-field-help">Your actual SOA due date takes priority; the recurring day is a fallback for future months. Rates are used for debt-payoff estimates.</p>
+          </div>
+        </details>
+        <details className="dp-card-advanced">
+          <summary>Future installments <span>{installmentRows.length} plans · Optional</span></summary>
+          <div className="dp-card-advanced-content">
+            <p className="minimum-field-help">Track only remaining <strong>unbilled</strong> installments. Do not include charges already reflected in your SOA balance. These plans are not added to this month's minimum payment.</p>
+            {installmentRows.map((row) => (
+              <div className="dp-card-installment-row" key={row.key}>
+                <div className="dp-card-installment-heading">
+                  <strong>{row.description.trim() || 'Installment plan'}</strong>
+                  <button type="button" onClick={() => setInstallmentRows((current) => current.filter((item) => item.key !== row.key))} aria-label={`Remove ${row.description || 'installment'}`}><Trash2 size={15} /> Remove</button>
+                </div>
+                <TextField label="Description" value={row.description} onChange={(value) => setInstallmentRows((current) => current.map((item) => item.key === row.key ? { ...item, description: value } : item))} placeholder="e.g., Laptop, 6 months" />
+                <div className="dp-card-installment-amounts">
+                  <TextField label="Unbilled balance" type="number" value={row.remainingBalance} onChange={(value) => setInstallmentRows((current) => current.map((item) => item.key === row.key ? { ...item, remainingBalance: value } : item))} placeholder="0.00" />
+                  <TextField label="Monthly installment" type="number" value={row.monthlyAmount} onChange={(value) => setInstallmentRows((current) => current.map((item) => item.key === row.key ? { ...item, monthlyAmount: value } : item))} placeholder="0.00" />
+                </div>
+              </div>
+            ))}
+            <button className="dp-card-add-installment" type="button" onClick={() => setInstallmentRows((current) => [...current, { key: `new-${Date.now()}-${current.length}`, description: '', remainingBalance: '', monthlyAmount: '' }])}>
+              <Plus size={16} /> Add installment
+            </button>
+          </div>
+        </details>
+        <button type="submit" style={submitButtonStyle}>Save Card Details</button>
       </form>
     </ModalShell>
   )
@@ -4998,7 +5155,7 @@ function getCashflowForecast({
     })),
     ...debts.map((debt) => ({
       dueDate: parseRecurringDay(debt.due),
-      amount: Math.min(debt.monthly, debt.balance),
+      amount: getStandaloneDebtMinimum(debt),
     })),
   ].filter((item): item is { dueDate: Date; amount: number } => Boolean(item.dueDate) && item.amount > 0)
 
@@ -5121,7 +5278,13 @@ function simulateDebtPayoff(
 
     balances.forEach((balance, index) => {
       if (balance <= 0) return
-      const minimumPayment = Math.min(items[index].minimumPayment, balances[index])
+      // A zero minimum on the *current* SOA may mean already paid. Future
+      // monthly minimums can resume; use an explicitly estimated amount for
+      // the projection rather than assuming zero payments for 20 years.
+      const projectedMinimum = items[index].kind === 'Credit card' && items[index].minimumPayment === 0
+        ? Math.max(500, Math.round(balances[index] * 0.04))
+        : items[index].minimumPayment
+      const minimumPayment = Math.min(projectedMinimum, balances[index])
       balances[index] -= minimumPayment
     })
 
@@ -5183,6 +5346,7 @@ function getSmartInsightCards({
   netCashflow,
   budgetMetrics,
   creditCardInsights,
+  debts,
   debtPlan,
 }: {
   totalCash: number
@@ -5190,18 +5354,33 @@ function getSmartInsightCards({
   netCashflow: number
   budgetMetrics: BudgetMetric[]
   creditCardInsights: CreditCardInsight[]
+  debts: Debt[]
   debtPlan: DebtPayoffPlan
 }): SmartInsight[] {
   const cards: SmartInsight[] = []
   const overBudget = budgetMetrics.find((metric) => metric.overBudget)
   const riskyCard = creditCardInsights.find((insight) => insight.status === 'avoid')
   const recommendedCard = creditCardInsights.find((insight) => insight.status === 'recommended')
+  const minimums = creditCardInsights.reduce((total, insight) => total + getCreditCardMinimumPayment(insight.card), 0)
+    + debts.reduce((total, debt) => total + getStandaloneDebtMinimum(debt), 0)
+  const requiredReserve = recurringTotal + minimums
+
+  if (minimums > 0) {
+    cards.push({
+      label: 'Debt minimums first',
+      title: `Reserve ${peso.format(minimums)} for debt minimums`,
+      message: totalCash < requiredReserve
+        ? `Bills plus debt minimums require ${peso.format(requiredReserve)}. You are ${peso.format(requiredReserve - totalCash)} short based on tracked cash.`
+        : `Required bills and minimum debt payments total ${peso.format(requiredReserve)}. Only extra cash should go toward an avalanche payment.`,
+      tone: totalCash < requiredReserve ? 'risk' : 'watch',
+    })
+  }
 
   if (recurringTotal > 0) {
     cards.push({
       label: 'Bills first',
       title: `Reserve ${peso.format(recurringTotal)}`,
-      message: `Keep this amount untouched for unpaid bills. Current cash after reservation: ${peso.format(totalCash - recurringTotal)}.`,
+      message: `Set aside bills before discretionary spending; together with debt minimums, reserve ${peso.format(requiredReserve)}.`,
       tone: totalCash >= recurringTotal ? 'watch' : 'risk',
     })
   }
@@ -5274,77 +5453,65 @@ function getPaydayAllocationPlan({
   debts: Debt[]
   debtPlan: DebtPayoffPlan
 }): PaydayAllocationPlan {
-  const cleanIncome = Math.max(0, Math.round(income))
+  const cleanIncome = Math.max(0, Number.isFinite(income) ? income : 0)
   const creditCardDebt = creditCardInsights.reduce((total, insight) => total + insight.card.currentBalance, 0)
   const loanBalance = debts.reduce((total, debt) => total + debt.balance, 0)
-  const monthlyLoanDue = debts.reduce((total, debt) => total + Math.min(debt.monthly, debt.balance), 0)
+  const monthlyCardDue = creditCardInsights.reduce(
+    (total, insight) => total + getCreditCardMinimumPayment(insight.card), 0,
+  )
+  const monthlyLoanDue = debts.reduce(
+    (total, debt) => total + getStandaloneDebtMinimum(debt), 0,
+  )
+  const requiredReserve = recurringTotal + monthlyCardDue + monthlyLoanDue
   const riskyCard = creditCardInsights.find((insight) => insight.status === 'avoid')
-  const watchCard = creditCardInsights.find((insight) => insight.status === 'watch')
+  const focusName = debtPlan.focusName !== 'No active debt' ? debtPlan.focusName : (riskyCard?.card.name ?? 'Savings buffer')
 
   let remaining = cleanIncome
   const bills = Math.min(remaining, recurringTotal)
   remaining -= bills
+  const cardMinimumAllocation = Math.min(remaining, monthlyCardDue)
+  remaining -= cardMinimumAllocation
+  const loanMinimumAllocation = Math.min(remaining, monthlyLoanDue)
+  remaining -= loanMinimumAllocation
 
-  const creditCardTarget = creditCardDebt > 0 ? Math.min(remaining, Math.round(cleanIncome * 0.28), creditCardDebt) : 0
-  remaining -= creditCardTarget
-
-  const loanTarget = loanBalance > 0 ? Math.min(remaining, monthlyLoanDue || Math.round(cleanIncome * 0.18), loanBalance) : 0
-  remaining -= loanTarget
-
-  const savingsTarget = Math.min(remaining, Math.round(cleanIncome * (creditCardDebt + loanBalance > 0 ? 0.10 : 0.25)))
-  remaining -= savingsTarget
-
-  const flexibleCash = Math.max(0, remaining)
-  const focusName =
-    riskyCard?.card.name ??
-    watchCard?.card.name ??
-    (debtPlan.focusName !== 'No active debt' ? debtPlan.focusName : recurringTotal > 0 ? 'Unpaid bills' : 'Savings buffer')
-
-  if (cleanIncome <= 0) {
-    return {
-      income: cleanIncome,
-      bills: 0,
-      creditCards: 0,
-      loanDebts: 0,
-      savings: 0,
-      flexibleCash: 0,
-      focusName: 'Enter an income amount',
-      message: 'Add your expected payday amount to generate an allocation plan.',
-      tone: 'watch',
-    }
-  }
-
-  if (cleanIncome < recurringTotal) {
+  const shortfall = Math.max(0, requiredReserve - cleanIncome)
+  if (shortfall > 0 || cleanIncome <= 0) {
     return {
       income: cleanIncome,
       bills,
-      creditCards: 0,
-      loanDebts: 0,
+      creditCards: cardMinimumAllocation,
+      loanDebts: loanMinimumAllocation,
       savings: 0,
-      flexibleCash,
-      focusName: 'Unpaid bills',
-      message: `This income is not enough to fully cover unpaid bills. Add ${peso.format(recurringTotal - cleanIncome)} more or delay non-essential spending.`,
+      flexibleCash: 0,
+      focusName: requiredReserve > 0 ? 'Cover required payments' : 'Enter an income amount',
+      message: cleanIncome <= 0
+        ? `Enter your expected income. Known unpaid bills and debt minimums require ${peso.format(requiredReserve)}.`
+        : `This income alone is ${peso.format(shortfall)} short of bills and minimum payments. Do not allocate extras or savings until all required payments are funded.${totalCash >= shortfall ? ' Existing cash may help, but keep enough for essentials.' : ''}`,
       tone: 'risk',
     }
   }
 
-  const projectedCash = totalCash + cleanIncome - bills - creditCardTarget - loanTarget - savingsTarget
-  const tone: PaydayAllocationPlan['tone'] = projectedCash >= recurringTotal * 1.5 ? 'good' : 'watch'
-  const message =
-    creditCardDebt + loanBalance > 0
-      ? `Reserve bills first, then send extra money to ${focusName}. Keep flexible cash for food, transport, and small emergencies.`
-      : 'Bills are covered. Build your savings buffer and keep flexible cash for the rest of the pay period.'
+  // Add surplus to credit card avalanche first; do not replace actual minimums
+  // with an arbitrary percentage of payday income.
+  const extraCard = creditCardDebt > monthlyCardDue ? Math.min(remaining * 0.7, creditCardDebt - monthlyCardDue) : 0
+  remaining -= extraCard
+  const extraLoan = loanBalance > monthlyLoanDue && extraCard <= 0
+    ? Math.min(remaining * 0.4, loanBalance - monthlyLoanDue) : 0
+  remaining -= extraLoan
+  const savings = Math.min(remaining, remaining * (creditCardDebt + loanBalance > 0 ? 0.15 : 0.3))
+  remaining -= savings
+  const flexibleCash = Math.max(0, remaining)
 
   return {
     income: cleanIncome,
     bills,
-    creditCards: creditCardTarget,
-    loanDebts: loanTarget,
-    savings: savingsTarget,
+    creditCards: cardMinimumAllocation + extraCard,
+    loanDebts: loanMinimumAllocation + extraLoan,
+    savings,
     flexibleCash,
     focusName,
-    message,
-    tone,
+    message: `Bills (${peso.format(recurringTotal)}) and remaining minimums (${peso.format(monthlyCardDue + monthlyLoanDue)}) are reserved first. Only then consider extra debt payments to ${focusName}. Treat this as a planning guide, not an automatic payment.`,
+    tone: totalCash >= requiredReserve ? 'good' : 'watch',
   }
 }
 
@@ -5353,15 +5520,20 @@ function getAffordabilityResult({
   totalCash,
   recurringTotal,
   creditCardInsights,
+  debts,
 }: {
   amount: number
   totalCash: number
   recurringTotal: number
   creditCardInsights: CreditCardInsight[]
+  debts: Debt[]
 }): AffordabilityResult {
   const cleanAmount = Math.max(0, Math.round(amount))
   const remainingCash = totalCash - cleanAmount
-  const safeBuffer = Math.max(3000, recurringTotal * 1.25)
+  const minimums = creditCardInsights.reduce((total, insight) => total + getCreditCardMinimumPayment(insight.card), 0)
+    + debts.reduce((total, debt) => total + getStandaloneDebtMinimum(debt), 0)
+  const reserved = recurringTotal + minimums
+  const safeBuffer = Math.max(3000, reserved * 1.25)
   const recommendedCard = creditCardInsights.find((insight) => insight.status === 'recommended')
   const riskyCard = creditCardInsights.find((insight) => insight.status === 'avoid')
   const availableRecommendedCredit = recommendedCard
@@ -5379,7 +5551,7 @@ function getAffordabilityResult({
   }
 
   if (cleanAmount > totalCash) {
-    const canUseRecommendedCard = Boolean(recommendedCard && availableRecommendedCredit >= cleanAmount)
+    const canUseRecommendedCard = Boolean(recommendedCard && availableRecommendedCredit >= cleanAmount && totalCash >= reserved)
     const recommendedCardName = recommendedCard?.card.name ?? 'the recommended card'
     return {
       status: 'Not enough cash',
@@ -5392,12 +5564,12 @@ function getAffordabilityResult({
     }
   }
 
-  if (remainingCash < recurringTotal) {
+  if (remainingCash < reserved) {
     return {
       status: 'Not recommended',
       tone: 'risk',
       remainingCash,
-      message: `This purchase may leave you short for unpaid bills. Keep at least ${peso.format(recurringTotal)} reserved before spending on wants.`,
+      message: `This purchase may leave you short for bills and minimum debt payments. Reserve ${peso.format(reserved)} (including ${peso.format(minimums)} in debt minimums) before optional spending.`,
       paymentAdvice: 'Do not buy now',
     }
   }
@@ -5416,9 +5588,26 @@ function getAffordabilityResult({
     status: 'Looks safe',
     tone: 'good',
     remainingCash,
-    message: 'This purchase appears affordable based on your current cash and known unpaid bills. Still avoid it if it is not a priority.',
+    message: 'This purchase appears affordable after known bills and minimum debt payments. Still avoid it if it is not a priority.',
     paymentAdvice: recommendedCard ? `Cash or ${recommendedCard.card.name}` : 'Cash is okay',
   }
+}
+
+function getLinkedCardInstallments(debts: Debt[], card: CreditCardAccount): Debt[] {
+  return debts.filter((debt) =>
+    debt.kind === 'credit-card-installment' && (
+      debt.linkedCardId === card.id ||
+      (debt.linkedCardId === undefined && debt.source === 'Imported credit card SOA' && debt.name.startsWith(`${card.name} - `))
+    ),
+  )
+}
+
+function getStandaloneDebtMinimum(debt: Debt) {
+  // Installment amounts imported from the SOA can already be included in
+  // the card's statement minimum. Keep future exposure separate from
+  // this month's cash reservation to prevent counting it twice.
+  if (debt.kind === 'credit-card-installment' && (debt.source === 'Imported credit card SOA' || debt.source === 'Credit card details' || debt.linkedCardId !== undefined)) return 0
+  return Math.min(Math.max(debt.monthly, 0), Math.max(debt.balance, 0))
 }
 
 function getCreditCardMinimumPayment(card: CreditCardAccount) {
@@ -6614,6 +6803,8 @@ function normalizeCreditCards(rawCreditCards: unknown): CreditCardAccount[] {
     const minimumDue = Number(card.minimumDue)
     if (card.minimumDue !== undefined && Number.isFinite(minimumDue) && minimumDue >= 0) normalizedCard.minimumDue = minimumDue
 
+    if (typeof card.statementDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(card.statementDate)) normalizedCard.statementDate = card.statementDate
+    if (typeof card.paymentDueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(card.paymentDueDate)) normalizedCard.paymentDueDate = card.paymentDueDate
     if (typeof card.lastPaymentAt === 'string') normalizedCard.lastPaymentAt = card.lastPaymentAt
 
     return normalizedCard
@@ -6689,6 +6880,7 @@ function normalizeDebts(rawDebts: unknown): Debt[] {
       annualRate: Number.isFinite(annualRate) && annualRate >= 0 ? annualRate : 0.12,
       source: typeof debt.source === 'string' ? debt.source : undefined,
       kind,
+      linkedCardId: Number.isFinite(Number(debt.linkedCardId)) && debt.linkedCardId !== undefined ? Number(debt.linkedCardId) : undefined,
     }
   })
 }
@@ -6814,11 +7006,6 @@ const inlineCardActionsStyle: CSSProperties = {
   display: 'flex',
   gap: 6,
   flex: '0 0 auto',
-}
-
-const wideSoftButtonStyle: CSSProperties = {
-  ...softButtonStyle,
-  marginTop: 10,
 }
 
 const previewCardStyle: CSSProperties = {

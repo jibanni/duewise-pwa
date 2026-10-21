@@ -1,0 +1,74 @@
+/* Due₱oint V6 — all credit-card statement fields in one Card Details screen.
+   Keeps V3 dock and V4 breathable spacing intact. */
+#root .app-shell .mobile-app .dp-card-details-action {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 8px;
+  min-height: 30px;
+  border: 1px solid rgba(48,102,168,.21);
+  border-radius: 10px;
+  color: #1758a5;
+  background: rgba(61,125,201,.08);
+  box-shadow: none;
+  cursor: pointer;
+}
+#root .app-shell .mobile-app .dp-card-details-action svg { width: 13px; height: 13px; }
+#root .app-shell.theme-dark .mobile-app .dp-card-details-action { color: #d4e5ff; background: #294363; border-color: #5277a7; }
+.dp-card-statement-meta { display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 8px; font-size: 10.5px; color: var(--dw-muted,#64748b); }
+.dp-card-details-form { display: flex !important; flex-direction: column; gap: 14px !important; }
+.dp-card-modal-section {
+  border: 1px solid rgba(43,93,155,.15);
+  background: rgba(76,132,207,.045);
+  border-radius: 16px;
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dp-card-modal-section > strong { display: block; font-size: 15px; color: var(--dw-text, #17253c); }
+.dp-card-modal-section-title { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.dp-card-modal-section-title strong { font-size: 15px; color: var(--dw-text,#17253c); }
+.dp-card-modal-section-title span { font-size: 10.5px; color: var(--dw-muted,#617089); }
+.dp-card-modal-section .minimum-field-help { margin: 0; }
+.dp-card-advanced {
+  overflow: hidden;
+  border: 1px solid rgba(43,93,155,.14);
+  border-radius: 15px;
+  background: rgba(73,127,194,.045);
+}
+.dp-card-advanced > summary {
+  list-style-position: inside;
+  padding: 13px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--dw-text,#17253c);
+  user-select: none;
+}
+.dp-card-advanced > summary span { font-size: 10.5px; font-weight: 500; color: var(--dw-muted,#65748c); padding-left: 5px; }
+.dp-card-advanced-content { border-top: 1px solid rgba(43,93,155,.1); display: flex; flex-direction: column; gap: 12px; padding: 13px; }
+.dp-card-advanced-content .minimum-field-help { margin: 0; }
+.dp-card-installment-row { display: flex; flex-direction: column; gap: 9px; padding: 12px; border-radius: 13px; background: rgba(73,127,194,.08); }
+.dp-card-installment-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dp-card-installment-heading > strong { font-size: 12px; overflow-wrap: anywhere; }
+.dp-card-installment-heading > button { display: inline-flex; gap: 5px; align-items: center; padding: 4px; background: transparent; border: 0; color: #bd4545; font-size: 11px; cursor: pointer; }
+.dp-card-installment-amounts { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 9px; }
+.dp-card-installment-amounts label { min-width: 0; }
+.dp-card-installment-amounts input { min-width: 0; width: 100%; box-sizing: border-box; }
+.dp-card-add-installment { width: 100%; display: flex; gap: 8px; align-items: center; justify-content: center; background: rgba(42,111,202,.08); border: 1px solid rgba(42,111,202,.22); border-radius: 13px; padding: 12px; color: #1760ad; font-weight: 700; cursor: pointer; box-shadow: none; }
+#root .app-shell.theme-dark .dp-card-modal-section,
+#root .app-shell.theme-dark .dp-card-advanced { background: #1f3049; border-color: rgba(177,205,245,.18); }
+#root .app-shell.theme-dark .dp-card-modal-section > strong,
+#root .app-shell.theme-dark .dp-card-modal-section-title strong,
+#root .app-shell.theme-dark .dp-card-advanced > summary { color: #eaf2fd; }
+#root .app-shell.theme-dark .dp-card-installment-row { background: #253d5d; }
+#root .app-shell.theme-dark .dp-card-add-installment { color: #b9d9ff; border-color: #45658c; }
+@media (max-width: 390px) {
+  .dp-card-modal-section { padding: 11px; }
+  .dp-card-installment-amounts { grid-template-columns: minmax(0,1fr); }
+}

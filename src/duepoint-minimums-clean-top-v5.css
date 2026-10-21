@@ -1,0 +1,89 @@
+/* Due₱oint minimum-payment-aware UI + clean top edge — mobile and desktop.
+   Appends after v4. Bottom dock intentionally not targeted.
+*/
+#root .app-shell .mobile-app .app-header {
+  position: relative !important;
+  top: auto !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  isolation: isolate;
+}
+#root .app-shell .mobile-app .app-header::before,
+#root .app-shell .mobile-app .app-header::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+#root .app-shell {
+  background: var(--dw-bg, #f7f2e8) !important;
+  background-image: none !important;
+}
+#root .app-shell.theme-dark {
+  background: #141614 !important;
+  background-image: none !important;
+}
+.minimum-field-help {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dw-muted, #667085);
+  margin: 2px 0 10px;
+}
+.card-minimum-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(40,88,148,.12);
+  border-radius: 14px;
+  background: rgba(69,130,203,.06);
+}
+.card-minimum-row > div { display: flex; align-items: baseline; justify-content: space-between; flex: 1 1 210px; gap: 10px; }
+.card-minimum-row span { font-size: 11.5px; color: var(--dw-muted, #667085); }
+.card-minimum-row strong { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--dw-text, #1e293b); }
+.card-minimum-row small { width: 100%; font-size: 10.5px; color: var(--dw-muted, #667085); }
+.minimum-summary-card {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(69,130,203,.065);
+  border: 1px solid rgba(69,130,203,.18);
+  display: grid;
+  gap: 13px;
+  box-shadow: none !important;
+}
+.minimum-summary-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.minimum-summary-heading p { margin: 0 0 5px; color:var(--dw-muted,#64748b); font-size:11px; }
+.minimum-summary-heading h3 { margin:0; font-size:21px; line-height:1.25; color:var(--dw-text,#1e293b); font-variant-numeric: tabular-nums; }
+.minimum-summary-heading h3 span { display:block; font-weight:500; font-size:12px; margin-top:3px; color:var(--dw-muted,#64748b); }
+.minimum-status-risk, .minimum-status-ok { font-size:10.5px; font-weight:700; border-radius:999px; padding:5px 8px; text-align:center; white-space:nowrap; }
+.minimum-status-risk { color:#a72c2c; background:#fee5e5; }
+.minimum-status-ok { color:#16714a; background:#dff4eb; }
+.minimum-summary-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+.minimum-summary-grid > div { min-width:0; background:rgba(255,255,255,.58); border-radius:12px; padding:10px 8px; }
+.minimum-summary-grid span { display:block; font-size:10px; color:#64748b; margin-bottom:5px; }
+.minimum-summary-grid strong { font-size:clamp(11px,3.2vw,14px); color:#1e293b; line-height:1.3; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.minimum-warning, .minimum-footnote { margin:0; font-size:11.5px; line-height:1.45; }
+.minimum-warning { color:#b02b32; }
+.minimum-footnote { color:var(--dw-muted,#64748b); }
+.minimum-card-list { display:grid; gap:4px; }
+.minimum-card-list > div { padding:8px 0; display:flex; align-items:baseline; justify-content:space-between; gap:8px; border-top:1px solid rgba(80,95,115,.12); }
+.minimum-card-list span { font-size:11px; line-height:1.35; color:var(--dw-muted,#64748b); }
+.minimum-card-list strong { font-size:12px; font-variant-numeric:tabular-nums; color:var(--dw-text,#1e293b); white-space:nowrap; }
+#root .app-shell.theme-dark .minimum-summary-card { background:#1b283c; border-color:rgba(164,197,255,.15); }
+#root .app-shell.theme-dark .minimum-summary-grid > div { background:rgba(255,255,255,.06); }
+#root .app-shell.theme-dark .minimum-summary-grid strong { color:#f2f5fa; }
+#root .app-shell.theme-dark .minimum-summary-grid span { color:#afbdd0; }
+#root .app-shell.theme-dark .minimum-status-risk { background:#56282c; color:#ffcdcf; }
+#root .app-shell.theme-dark .minimum-status-ok { background:#1a4937; color:#baf2d0; }
+#root .app-shell.theme-dark .minimum-warning { color:#ffbec2; }
+@media(max-width:360px) {
+  .minimum-summary-heading { flex-wrap:wrap; }
+  .minimum-summary-grid { gap:5px; }
+  .minimum-summary-grid > div { padding:8px 6px; }
+}

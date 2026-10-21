@@ -7,6 +7,8 @@ import App from './App.tsx'
 import './duepoint-compact-mobile-v3.css'
 
 import './duepoint-breathable-v4.css'
+import './duepoint-minimums-clean-top-v5.css'
+import './duepoint-card-details-v6.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
