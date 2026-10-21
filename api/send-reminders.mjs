@@ -90,7 +90,7 @@ function remindersFromCloud(finance, now) {
   return items
 }
 
-export default async function handler(request, response) {
+export async function sendRemindersForSlot(slot, request, response) {
   if (request.method !== 'GET') return response.status(405).json({ error: 'Method not allowed' })
   const secret = process.env.CRON_SECRET
   if (!secret || request.headers.authorization !== `Bearer ${secret}`) {
@@ -112,12 +112,12 @@ export default async function handler(request, response) {
   let failed = 0
   let skipped = 0
   const { data: devices, error: listError } = await client.from('duepoint_push_subscriptions')
-    .select('endpoint,user_id,subscription,last_sent_local_date')
+    .select('endpoint,user_id,subscription,last_sent_local_date,last_sent_slot')
     .eq('enabled', true).limit(MAX_SUBSCRIPTIONS_PER_RUN)
   if (listError) return response.status(500).json({ error: 'Could not load device subscriptions' })
 
   for (const device of devices ?? []) {
-    if (device.last_sent_local_date === today) { skipped++; continue }
+    if (device.last_sent_local_date === today && device.last_sent_slot === slot) { skipped++; continue }
     const { data: row, error: financeError } = await client.from('duewise_user_data')
       .select('data').eq('user_id', device.user_id).maybeSingle()
     if (financeError || !row?.data) { skipped++; continue }
@@ -129,7 +129,7 @@ export default async function handler(request, response) {
     const body = reminders.length > 3 ? `${summary} · +${reminders.length - 3} more` : summary
     try {
       await webPush.sendNotification(device.subscription, JSON.stringify({ title, body }), { TTL: 86400, urgency: 'normal' })
-      await client.from('duepoint_push_subscriptions').update({ last_sent_local_date: today })
+      await client.from('duepoint_push_subscriptions').update({ last_sent_local_date: today, last_sent_slot: slot })
         .eq('endpoint', device.endpoint)
       sent++
     } catch (error) {
@@ -141,4 +141,8 @@ export default async function handler(request, response) {
   }
   response.setHeader('Cache-Control', 'no-store')
   return response.status(200).json({ sent, failed, skipped, date: today })
+}
+
+export default function handler(request, response) {
+  return sendRemindersForSlot('morning', request, response)
 }
