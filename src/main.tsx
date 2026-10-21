@@ -16,6 +16,11 @@ import './duepoint-card-list-v10.css'
 import './duepoint-card-list-v11-align.css'
 import './duepoint-month-calendar-v12.css'
 import './duepoint-calendar-event-colors-v12-fix.css'
+import './duepoint-v13.css'
+import './duepoint-v13-ui-polish.css'
+import './duepoint-v13-minimal-lock.css'
+import './duepoint-v13-nav-auto-hide.css'
+import './duepoint-v13-4-calendar-first.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

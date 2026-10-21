@@ -1,0 +1,38 @@
+/* DuePoint V13.3 – Facebook-style bottom dock auto-hide (mobile only).
+   Keep the exact existing nav geometry, colors, and quick actions. */
+@media (max-width: 700px) {
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3,
+  #root .app-shell .mobile-app button.main-fab.dp-fab-v3,
+  #root .app-shell .mobile-app button.main-fab.dp-fab-v3.open {
+    transition: transform 240ms cubic-bezier(.22,.78,.22,1), opacity 190ms ease !important;
+    will-change: transform;
+  }
+
+  /* Both pieces leave the viewport together, keeping the plus button centered. */
+  #root .app-shell .mobile-app.dp15-nav-hidden nav.bottom-nav.dp-navbar-v3,
+  #root .app-shell .mobile-app.dp15-nav-hidden button.main-fab.dp-fab-v3,
+  #root .app-shell .mobile-app.dp15-nav-hidden button.main-fab.dp-fab-v3.open {
+    transform: translate(-50%, calc(100% + 60px)) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Disallow focus on controls that have just slid offscreen. */
+  #root .app-shell .mobile-app.dp15-nav-hidden nav.bottom-nav.dp-navbar-v3 {
+    visibility: hidden !important;
+    transition: transform 240ms cubic-bezier(.22,.78,.22,1), opacity 190ms ease, visibility 0s linear 240ms !important;
+  }
+  #root .app-shell .mobile-app.dp15-nav-hidden button.main-fab.dp-fab-v3 {
+    visibility: hidden !important;
+    transition: transform 240ms cubic-bezier(.22,.78,.22,1), opacity 190ms ease, visibility 0s linear 240ms !important;
+  }
+}
+@media (max-width: 700px) and (prefers-reduced-motion: reduce) {
+  #root .app-shell .mobile-app nav.bottom-nav.dp-navbar-v3,
+  #root .app-shell .mobile-app button.main-fab.dp-fab-v3,
+  #root .app-shell .mobile-app button.main-fab.dp-fab-v3.open,
+  #root .app-shell .mobile-app.dp15-nav-hidden nav.bottom-nav.dp-navbar-v3,
+  #root .app-shell .mobile-app.dp15-nav-hidden button.main-fab.dp-fab-v3 {
+    transition: none !important;
+  }
+}

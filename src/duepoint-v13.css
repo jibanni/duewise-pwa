@@ -1,0 +1,164 @@
+/* Due₱oint V13 — Payment-first UI, flat deck and inline notifications.
+   Loads AFTER V12. Keeps existing navbar unchanged. */
+#root .app-shell .mobile-app .dp13-bell-button {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  padding: 0 !important;
+  border: 1px solid rgba(99,111,131,.17) !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+.dp13-bell-count {
+  position:absolute;
+  top:-5px;
+  right:-6px;
+  min-width:17px;
+  height:17px;
+  border-radius:50%;
+  background:#ef5e2d;
+  color:white;
+  display:grid;
+  place-items:center;
+  padding:0 3px;
+  box-sizing:border-box;
+  font-size:10px;
+  font-weight:800;
+  border:2px solid #faf6ef;
+}
+#root .app-shell .mobile-app .balance-hero.dp13-payables-hero {
+  width:100% !important;
+  box-sizing:border-box !important;
+  display:grid !important;
+  text-align:left !important;
+  gap:7px !important;
+  height:auto !important;
+  min-height:0 !important;
+  padding:19px 19px 20px !important;
+  color:white !important;
+  border-radius:22px !important;
+  border:0 !important;
+  background:#0d2d5e !important;
+  box-shadow:none !important;
+  cursor:pointer;
+}
+.dp13-payables-hero .hero-label {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin:0 !important;
+  width:100%;
+  font-size:13px !important;
+  font-weight:650 !important;
+  color:#d0e4ff !important;
+}
+#root .app-shell .mobile-app .dp13-payables-hero .dp13-hero-amount {
+  display:block;
+  font-size:clamp(31px,8vw,44px) !important;
+  font-weight:800 !important;
+  line-height:1.08 !important;
+  letter-spacing:-.045em !important;
+  color:#fff !important;
+  font-variant-numeric:tabular-nums !important;
+  overflow-wrap:anywhere;
+}
+.dp13-hero-breakdown,
+.dp13-hero-hint {
+  font-size:11.5px;
+  line-height:1.4;
+  color:#d0dded;
+}
+.dp13-hero-hint {color:#fbdcb1;}
+.dp13-wallet-deck {display:grid;gap:10px;min-width:0;}
+.dp13-deck-tabs {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  padding:4px 2px;
+  touch-action:pan-y;
+}
+.dp13-deck-tabs button {
+  background:transparent;
+  border:0;
+  border-bottom:2px solid transparent;
+  color:#728094;
+  font:inherit;
+  text-align:center;
+  font-weight:700;
+  font-size:14px;
+  padding:12px 5px;
+  border-radius:0;
+  box-shadow:none;
+}
+.dp13-deck-tabs button.active {color:#f05a22;border-bottom-color:#f05a22;}
+.dp13-deck-tabs small {font-size:11px;margin-left:4px;font-weight:600;}
+.dp13-deck-hint {font-size:11px;text-align:center;color:#8d96a3;margin-top:-3px;}
+.dp13-deck-content {min-height:120px;display:grid;align-content:start;gap:10px;}
+.dp13-inline-add {
+  display:flex;align-items:center;gap:7px;justify-self:start;
+  background:transparent;border:0;color:#225eb1;font-size:12px;font-weight:700;
+  padding:6px 0;box-shadow:none;
+}
+.dp13-wallet-deck .card-list {gap:10px !important;}
+.dp13-plan-heading h2 {margin:0;font-size:18px;letter-spacing:-.025em;color:inherit;}
+.dp13-plan-heading p {margin:3px 0 0;font-size:12px;color:#8992a0;}
+.dp13-plan-tabs {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;border-bottom:1px solid #e2e6ee;}
+.dp13-plan-tabs button {
+  background:transparent;color:#68778e;border:0;border-bottom:2px solid transparent;
+  padding:12px 3px 11px;font-size:12px;font-weight:700;box-shadow:none;
+}
+.dp13-plan-tabs button.active {color:#145ab6;border-color:#145ab6;}
+.dp13-plan-brief {display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 2px 4px;font-size:13px;color:#77818c;}
+.dp13-plan-brief strong {color:inherit;font-size:16px;font-weight:750;}
+.dp13-plan-card-payments {display:grid;gap:9px;padding:6px 0 12px;border-bottom:1px solid #e5e7eb;}
+.dp13-plan-card-payments h3 {margin:2px 0 3px;font-size:15px;color:inherit;}
+.dp13-plan-card-payments p {font-size:12px;color:#7a8492;}
+.dp13-pay-line {display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:9px;align-items:center;padding:10px 0;border-bottom:1px solid #e5e7eb;}
+.dp13-pay-line div {display:grid;gap:3px;min-width:0;}
+.dp13-pay-line strong {font-size:12.5px;}
+.dp13-pay-line small {color:#8691a2;font-size:11px;}
+.dp13-pay-line button {border:0;background:#e7effd;color:#1655a4;border-radius:9px;padding:8px 10px;font-size:12px;font-weight:700;box-shadow:none;}
+.dp13-missing-min {display:flex;justify-content:space-between;align-items:center;gap:5px;border:0;background:transparent;color:#be542e;text-align:left;font-size:12px;padding:5px 0;}
+.dp13-sheet {display:grid;gap:8px;padding:6px 0 10px;max-height:60dvh;overflow-y:auto;}
+.dp13-sheet-total {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 0 14px;border-bottom:1px solid #e3e8ef;color:inherit;font-size:12px;}
+.dp13-sheet-total strong {font-size:23px;color:inherit;font-variant-numeric:tabular-nums;}
+.dp13-sheet-note {font-size:12px;color:#7f8999;line-height:1.4;margin:4px 0 10px;}
+.dp13-sheet-item {display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:7px;padding:12px 0;border-bottom:1px solid #e5e7eb;}
+.dp13-sheet-item div {display:grid;gap:4px;min-width:0;}
+.dp13-sheet-item strong {font-size:13px;color:inherit;overflow-wrap:anywhere;}
+.dp13-sheet-item small {font-size:11px;color:#8790a0;}
+.dp13-sheet-item > span {font-size:12px;font-weight:750;color:inherit;white-space:nowrap;}
+.dp13-sheet-item button {font-size:12px;font-weight:750;border-radius:8px;background:#e7effc;color:#1654a3;border:0;padding:8px 9px;box-shadow:none;}
+.dp13-backup-link {background:transparent;border:0;color:#6e7b8b;text-decoration:underline;padding:14px 0;font-size:12px;justify-self:start;}
+.dp13-payment-presets {display:flex;gap:8px;flex-wrap:wrap;}
+.dp13-payment-presets button {padding:8px 11px;border-radius:9px;background:#edf3ff;border:1px solid #d6e3f6;color:#2158a0;font-size:12px;font-weight:700;box-shadow:none;}
+.dp12-event-dot--paid,.dp12-calendar-dot.dp12-event-dot--paid {background:#25a36a !important;background-color:#25a36a !important;}
+.dp12-calendar-tag--paid {color:#137b4e !important;background:transparent !important;border:0 !important;}
+#root .app-shell.theme-dark .dp13-plan-tabs {border-color:#354966;}
+#root .app-shell.theme-dark .dp13-plan-tabs button {color:#a4b3c7;}
+#root .app-shell.theme-dark .dp13-plan-tabs button.active {color:#82b8ff;}
+#root .app-shell.theme-dark .dp13-pay-line,#root .app-shell.theme-dark .dp13-sheet-item {border-color:#3a4c65;}
+#root .app-shell.theme-dark .dp13-plan-card-payments {border-color:#354966;}
+@media (max-width:370px) {
+  .dp13-sheet-item {grid-template-columns:minmax(0,1fr) auto;}
+  .dp13-sheet-item button {grid-column:2;}
+  .dp13-plan-tabs button {font-size:11px;}
+}
+
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-tag.dp12-calendar-tag--paid {
+  color: #15865a !important;
+  -webkit-text-fill-color: #15865a !important;
+}
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-dot.dp12-event-dot--paid,
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-legend .dp12-event-dot--paid {
+  background: #25a36a !important;
+}
+#root .app-shell.theme-dark .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-tag.dp12-calendar-tag--paid {
+  color: #65dbab !important;
+  -webkit-text-fill-color: #65dbab !important;
+}

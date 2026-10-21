@@ -7,6 +7,7 @@ import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type ElementType,
@@ -31,6 +32,7 @@ import {
   ArrowDownLeft,
   ArrowRightLeft,
   ArrowUpRight,
+  Bell,
   BarChart3,
   ChevronLeft,
   ChevronRight,
@@ -522,8 +524,161 @@ const navItems: NavItem[] = [
   { key: 'insights', label: 'Insights', icon: BarChart3 },
 ]
 
+type MonthlyObligation = {
+  id: string
+  kind: 'card' | 'bill' | 'debt'
+  sourceId: number
+  name: string
+  date: Date
+  amount: number | null
+  paid: boolean
+}
+
+function monthKeyForDate(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+function parseValidIsoDate(value?: string): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day ? date : null
+}
+
+function recurringDayFromText(value: string): number | null {
+  const match = value.match(/\b(?:every\s+)?(\d{1,2})(?:st|nd|rd|th)?\b/i)
+  if (!match) return null
+  const day = Number(match[1])
+  return day >= 1 && day <= 31 ? day : null
+}
+
+function sumPaymentsForDebt(transactions: Transaction[], name: string, year: number, month: number) {
+  return transactions.reduce((total, transaction) => {
+    const date = new Date(transaction.createdAt)
+    return transaction.label === `Debt payment - ${name}` && date.getFullYear() === year && date.getMonth() === month
+      ? total + transaction.amount : total
+  }, 0)
+}
+
+function getMonthlyObligations(year: number, month: number, financeData: FinanceData): MonthlyObligation[] {
+  const events = monthMoneyEvents(
+    year, month, getCreditCardInsights(financeData.creditCards),
+    financeData.recurringExpenses, financeData.debts, financeData.transactions,
+  )
+  const result: MonthlyObligation[] = []
+  for (const event of events) {
+    if (event.billId !== undefined) {
+      result.push({id:event.id,kind:'bill',sourceId:event.billId,name:event.title,date:event.date,amount:event.amount,paid:Boolean(event.paid)})
+    } else if (event.cardId !== undefined && event.type === 'Due') {
+      const card = financeData.creditCards.find((item) => item.id === event.cardId)
+      if (!card || card.currentBalance <= 0) continue
+      result.push({id:event.id,kind:'card',sourceId:event.cardId,name:card.name,date:event.date,amount:event.amount,paid:Boolean(event.paid)})
+    } else if (event.debtId !== undefined) {
+      result.push({id:event.id,kind:'debt',sourceId:event.debtId,name:event.title,date:event.date,amount:event.amount,paid:Boolean(event.paid)})
+    }
+  }
+  return result.sort((a,b)=>a.date.getTime()-b.date.getTime() || a.name.localeCompare(b.name))
+}
+
+function getUpcomingNotifications(financeData: FinanceData): MonthlyObligation[] {
+  const today = startOfDay(new Date())
+  const year = today.getFullYear(), month = today.getMonth()
+  const obligations = [
+    ...getMonthlyObligations(year,month,financeData),
+    ...getMonthlyObligations(new Date(year,month+1,1).getFullYear(),new Date(year,month+1,1).getMonth(),financeData),
+  ]
+  return obligations.filter((item) => {
+    if (item.paid || item.amount === null || item.amount <= 0) return false
+    const days = Math.round((startOfDay(item.date).getTime()-today.getTime())/DAY_IN_MS)
+    return days <= 7 && item.date >= new Date(year,month,1)
+  }).sort((a,b)=>a.date.getTime()-b.date.getTime())
+}
+
+function MonthlyPayablesModal({items,onClose,onPay}: {
+  items: MonthlyObligation[]
+  onClose: () => void
+  onPay: (item: MonthlyObligation) => void
+}) {
+  const active = items.filter((item)=>!item.paid && (item.amount===null || item.amount>0))
+  const total = active.reduce((sum,item)=>sum+(item.amount ?? 0),0)
+  const unknown = active.filter((item)=>item.amount===null).length
+  return (
+    <ModalShell eyebrow="Payments" title="To Pay This Month" onClose={onClose}>
+      <div className="dp13-sheet">
+        <div className="dp13-sheet-total"><span>Unpaid known amounts</span><strong>{peso.format(total)}</strong></div>
+        {unknown > 0 && <p className="dp13-sheet-note">{unknown} card minimum{unknown>1?'s':''} not entered and excluded from the total.</p>}
+        {active.length === 0 && <p className="dp13-sheet-note">No unpaid payments scheduled this month.</p>}
+        {active.map((item)=><div className="dp13-sheet-item" key={item.id}>
+          <div><strong>{item.name}</strong><small>{item.kind === 'bill'?'Bill':item.kind==='card'?'Card minimum':'Loan'} · {item.date.toLocaleDateString('en-PH',{month:'short',day:'numeric'})}</small></div>
+          <span>{item.amount === null?'Not entered':peso.format(item.amount)}</span>
+          <button type="button" onClick={()=>onPay(item)}>{item.amount===null?'Add minimum':'Pay'}</button>
+        </div>)}
+      </div>
+    </ModalShell>
+  )
+}
+
+function NotificationCenterPopover({items,onClose,onOpen,onCloud}: {
+  items: MonthlyObligation[]
+  onClose: () => void
+  onOpen: (item: MonthlyObligation) => void
+  onCloud: () => void
+}) {
+  const today = startOfDay(new Date())
+  const overdue = items.filter((item) => startOfDay(item.date).getTime() < today.getTime())
+  const dueToday = items.filter((item) => startOfDay(item.date).getTime() === today.getTime())
+  const comingUp = items.filter((item) => startOfDay(item.date).getTime() > today.getTime())
+
+  function renderItem(item: MonthlyObligation) {
+    const date = startOfDay(item.date)
+    const days = Math.round((date.getTime() - today.getTime()) / DAY_IN_MS)
+    return (
+      <div className="dp14-notif-item" key={item.id}>
+        <span className={`dp14-notif-status ${days < 0 ? 'is-overdue' : days === 0 ? 'is-today' : 'is-soon'}`} aria-hidden="true" />
+        <div className="dp14-notif-info">
+          <strong>{item.name}</strong>
+          <small>{item.kind === 'card' ? 'Card minimum' : item.kind === 'bill' ? 'Bill' : 'Loan'} · {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : `Due ${item.date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}`}</small>
+        </div>
+        <div className="dp14-notif-action">
+          <strong>{item.amount === null ? '—' : peso.format(item.amount)}</strong>
+          <button type="button" onClick={() => onOpen(item)}>Pay</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <button className="dp14-notif-dismiss" type="button" tabIndex={-1} aria-label="Close notifications" onClick={onClose} />
+      <section
+        className="dp14-notif-popover"
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="dp14-notifications-title"
+        onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }}
+      >
+        <div className="dp14-notif-head">
+          <div>
+            <h2 id="dp14-notifications-title">Notifications</h2>
+            <p>{items.length === 0 ? 'Nothing needs attention' : `${items.length} upcoming or overdue payment${items.length === 1 ? '' : 's'}`}</p>
+          </div>
+          <button type="button" className="dp14-notif-close" aria-label="Close notifications" onClick={onClose}><X size={18}/></button>
+        </div>
+        <div className="dp14-notif-scroll">
+          {items.length === 0 && <p className="dp14-notif-empty">You're all caught up for the next 7 days.</p>}
+          {overdue.length > 0 && <div className="dp14-notif-group"><h3>Overdue</h3>{overdue.map(renderItem)}</div>}
+          {dueToday.length > 0 && <div className="dp14-notif-group"><h3>Today</h3>{dueToday.map(renderItem)}</div>}
+          {comingUp.length > 0 && <div className="dp14-notif-group"><h3>Next 7 days</h3>{comingUp.map(renderItem)}</div>}
+        </div>
+        <button type="button" className="dp14-notif-cloud" onClick={onCloud}>Cloud backup settings</button>
+      </section>
+    </>
+  )
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('today')
+  const [navHidden, setNavHidden] = useState(false)
   const [fabOpen, setFabOpen] = useState(false)
   const [activeAction, setActiveAction] = useState<QuickAction | null>(null)
   const [financeData, setFinanceData] = useState<FinanceData>(loadFinanceData)
@@ -531,6 +686,8 @@ function App() {
   const [messageDialog, setMessageDialog] = useState<MessageDialogState | null>(null)
   const [transactionHistoryOpen, setTransactionHistoryOpen] = useState(false)
   const [cloudSyncOpen, setCloudSyncOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [payablesOpen, setPayablesOpen] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const [cloudReady, setCloudReady] = useState(false)
   const [cloudSyncBusy, setCloudSyncBusy] = useState(false)
@@ -550,6 +707,80 @@ function App() {
   const [goalMoneyTarget, setGoalMoneyTarget] = useState<{ goal: SavingsGoal; mode: 'deposit' | 'withdraw' } | null>(null)
   const [debtPaymentTarget, setDebtPaymentTarget] = useState<Debt | null>(null)
   const [statementImporterOpen, setStatementImporterOpen] = useState(false)
+
+  const overlayVisible = Boolean(
+    notificationsOpen || payablesOpen || messageDialog || transactionHistoryOpen ||
+    cloudSyncOpen || activeAction || accountEditor || cardEditor || billEditor ||
+    budgetEditor || goalEditor || debtEditor || billPaymentTarget ||
+    cardPaymentTarget || goalMoneyTarget || debtPaymentTarget || statementImporterOpen,
+  )
+
+  // Show the dock while scrolling upward; tuck it below the screen while scrolling down.
+  // DuePoint scrolls inside .mobile-app, not window, so observe that exact element.
+  useEffect(() => {
+    const viewport = document.querySelector<HTMLElement>('#root .mobile-app')
+    if (!viewport) return
+    if (overlayVisible || fabOpen) {
+      setNavHidden(false)
+      return
+    }
+
+    setNavHidden(false)
+    let previousY = Math.max(0, viewport.scrollTop)
+    let direction = 0
+    let distance = 0
+
+    function handleScroll() {
+      if (!viewport) return
+      const maximum = Math.max(0, viewport.scrollHeight - viewport.clientHeight)
+      const currentY = Math.min(maximum, Math.max(0, viewport.scrollTop))
+      const movement = currentY - previousY
+      previousY = currentY
+
+      // Never hide when the page is short or near the top.
+      if (maximum < 100 || currentY < 60) {
+        direction = 0
+        distance = 0
+        setNavHidden(false)
+        return
+      }
+      if (Math.abs(movement) < 1) return
+
+      const nextDirection = movement > 0 ? 1 : -1
+      distance = direction === nextDirection ? distance + Math.abs(movement) : Math.abs(movement)
+      direction = nextDirection
+
+      // Avoid jitter on small finger movements and iOS momentum scrolling.
+      if (distance >= 18) {
+        if (nextDirection > 0 && currentY > 110) setNavHidden(true)
+        if (nextDirection < 0) setNavHidden(false)
+        distance = 0
+      }
+    }
+
+    viewport.addEventListener('scroll', handleScroll, { passive: true })
+    return () => viewport.removeEventListener('scroll', handleScroll)
+  }, [activeTab, overlayVisible, fabOpen])
+
+  // Lock the app's actual scroll container while any popup or dialog is open.
+  // Keep scrolling enabled inside modal panels and the notification callout.
+  useEffect(() => {
+    if (!overlayVisible) return
+    const viewport = document.querySelector<HTMLElement>('#root .mobile-app')
+    if (!viewport) return
+    const oldOverflow = viewport.style.getPropertyValue('overflow-y')
+    const oldPriority = viewport.style.getPropertyPriority('overflow-y')
+    const oldOverscroll = viewport.style.overscrollBehaviorY
+    const position = viewport.scrollTop
+    viewport.style.setProperty('overflow-y', 'hidden', 'important')
+    viewport.style.overscrollBehaviorY = 'none'
+    return () => {
+      if (oldOverflow) viewport.style.setProperty('overflow-y', oldOverflow, oldPriority)
+      else viewport.style.removeProperty('overflow-y')
+      viewport.style.overscrollBehaviorY = oldOverscroll
+      viewport.scrollTop = position
+    }
+  }, [overlayVisible])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(financeData))
@@ -629,6 +860,18 @@ function App() {
     () => getCreditCardInsights(financeData.creditCards),
     [financeData.creditCards],
   )
+
+  const monthlyObligations = useMemo(() => {
+    const date = new Date()
+    return getMonthlyObligations(date.getFullYear(), date.getMonth(), financeData)
+  }, [financeData])
+  const monthlyOutstanding = monthlyObligations.filter((item) => !item.paid && item.amount !== null && item.amount > 0)
+  const monthlyPayableTotal = monthlyOutstanding.reduce((sum, item) => sum + (item.amount ?? 0), 0)
+  const cardMinimumTotal = monthlyOutstanding.filter((item) => item.kind === 'card').reduce((sum, item) => sum + (item.amount ?? 0), 0)
+  const billsTotal = monthlyOutstanding.filter((item) => item.kind === 'bill').reduce((sum, item) => sum + (item.amount ?? 0), 0)
+  const loanTotal = monthlyOutstanding.filter((item) => item.kind === 'debt').reduce((sum, item) => sum + (item.amount ?? 0), 0)
+  const missingMinimumCount = monthlyObligations.filter((item) => item.kind === 'card' && item.amount === null).length
+  const notificationItems = useMemo(() => getUpcomingNotifications(financeData), [financeData])
 
   const budgetMetrics = useMemo(
     () => getBudgetMetrics(financeData.monthlyBudgets, financeData.transactions),
@@ -1450,7 +1693,7 @@ function App() {
 
   return (
     <main className={`app-shell ${darkMode ? 'theme-dark' : ''}`}>
-      <section className="mobile-app">
+      <section className={`mobile-app ${navHidden && !overlayVisible && !fabOpen ? 'dp15-nav-hidden' : ''}`}>
         <header className="app-header">
           <div className="dp-header-title">
             <span className="dp-header-wordmark">DUEPOINT</span>
@@ -1467,31 +1710,65 @@ function App() {
               {darkMode ? <Sun size={19} /> : <Moon size={19} />}
             </button>
 
-            <button className="profile-button" type="button" onClick={() => setCloudSyncOpen(true)}>
-              {session ? getUserInitials(session.user.email) : '☁'}
-            </button>
+            <div className="dp14-bell-anchor">
+              <button
+                className="dp13-bell-button"
+                type="button"
+                aria-label={`${notificationItems.length} upcoming payment reminders`}
+                aria-expanded={notificationsOpen}
+                aria-haspopup="dialog"
+                onClick={() => setNotificationsOpen((open) => !open)}
+              >
+                <Bell size={20} />
+                {notificationItems.length > 0 && <span className="dp13-bell-count">{notificationItems.length > 99 ? '99+' : notificationItems.length}</span>}
+              </button>
+              {notificationsOpen && (
+                <NotificationCenterPopover
+                  items={notificationItems}
+                  onClose={() => setNotificationsOpen(false)}
+                  onOpen={(item) => {
+                    setNotificationsOpen(false)
+                    if (item.kind === 'bill') {
+                      const bill = financeData.recurringExpenses.find((entry) => entry.id === item.sourceId)
+                      if (bill) setBillPaymentTarget(bill)
+                    } else if (item.kind === 'card') {
+                      const card = financeData.creditCards.find((entry) => entry.id === item.sourceId)
+                      if (card) setCardPaymentTarget(card)
+                    } else {
+                      const debt = financeData.debts.find((entry) => entry.id === item.sourceId)
+                      if (debt) setDebtPaymentTarget(debt)
+                    }
+                  }}
+                  onCloud={() => { setNotificationsOpen(false); setCloudSyncOpen(true) }}
+                />
+              )}
+            </div>
           </div>
         </header>
 
         {activeTab === 'today' && (
-          <section className="balance-hero">
-            <div>
-              <p className="hero-label">Available Cash</p>
-              <h2>{peso.format(totalCash)}</h2>
-              <p className="hero-description">Estimated spendable balance across your cash accounts</p>
-            </div>
-          </section>
+          <button type="button" className="balance-hero dp13-payables-hero dp134-payables-hero" onClick={() => setPayablesOpen(true)} aria-label={`Open monthly payables, ${peso.format(monthlyPayableTotal)}`}>
+            <span className="hero-label">To Pay This Month <ChevronRight size={19}/></span>
+            <strong className="dp13-hero-amount">{peso.format(monthlyPayableTotal)}</strong>
+            <span className="dp14-hero-breakdown">
+              <span><small>Bills</small><strong>{peso.format(billsTotal)}</strong></span>
+              <span><small>Cards</small><strong>{peso.format(cardMinimumTotal)}</strong></span>
+              {loanTotal > 0 && <span><small>Loans</small><strong>{peso.format(loanTotal)}</strong></span>}
+            </span>
+            {missingMinimumCount > 0 && <span className="dp14-hero-notice">{missingMinimumCount} card minimum{missingMinimumCount > 1 ? 's' : ''} missing · not included</span>}
+          </button>
         )}
 
         <section className="page-content">
           {activeTab === 'today' && (
             <TodayPage
-              totalCash={totalCash}
-              totalDebt={totalDebt}
               creditCardInsights={creditCardInsights}
               recurringExpenses={financeData.recurringExpenses}
+              debts={financeData.debts}
+              transactions={financeData.transactions}
               onOpenCard={setCardEditor}
               onOpenBill={setBillEditor}
+              onOpenDebt={setDebtEditor}
             />
           )}
 
@@ -1514,6 +1791,9 @@ function App() {
             <PlanPage
               recurringExpenses={activeBills}
               recurringTotal={recurringTotal}
+              creditCards={financeData.creditCards}
+              onPayCard={setCardPaymentTarget}
+              onEditCard={setCardEditor}
               savingsGoals={financeData.savingsGoals}
               debts={financeData.debts}
               budgetMetrics={budgetMetrics}
@@ -1573,40 +1853,6 @@ function App() {
           </button>
         </div>
 
-        {activeTab === 'plan' && !fabOpen && (
-          <div className="plan-fab-actions" aria-label="Plan quick add actions">
-            <button
-              type="button"
-              className="plan-mini-fab budget"
-              aria-label="Add budget"
-              title="Add budget"
-              onClick={() => setBudgetEditor('new')}
-            >
-              <ClipboardList size={22} />
-              <span>Budget</span>
-            </button>
-            <button
-              type="button"
-              className="plan-mini-fab savings"
-              aria-label="Add savings goal"
-              title="Add savings goal"
-              onClick={() => setGoalEditor('new')}
-            >
-              <WalletCards size={22} />
-              <span>Savings</span>
-            </button>
-            <button
-              type="button"
-              className="plan-mini-fab debt"
-              aria-label="Add debt"
-              title="Add debt"
-              onClick={() => setDebtEditor('new')}
-            >
-              <Landmark size={22} />
-              <span>Debt</span>
-            </button>
-          </div>
-        )}
 
         <button
           className={`main-fab dp-fab-v3 ${fabOpen ? 'open' : ''}`}
@@ -1759,6 +2005,26 @@ function App() {
           />
         )}
 
+        {payablesOpen && (
+          <MonthlyPayablesModal
+            items={monthlyObligations}
+            onClose={() => setPayablesOpen(false)}
+            onPay={(item) => {
+              setPayablesOpen(false)
+              if (item.kind === 'bill') {
+                const bill = financeData.recurringExpenses.find((entry) => entry.id === item.sourceId)
+                if (bill) setBillPaymentTarget(bill)
+              } else if (item.kind === 'card') {
+                const card = financeData.creditCards.find((entry) => entry.id === item.sourceId)
+                if (card) item.amount === null ? setCardEditor(card) : setCardPaymentTarget(card)
+              } else {
+                const debt = financeData.debts.find((entry) => entry.id === item.sourceId)
+                if (debt) setDebtPaymentTarget(debt)
+              }
+            }}
+          />
+        )}
+
         {cloudSyncOpen && (
           <CloudSyncModal
             isConfigured={Boolean(supabase)}
@@ -1808,9 +2074,11 @@ type MoneyCalendarEvent = {
   title: string
   date: Date
   amount: number | null
-  type: 'Recurring' | 'Cut-off' | 'Due'
+  type: 'Recurring' | 'Cut-off' | 'Due' | 'Debt'
   cardId?: number
   billId?: number
+  debtId?: number
+  paid?: boolean
 }
 
 function monthMoneyEvents(
@@ -1818,6 +2086,8 @@ function monthMoneyEvents(
   month: number,
   creditCardInsights: CreditCardInsight[],
   recurringExpenses: RecurringExpense[],
+  debts: Debt[] = [],
+  transactions: Transaction[] = [],
 ): MoneyCalendarEvent[] {
   const result: MoneyCalendarEvent[] = []
   const monthStart = new Date(year, month, 1)
@@ -1827,13 +2097,13 @@ function monthMoneyEvents(
   const appendBill = (bill: RecurringExpense, date: Date) => {
     if (date.getFullYear() !== year || date.getMonth() !== month) return
     const amount = currentMonth ? getBillRemainingBalance(bill) : bill.amount
-    // Paid bills only disappear in the actual current month. Future months are projections.
-    if (currentMonth && amount <= 0) return
+    const isPaid = currentMonth && amount <= 0 && bill.periodKey === `${year}-${String(month + 1).padStart(2, '0')}` && Boolean(bill.lastPaidAt)
     result.push({
       id: `bill-${bill.id}-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
       title: bill.name,
       date,
       amount,
+      paid: isPaid,
       type: 'Recurring',
       billId: bill.id,
     })
@@ -1881,52 +2151,63 @@ function monthMoneyEvents(
     }
     if (isValidDayOfMonth(card.dueDay)) {
       let dueDate = buildDateForDay(year, month, card.dueDay)
-      const today = startOfDay(new Date())
-      const nextRecurringDue = addDays(today, getDaysUntilDay(card.dueDay, today))
-      let activeDueDate = nextRecurringDue
-      // Only a valid, current/upcoming bank SOA date overrides the recurring cycle.
-      if (card.paymentDueDate && /^\d{4}-\d{2}-\d{2}$/.test(card.paymentDueDate)) {
-        const [dueYear, dueMonth, dueDay] = card.paymentDueDate.split('-').map(Number)
-        const bankDate = new Date(dueYear, dueMonth - 1, dueDay)
-        if (bankDate.getFullYear() === dueYear && bankDate.getMonth() === dueMonth - 1 && bankDate.getDate() === dueDay
-          && bankDate >= today) {
-          activeDueDate = bankDate
-        }
-      }
-      // Don't show an already superseded recurring due date in the current month.
-      if (!currentMonth || (activeDueDate.getFullYear() === year && activeDueDate.getMonth() === month)) {
-        if (activeDueDate.getFullYear() === year && activeDueDate.getMonth() === month) dueDate = activeDueDate
-        // Today's known SOA minimum is not a trustworthy projection for later months.
-        const isActualDue = activeDueDate.getTime() === dueDate.getTime()
-        result.push({
-          id: `due-${card.id}`,
-          title: `${card.name} Due Date`,
-          date: dueDate,
-          amount: isActualDue && typeof card.minimumDue === 'number' ? Math.max(0, card.minimumDue) : null,
-          type: 'Due',
-          cardId: card.id,
-        })
-      }
+      const bankDate = parseValidIsoDate(card.paymentDueDate)
+      const bankDueThisMonth = Boolean(bankDate && bankDate.getFullYear() === year && bankDate.getMonth() === month)
+      if (bankDate && bankDueThisMonth) dueDate = bankDate
+      // A known future SOA date supersedes this month's recurring forecast.
+      if (currentMonth && bankDate && bankDate >= startOfDay(new Date()) && !bankDueThisMonth) continue
+      const paidThisMonth = Boolean(card.lastPaymentAt && card.minimumDue === 0 && monthKeyForDate(new Date(card.lastPaymentAt)) === `${year}-${String(month + 1).padStart(2, '0')}`)
+      result.push({
+        id: `due-${card.id}`,
+        title: `${card.name} Due Date`,
+        date: dueDate,
+        amount: (currentMonth || bankDueThisMonth) && typeof card.minimumDue === 'number' ? Math.max(0, card.minimumDue) : null,
+        type: 'Due',
+        paid: currentMonth && paidThisMonth,
+        cardId: card.id,
+      })
     }
+  }
+
+  for (const debt of debts) {
+    if (debt.kind === 'credit-card-installment') continue // Future card installments are not separately billed minimums.
+    const dueDay = recurringDayFromText(debt.due)
+    if (dueDay === null) continue
+    const amountPaid = sumPaymentsForDebt(transactions, debt.name, year, month)
+    if (debt.balance <= 0 && !(currentMonth && amountPaid > 0)) continue
+    const date = buildDateForDay(year, month, dueDay)
+    const cycleDue = Math.max(0, Math.min(debt.monthly, debt.balance + (currentMonth ? amountPaid : 0)))
+    const paid = currentMonth && amountPaid >= cycleDue && cycleDue > 0
+    result.push({
+      id: `debt-${debt.id}-${year}-${month}`,
+      title: debt.name,
+      date,
+      type: 'Debt',
+      debtId: debt.id,
+      amount: currentMonth ? Math.max(0, cycleDue - amountPaid) : Math.min(debt.monthly, debt.balance),
+      paid,
+    })
   }
 
   return result.sort((a, b) => a.date.getTime() - b.date.getTime() || a.title.localeCompare(b.title))
 }
 
 function TodayPage({
-  totalCash,
-  totalDebt,
   creditCardInsights,
   recurringExpenses,
+  debts,
+  transactions,
   onOpenCard,
   onOpenBill,
+  onOpenDebt,
 }: {
-  totalCash: number
-  totalDebt: number
   creditCardInsights: CreditCardInsight[]
   recurringExpenses: RecurringExpense[]
+  debts: Debt[]
+  transactions: Transaction[]
   onOpenCard: (card: CreditCardAccount) => void
   onOpenBill: (bill: RecurringExpense) => void
+  onOpenDebt: (debt: Debt) => void
 }) {
   const today = startOfDay(new Date())
   const [displayMonth, setDisplayMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
@@ -1934,8 +2215,8 @@ function TodayPage({
   const year = displayMonth.getFullYear()
   const month = displayMonth.getMonth()
   const monthEvents = useMemo(
-    () => monthMoneyEvents(year, month, creditCardInsights, recurringExpenses),
-    [year, month, creditCardInsights, recurringExpenses],
+    () => monthMoneyEvents(year, month, creditCardInsights, recurringExpenses, debts, transactions),
+    [year, month, creditCardInsights, recurringExpenses, debts, transactions],
   )
   const eventsByDay = useMemo(() => {
     const grouped = new Map<number, MoneyCalendarEvent[]>()
@@ -1970,7 +2251,8 @@ function TodayPage({
     setSelectedDay(today.getDate())
   }
   const dailyRecommendation = getDailyRecommendation(creditCardInsights)
-  const eventLabel = (type: MoneyCalendarEvent['type']) => type === 'Cut-off' ? 'Cut' : type === 'Due' ? 'Due' : 'Bill'
+  const recommendedCard = creditCardInsights.find((item) => item.status === 'recommended' || item.status === 'watch')?.card
+  const eventLabel = (type: MoneyCalendarEvent['type']) => type === 'Cut-off' ? 'Cut' : type === 'Due' ? 'Due' : type === 'Debt' ? 'Debt' : 'Bill'
 
   const openEvent = (event: MoneyCalendarEvent) => {
     if (event.cardId !== undefined) {
@@ -1979,38 +2261,25 @@ function TodayPage({
     } else if (event.billId !== undefined) {
       const bill = recurringExpenses.find((item) => item.id === event.billId)
       if (bill) onOpenBill(bill)
+    } else if (event.debtId !== undefined) {
+      const debt = debts.find((item) => item.id === event.debtId)
+      if (debt) onOpenDebt(debt)
     }
   }
   const renderEvent = (event: MoneyCalendarEvent, showDate: boolean) => (
     <button key={event.id} type="button" className="dp12-event-row" onClick={() => openEvent(event)} aria-label={`Open ${event.title} details`}>
-      <span className={`dp12-event-dot dp12-event-dot--${getEventClass(event.type)}`} aria-hidden="true" />
+      <span className={`dp12-event-dot dp12-event-dot--${event.paid ? 'paid' : getEventClass(event.type)}`} aria-hidden="true" />
       <span className="dp12-event-description">
         <strong>{event.title}</strong>
         {showDate && <span>{event.date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</span>}
       </span>
-      <span className="dp12-event-amount">{event.amount !== null ? peso.format(event.amount) : eventLabel(event.type)}</span>
+      <span className="dp12-event-amount">{event.paid ? 'Paid' : event.amount !== null ? peso.format(event.amount) : eventLabel(event.type)}</span>
     </button>
   )
 
   return (
     <>
-      <section className="recommendation-card">
-        <div className="recommendation-icon"><CreditCard size={25} /></div>
-        <div>
-          <p>Today’s Recommendation</p>
-          <h2>{dailyRecommendation.title}</h2>
-          <span>{dailyRecommendation.description}</span>
-        </div>
-      </section>
-
-      <section className="mini-grid">
-        <InfoCard label="Available Cash" value={peso.format(totalCash)} />
-        <InfoCard label="Total Debt" value={peso.format(totalDebt)} />
-      </section>
-
-      <SectionTitle title="Next Money Events" subtitle="Bills, credit card due dates and cut-offs" />
-
-      <section className="dp12-calendar" aria-label="Monthly money events calendar">
+      <section className="dp12-calendar dp134-money-calendar" aria-label="Monthly money events calendar">
         <div className="dp12-month-header">
           <div className="dp12-month-title">
             <strong>{displayMonth.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}</strong>
@@ -2044,9 +2313,11 @@ function TodayPage({
                 <span className="dp12-calendar-number">{day}</span>
                 {dayEvents.length > 0 && (
                   <span className="dp12-calendar-markers" aria-hidden="true">
-                    {dayEvents.length === 1
-                      ? <span className={`dp12-calendar-tag dp12-calendar-tag--${getEventClass(dayEvents[0].type)}`}>{eventLabel(dayEvents[0].type)}</span>
-                      : <><span className="dp12-calendar-count">{dayEvents.length}</span><span className="dp12-calendar-dots">{dayEvents.slice(0, 3).map((event) => <i key={event.id} className={`dp12-calendar-dot dp12-event-dot--${getEventClass(event.type)}`} />)}</span></>}
+                    <span className="dp12-calendar-dots">
+                      {dayEvents.slice(0, 3).map((event) => (
+                        <i key={event.id} className={`dp12-calendar-dot dp12-event-dot--${event.paid ? 'paid' : getEventClass(event.type)}`} />
+                      ))}
+                    </span>
                   </span>
                 )}
               </button>
@@ -2058,6 +2329,7 @@ function TodayPage({
           <span><i className="dp12-event-dot dp12-event-dot--due" />Due</span>
           <span><i className="dp12-event-dot dp12-event-dot--cutoff" />Cut-off</span>
           <span><i className="dp12-event-dot dp12-event-dot--recurring" />Bill</span>
+          <span><i className="dp12-event-dot dp12-event-dot--paid" />Paid</span>
         </div>
 
         <div className="dp12-calendar-detail" aria-live="polite">
@@ -2066,15 +2338,26 @@ function TodayPage({
         </div>
       </section>
 
-      {upcomingEvents.length > 0 && (
-        <section className="dp12-upcoming" aria-label="Other upcoming events in this month">
-          <h3>{isCurrentMonth ? 'Coming up this month' : 'Other events this month'}</h3>
-          {upcomingEvents.map((event) => renderEvent(event, true))}
-        </section>
-      )}
+      <button
+        type="button"
+        className="dp134-recommendation"
+        disabled={!recommendedCard}
+        onClick={() => { if (recommendedCard) onOpenCard(recommendedCard) }}
+        title={dailyRecommendation.description}
+        aria-label={`Best card today: ${dailyRecommendation.title}. ${dailyRecommendation.description}`}
+      >
+        <CreditCard size={18} aria-hidden="true" />
+        <span className="dp134-recommendation-label">Best card today</span>
+        <strong>{dailyRecommendation.title}</strong>
+        {recommendedCard && <ChevronRight size={16} aria-hidden="true" />}
+      </button>
 
-      <SectionTitle title="Best Cards" subtitle="Based on cut-off, due date, credit, and utilization" />
-      <CreditCardRanking insights={creditCardInsights.slice(0, 2)} />
+      {upcomingEvents.length > 0 && (
+        <details className="dp12-upcoming dp134-upcoming" aria-label="Other upcoming events in this month">
+          <summary>{isCurrentMonth ? 'More upcoming events' : 'Other events this month'} <span>{upcomingEvents.length}</span></summary>
+          {upcomingEvents.map((event) => renderEvent(event, true))}
+        </details>
+      )}
     </>
   )
 }
@@ -2102,18 +2385,22 @@ function WalletPage({
   onDeleteCreditCard: (id: number) => void
   onPayCreditCard: (card: CreditCardAccount) => void
 }) {
+  const [walletView, setWalletView] = useState<'cash' | 'cards'>('cash')
+  const swipeStart = useRef<number | null>(null)
   return (
-    <>
-      <div style={accountActionRowStyle}>
-        <button type="button" style={softButtonStyle} onClick={onAddAccount}>
-          <Plus size={16} />
-          Add Account
-        </button>
-        <button type="button" style={softButtonStyle} onClick={onAddCreditCard}>
-          <Plus size={16} />
-          Add Card
-        </button>
+    <section className="dp13-wallet-deck">
+      <div className="dp13-deck-tabs" onTouchStart={(event) => { swipeStart.current = event.touches[0]?.clientY ?? null }} onTouchEnd={(event) => {
+        const end = event.changedTouches[0]?.clientY
+        if (swipeStart.current !== null && end !== undefined && Math.abs(end - swipeStart.current) > 35) setWalletView(end < swipeStart.current ? 'cards' : 'cash')
+        swipeStart.current = null
+      }}>
+        <button type="button" className={walletView === 'cash' ? 'active' : ''} aria-pressed={walletView === 'cash'} onClick={() => setWalletView('cash')}>Cash Accounts <small>{accounts.length}</small></button>
+        <button type="button" className={walletView === 'cards' ? 'active' : ''} aria-pressed={walletView === 'cards'} onClick={() => setWalletView('cards')}>Credit Cards <small>{creditCards.length}</small></button>
       </div>
+      <div className="dp13-deck-hint">Swipe up or down on the heading to switch</div>
+      <div className="dp13-deck-content">
+      {walletView === 'cash' && <>
+      <button type="button" className="dp13-inline-add" onClick={onAddAccount}><Plus size={16} /> Add cash account</button>
 
       <SectionTitle title="Cash Accounts" subtitle="Cash, banks, and e-wallets" />
 
@@ -2144,7 +2431,10 @@ function WalletPage({
         ))}
       </div>
 
-      <SectionTitle title="Credit Cards" subtitle="Balances, due dates, cut-off dates, and utilization" />
+      </>}
+      {walletView === 'cards' && <>
+      <button type="button" className="dp13-inline-add" onClick={onAddCreditCard}><Plus size={16} /> Add credit card</button>
+      <SectionTitle title="Credit Cards" subtitle="Your card balances and payment dates" />
 
       <div className="card-list">
         {creditCards.length === 0 && (
@@ -2206,13 +2496,18 @@ function WalletPage({
           )
         })}
       </div>
-    </>
+      </>}
+      </div>
+    </section>
   )
 }
 
 function PlanPage({
   recurringExpenses,
   recurringTotal,
+  creditCards,
+  onPayCard,
+  onEditCard,
   savingsGoals,
   debts,
   budgetMetrics,
@@ -2233,6 +2528,9 @@ function PlanPage({
 }: {
   recurringExpenses: RecurringExpense[]
   recurringTotal: number
+  creditCards: CreditCardAccount[]
+  onPayCard: (card: CreditCardAccount) => void
+  onEditCard: (card: CreditCardAccount) => void
   savingsGoals: SavingsGoal[]
   debts: Debt[]
   budgetMetrics: BudgetMetric[]
@@ -2254,10 +2552,6 @@ function PlanPage({
   const [activePlanSection, setActivePlanSection] =
     useState<PlanSectionKey>('bills')
 
-  const totalBudgetSpent = budgetMetrics.reduce(
-    (total, metric) => total + metric.spent,
-    0,
-  )
   const totalSaved = savingsGoals.reduce(
     (total, goal) => total + goal.current,
     0,
@@ -2268,71 +2562,33 @@ function PlanPage({
   )
   const totalLoanBalance = debts.reduce((total, debt) => total + debt.balance, 0)
 
-  const sectionCards: Array<{
-    key: PlanSectionKey
-    label: string
-    value: string
-    helper: string
-  }> = [
-    {
-      key: 'bills',
-      label: 'Bills',
-      value: peso.format(recurringTotal),
-      helper: `${recurringExpenses.length} unpaid`,
-    },
-    {
-      key: 'budget',
-      label: 'Budget',
-      value: peso.format(totalBudgetSpent),
-      helper: `${budgetMetrics.filter((metric) => metric.overBudget).length} over`,
-    },
-    {
-      key: 'savings',
-      label: 'Savings',
-      value: peso.format(totalSaved),
-      helper: `${savingsGoals.length} goals`,
-    },
-    {
-      key: 'debts',
-      label: 'Debts',
-      value: peso.format(totalLoanBalance),
-      helper: `${debts.length} tracked`,
-    },
+  const knownCardMinimums = creditCards.filter((card) => typeof card.minimumDue === 'number' && getCreditCardMinimumPayment(card) > 0)
+  const missingMinimumCards = creditCards.filter((card) => card.currentBalance > 0 && typeof card.minimumDue !== 'number')
+  const planTabs: Array<{key: PlanSectionKey, label: string}> = [
+    {key:'bills', label:'Payments'}, {key:'debts', label:'Debts'}, {key:'budget', label:'Budget'}, {key:'savings', label:'Savings'},
   ]
 
   return (
     <>
-      <SectionTitle
-        title="Plan Center"
-        subtitle="Use the cards below to switch sections"
-      />
-
-      <section style={planSummaryGridStyle}>
-        {sectionCards.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            className={`plan-summary-card ${activePlanSection === item.key ? 'active' : ''}`}
-            style={planSummaryButtonStyle(activePlanSection === item.key)}
-            onClick={() => setActivePlanSection(item.key)}
-          >
-            <span>{item.label}</span>
-            <strong>{item.value}</strong>
-            <small>{item.helper}</small>
-          </button>
-        ))}
-      </section>
+      <div className="dp13-plan-heading">
+        <h2>Payments & Plans</h2>
+        <p>Choose what you want to manage.</p>
+      </div>
+      <div className="dp13-plan-tabs" role="group" aria-label="Plan sections">
+        {planTabs.map((tab) => <button key={tab.key} type="button" className={activePlanSection === tab.key ? 'active' : ''} aria-pressed={activePlanSection === tab.key} onClick={() => setActivePlanSection(tab.key)}>{tab.label}</button>)}
+      </div>
 
       {activePlanSection === 'bills' && (
         <>
-          <section className="recurring-summary">
-            <div>
-              <p>Unpaid Bills Balance</p>
-              <h2>{peso.format(recurringTotal)}</h2>
-              <span>Fully paid bills are hidden until the next month</span>
-            </div>
-            <Repeat2 size={30} />
-          </section>
+          <div className="dp13-plan-brief">
+            <span>Unpaid bills</span><strong>{peso.format(recurringTotal)}</strong>
+          </div>
+          <div className="dp13-plan-card-payments">
+            <h3>Card minimums</h3>
+            {knownCardMinimums.length === 0 && <p>No unpaid card minimums entered.</p>}
+            {knownCardMinimums.map((card) => <div key={card.id} className="dp13-pay-line"><div><strong>{card.name}</strong><small>Minimum due · {formatOrdinalDay(card.dueDay)}</small></div><strong>{peso.format(getCreditCardMinimumPayment(card))}</strong><button type="button" onClick={() => onPayCard(card)}>Pay</button></div>)}
+            {missingMinimumCards.map((card) => <button type="button" className="dp13-missing-min" key={card.id} onClick={() => onEditCard(card)}>Add minimum due for {card.name} <ChevronRight size={14}/></button>)}
+          </div>
 
           <div style={{ marginTop: 14 }}>
             <button type="button" style={softButtonStyle} onClick={onAddBill}>
@@ -3361,38 +3617,6 @@ function AffordabilityTool({
         <p>{result.message}</p>
       </div>
     </section>
-  )
-}
-
-function CreditCardRanking({ insights }: { insights: CreditCardInsight[] }) {
-  if (insights.length === 0) {
-    return (
-      <article className="account-card">
-        <div className="card-main-content">
-          <h3>No credit cards yet</h3>
-          <p>Add a credit card to enable Due₱oint recommendations.</p>
-        </div>
-      </article>
-    )
-  }
-
-  return (
-    <div className="card-list">
-      {insights.map((insight) => (
-        <article key={insight.card.id} className="account-card">
-          <div className={`account-icon ${getInsightAccent(insight.status)}`}>
-            <CreditCard size={21} />
-          </div>
-
-          <div className="card-main-content">
-            <h3>{insight.card.name}</h3>
-            <p>{insight.reason}</p>
-          </div>
-
-          <strong>{insight.status === 'recommended' ? 'Best' : insight.status}</strong>
-        </article>
-      ))}
-    </div>
   )
 }
 
@@ -4776,7 +5000,8 @@ function CreditCardPaymentModal({
   onSave: (cardId: number, accountId: number, amount: number) => void
   onNotify: (title: string, message: string) => void
 }) {
-  const [amount, setAmount] = useState(card.currentBalance.toString())
+  const knownMinimum = getCreditCardMinimumPayment(card)
+  const [amount, setAmount] = useState((knownMinimum > 0 ? knownMinimum : card.currentBalance).toString())
   const [accountId, setAccountId] = useState(accounts[0]?.id.toString() ?? '')
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -4793,6 +5018,10 @@ function CreditCardPaymentModal({
     <ModalShell eyebrow="Credit Card Payment" title={`Pay ${card.name}`} onClose={onClose}>
       <form onSubmit={submit} style={modalFormStyle}>
         <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} label="Pay from" />
+        <div className="dp13-payment-presets">
+          {knownMinimum > 0 && <button type="button" onClick={()=>setAmount(knownMinimum.toFixed(2))}>Minimum {peso.format(knownMinimum)}</button>}
+          <button type="button" onClick={()=>setAmount(card.currentBalance.toFixed(2))}>Full balance</button>
+        </div>
         <TextField label="Payment amount" type="number" value={amount} onChange={setAmount} placeholder="0.00" autoFocus />
         <button type="submit" style={submitButtonStyle}>Record Payment</button>
       </form>
@@ -6084,7 +6313,7 @@ function formatOrdinalDay(day: number) {
 }
 
 function getEventClass(type: string) {
-  if (type === 'Due') return 'due'
+  if (type === 'Due' || type === 'Debt') return 'due'
   if (type === 'Cut-off') return 'cutoff'
   return 'recurring'
 }
@@ -6092,12 +6321,6 @@ function getEventClass(type: string) {
 function getTransactionAccent(type: QuickAction): AccountAccent {
   if (type === 'income') return 'green'
   if (type === 'expense') return 'blue'
-  return 'teal'
-}
-
-function getInsightAccent(status: CreditCardInsight['status']): AccountAccent {
-  if (status === 'recommended') return 'green'
-  if (status === 'avoid') return 'blue'
   return 'teal'
 }
 
@@ -6112,16 +6335,6 @@ function getPageTitle(activeTab: TabKey) {
   return titles[activeTab]
 }
 
-
-function getUserInitials(email?: string) {
-  if (!email) return '☁'
-  const name = email.split('@')[0].replace(/[^a-zA-Z0-9]+/g, ' ').trim()
-  if (!name) return 'DW'
-
-  const parts = name.split(' ').filter(Boolean)
-  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-  return name.slice(0, 2).toUpperCase()
-}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message
@@ -7121,43 +7334,6 @@ function loadFinanceData(): FinanceData {
 
 function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1)
-}
-
-const planSummaryGridStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: 10,
-  marginBottom: 16,
-}
-
-function planSummaryButtonStyle(active: boolean): CSSProperties {
-  return {
-    minHeight: 94,
-    display: 'grid',
-    alignContent: 'center',
-    gap: 5,
-    padding: '14px 13px',
-    border: active
-      ? '1.5px solid rgba(126, 224, 169, 0.82)'
-      : '1px solid rgba(255, 255, 255, 0.1)',
-    outline: active ? '2px solid rgba(126, 224, 169, 0.18)' : 'none',
-    outlineOffset: 2,
-    borderRadius: 22,
-    color: active ? '#ffffff' : '#171717',
-    background: active ? 'rgba(126, 224, 169, 0.12)' : 'rgba(255, 255, 255, 0.78)',
-    boxShadow: active
-      ? '0 0 0 1px rgba(126, 224, 169, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(23, 23, 23, 0.22)'
-      : 'inset 0 0 0 1px rgba(23, 23, 23, 0.06)',
-    transform: active ? 'translateY(-1px)' : 'none',
-    textAlign: 'left',
-  }
-}
-
-const accountActionRowStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: 10,
-  marginBottom: 4,
 }
 
 const softButtonStyle: CSSProperties = {
