@@ -1,0 +1,231 @@
+/* Due₱oint V9 — Flat card list, minimal lines, zero nested pills/frames. */
+#root .app-shell .mobile-app .credit-card.dp-v9-credit-card,
+.credit-card.dp-v9-credit-card {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  padding: 15px 16px !important;
+  margin: 0 !important;
+  border: 1px solid #e7e8e9 !important;
+  border-radius: 17px !important;
+  background: #fffefa !important;
+  box-shadow: none !important;
+  filter: none !important;
+  overflow: visible !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  letter-spacing: -0.015em;
+}
+
+.dp-v9-credit-card .dp-v9-card-heading {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+#root .app-shell .mobile-app .dp-v9-credit-card .dp-v9-card-heading h3,
+.dp-v9-credit-card .dp-v9-card-heading h3 {
+  flex: 1 1 auto !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  color: #1c293b !important;
+  font-size: 17px !important;
+  font-weight: 750 !important;
+  line-height: 1.3 !important;
+  letter-spacing: -0.025em !important;
+  overflow-wrap: anywhere !important;
+}
+
+.dp-v9-credit-card .dp-v9-card-utilization {
+  flex: 0 0 auto !important;
+  display: inline !important;
+  color: #48617f !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  line-height: 1.3 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+.dp-v9-credit-card .dp-v9-balances {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  min-width: 0 !important;
+  margin: 1px 0 0 !important;
+  padding: 0 !important;
+}
+
+.dp-v9-credit-card .dp-v9-balances > div {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  min-width: 0 !important;
+  gap: 3px !important;
+  border: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.dp-v9-credit-card .dp-v9-balances span {
+  color: #697481 !important;
+  font-size: 12px !important;
+  font-weight: 550 !important;
+  line-height: 1.25 !important;
+}
+
+.dp-v9-credit-card .dp-v9-balances strong {
+  max-width: 100% !important;
+  color: #1c293b !important;
+  font-size: clamp(16px, 4.1vw, 19px) !important;
+  font-weight: 750 !important;
+  line-height: 1.18 !important;
+  letter-spacing: -0.025em !important;
+  font-variant-numeric: tabular-nums !important;
+  overflow-wrap: anywhere !important;
+}
+
+.dp-v9-credit-card .dp-v9-card-facts {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 5px 14px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.dp-v9-credit-card .dp-v9-card-facts span {
+  display: inline !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #667181 !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+  white-space: normal !important;
+  min-height: 0 !important;
+}
+
+.dp-v9-credit-card .dp-v9-card-footer {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  margin: 1px 0 0 !important;
+  padding: 11px 0 0 !important;
+  border-top: 1px solid #eef0f1 !important;
+  background: transparent !important;
+}
+
+.dp-v9-credit-card .dp-v9-card-minimum {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 3px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.dp-v9-credit-card .dp-v9-card-minimum span {
+  color: #697481 !important;
+  font-size: 11.5px !important;
+  line-height: 1.25 !important;
+  font-weight: 550 !important;
+}
+
+.dp-v9-credit-card .dp-v9-card-minimum strong {
+  color: #1c293b !important;
+  font-size: 16px !important;
+  line-height: 1.2 !important;
+  font-weight: 750 !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: -0.025em !important;
+}
+
+.dp-v9-credit-card .dp-v9-card-actions {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  background: transparent !important;
+}
+
+#root .app-shell .mobile-app .dp-v9-credit-card .dp-v9-card-actions button,
+.dp-v9-credit-card .dp-v9-card-actions button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  cursor: pointer !important;
+}
+
+.dp-v9-credit-card .dp-v9-card-actions button:first-child {color: #257d63 !important;}
+.dp-v9-credit-card .dp-v9-card-actions button:nth-child(2) {color: #2962ae !important;}
+.dp-v9-credit-card .dp-v9-card-actions button:last-child {color: #c05b5c !important;}
+.dp-v9-credit-card .dp-v9-card-actions button svg {
+  display: block !important;
+  width: 17px !important;
+  height: 17px !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+}
+
+.dp-v9-credit-card .dp-v9-card-actions button:focus-visible {
+  outline: 2px solid #3574ca !important;
+  outline-offset: -2px !important;
+}
+
+@media (hover: hover) {
+  .dp-v9-credit-card .dp-v9-card-actions button:hover {
+    background: rgba(79,105,133,.07) !important;
+  }
+}
+
+#root .app-shell.theme-dark .mobile-app .credit-card.dp-v9-credit-card,
+.app-shell.theme-dark .credit-card.dp-v9-credit-card {
+  background: #192537 !important;
+  border-color: #334359 !important;
+}
+
+.app-shell.theme-dark .dp-v9-credit-card .dp-v9-card-heading h3,
+.app-shell.theme-dark .dp-v9-credit-card .dp-v9-balances strong,
+.app-shell.theme-dark .dp-v9-credit-card .dp-v9-card-minimum strong {color: #f5f8ff !important;}
+.app-shell.theme-dark .dp-v9-credit-card .dp-v9-card-utilization,
+.app-shell.theme-dark .dp-v9-credit-card .dp-v9-balances span,
+.app-shell.theme-dark .dp-v9-credit-card .dp-v9-card-facts span,
+.app-shell.theme-dark .dp-v9-credit-card .dp-v9-card-minimum span {color: #b4c3d6 !important;}
+.app-shell.theme-dark .dp-v9-credit-card .dp-v9-card-footer {border-top-color: #334359 !important;}
+
+@media (max-width: 360px) {
+  #root .app-shell .mobile-app .credit-card.dp-v9-credit-card,
+  .credit-card.dp-v9-credit-card {padding: 13px 12px !important; gap: 10px !important;}
+  .dp-v9-credit-card .dp-v9-balances {gap: 8px !important;}
+  .dp-v9-credit-card .dp-v9-balances strong {font-size: 15px !important;}
+  .dp-v9-credit-card .dp-v9-card-facts {gap: 4px 9px !important;}
+}

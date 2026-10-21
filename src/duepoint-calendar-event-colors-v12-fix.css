@@ -1,0 +1,95 @@
+/* DuePoint V12 calendar marker colors fix.
+   Deliberately minimal: colored text + a small matching dot, never pill backgrounds.
+   Imported after the V12 stylesheet to override older generic button rules.
+*/
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-markers {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 12px !important;
+  gap: 2px !important;
+}
+
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-tag {
+  display: inline-flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 3px !important;
+  max-width: 100% !important;
+  min-height: 12px !important;
+  font-size: 9px !important;
+  line-height: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-tag::before {
+  content: '' !important;
+  display: inline-block !important;
+  width: 6px !important;
+  height: 6px !important;
+  min-width: 6px !important;
+  flex: 0 0 6px !important;
+  border-radius: 50% !important;
+  background-color: currentColor !important;
+}
+
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-tag.dp12-calendar-tag--due {
+  color: #d33650 !important;
+  -webkit-text-fill-color: #d33650 !important;
+}
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-tag.dp12-calendar-tag--cutoff {
+  color: #c87916 !important;
+  -webkit-text-fill-color: #c87916 !important;
+}
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-tag.dp12-calendar-tag--recurring {
+  color: #677d90 !important;
+  -webkit-text-fill-color: #677d90 !important;
+}
+
+/* Dates with multiple event types retain separate colored dots. */
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-dots {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 3px !important;
+}
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-dot {
+  display: inline-block !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  flex: 0 0 6px !important;
+}
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-dot.dp12-event-dot--due,
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-legend .dp12-event-dot--due {
+  background: #d33650 !important;
+}
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-dot.dp12-event-dot--cutoff,
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-legend .dp12-event-dot--cutoff {
+  background: #dd8d29 !important;
+}
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-dot.dp12-event-dot--recurring,
+#root .app-shell .mobile-app .dp12-calendar .dp12-calendar-legend .dp12-event-dot--recurring {
+  background: #8193a3 !important;
+}
+
+/* High contrast colors for dark mode, including inside a selected day. */
+#root .app-shell.theme-dark .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-tag.dp12-calendar-tag--due {
+  color: #ff7382 !important;
+  -webkit-text-fill-color: #ff7382 !important;
+}
+#root .app-shell.theme-dark .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-tag.dp12-calendar-tag--cutoff {
+  color: #ffc06b !important;
+  -webkit-text-fill-color: #ffc06b !important;
+}
+#root .app-shell.theme-dark .mobile-app .dp12-calendar .dp12-calendar-day .dp12-calendar-tag.dp12-calendar-tag--recurring {
+  color: #b7cadc !important;
+  -webkit-text-fill-color: #b7cadc !important;
+}

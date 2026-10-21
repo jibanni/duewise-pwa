@@ -1,0 +1,44 @@
+/* Due₱oint V11 — align the Due date with Available balance.
+   CSS-only layout fix; no financial or navigation logic changed. */
+#root .app-shell .mobile-app .credit-card.dp-v9-credit-card .dp-v9-balances,
+#root .app-shell .mobile-app .credit-card.dp-v9-credit-card .dp-v9-card-facts,
+.credit-card.dp-v9-credit-card .dp-v9-balances,
+.credit-card.dp-v9-credit-card .dp-v9-card-facts {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  column-gap: 12px !important;
+  row-gap: 0 !important;
+  align-items: start !important;
+  justify-items: stretch !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#root .app-shell .mobile-app .credit-card.dp-v9-credit-card .dp-v9-card-facts > span,
+.credit-card.dp-v9-credit-card .dp-v9-card-facts > span {
+  display: block !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  text-align: left !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  justify-self: start !important;
+  overflow-wrap: normal !important;
+}
+
+#root .app-shell .mobile-app .credit-card.dp-v9-credit-card .dp-v9-card-facts > span:first-child,
+.credit-card.dp-v9-credit-card .dp-v9-card-facts > span:first-child {
+  grid-column: 1 !important;
+}
+
+#root .app-shell .mobile-app .credit-card.dp-v9-credit-card .dp-v9-card-facts > span:nth-child(2),
+.credit-card.dp-v9-credit-card .dp-v9-card-facts > span:nth-child(2) {
+  grid-column: 2 !important;
+}
+
+@media (max-width: 360px) {
+  #root .app-shell .mobile-app .credit-card.dp-v9-credit-card .dp-v9-balances,
+  #root .app-shell .mobile-app .credit-card.dp-v9-credit-card .dp-v9-card-facts {
+    column-gap: 8px !important;
+  }
+}

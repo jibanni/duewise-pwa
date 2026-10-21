@@ -1,0 +1,77 @@
+/* Due₱oint V12 — quiet monthly money calendar; does not change navbar or financial data. */
+#root .app-shell .mobile-app .dp12-calendar,
+#root .app-shell .mobile-app .dp12-upcoming {
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+#root .app-shell .mobile-app .dp12-calendar {
+  background: #fffdfb !important;
+  border: 1px solid #e2e5eb !important;
+  border-radius: 21px !important;
+  padding: 13px 12px 8px !important;
+  display: grid !important;
+  gap: 10px !important;
+}
+.dp12-month-header {display:flex;align-items:center;justify-content:space-between;gap:9px;min-height:38px;}
+.dp12-month-title {display:grid;gap:2px;min-width:0;}
+.dp12-month-title strong {font-size:16px;letter-spacing:-.035em;color:#1a293d;font-weight:790;line-height:1.2;}
+.dp12-month-title > span {font-size:10.5px;font-weight:550;color:#748093;}
+.dp12-month-controls {display:flex;align-items:center;gap:3px;flex:none;}
+.dp12-month-controls button {display:grid;place-items:center;height:32px;min-width:31px;padding:0 6px;border-radius:9px;border:0;background:transparent;color:#34455f;cursor:pointer;box-shadow:none !important;}
+.dp12-month-controls button:active {background:#edf3ff;}
+.dp12-month-controls button.dp12-month-today {min-width:49px;font-size:11px;font-weight:700;background:#f1f4f9;color:#245399;}
+.dp12-calendar-grid {display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;align-items:stretch;min-width:0;}
+.dp12-calendar-weekday {display:flex;align-items:center;justify-content:center;height:18px;font-size:10px;line-height:1;font-weight:700;color:#8a94a5;}
+.dp12-calendar-empty {min-height:48px;}
+.dp12-calendar-day {display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;padding:5px 1px 3px;min-height:48px;min-width:0;width:100%;box-sizing:border-box;border:1px solid transparent;border-radius:11px;background:transparent;color:#243650;text-align:center;box-shadow:none !important;cursor:pointer;}
+.dp12-calendar-day.is-selected {background:#e8f1ff;border-color:#d5e5fc;color:#0d4ca3;}
+.dp12-calendar-day.is-today .dp12-calendar-number {color:#e25d19;font-weight:850;}
+.dp12-calendar-day:focus-visible {outline:2px solid #2667cf;outline-offset:1px;}
+.dp12-calendar-number {font-size:13px;line-height:18px;font-weight:650;letter-spacing:-.02em;}
+.dp12-calendar-markers {display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;min-width:0;}
+.dp12-calendar-tag {max-width:100%;font-size:9px;font-weight:800;line-height:11px;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dp12-calendar-tag--cutoff {color:#de871e;}
+.dp12-calendar-tag--due {color:#d84a50;}
+.dp12-calendar-tag--recurring {color:#59758a;}
+.dp12-calendar-count {font-size:10px;font-weight:800;color:#68788c;line-height:11px;}
+.dp12-calendar-dots {display:flex;gap:2px;justify-content:center;}
+.dp12-calendar-dot {display:inline-block;width:4px;height:4px;border-radius:50%;}
+.dp12-calendar-legend {display:flex;align-items:center;gap:13px;flex-wrap:wrap;padding:1px 4px 7px;}
+.dp12-calendar-legend > span {display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;color:#7c8799;}
+.dp12-event-dot {display:block;flex:none;width:6px;height:6px;border-radius:50%;}
+.dp12-event-dot--due {background:#db4e56;}
+.dp12-event-dot--cutoff {background:#e79b43;}
+.dp12-event-dot--recurring {background:#8d989f;}
+.dp12-calendar-detail {display:grid;gap:0;border-top:1px solid #e8eaee;padding:7px 2px 3px;}
+.dp12-calendar-detail > h3 {margin:1px 3px 6px;font-size:12px;font-weight:800;color:#344963;letter-spacing:-.01em;}
+.dp12-empty-events {font-size:12px;color:#8994a2;margin:2px 3px 5px;}
+.dp12-event-row {display:flex;align-items:center;gap:9px;min-height:39px;width:100%;padding:6px 3px;border:0;border-bottom:1px solid #eef0f3;background:transparent;text-align:left;box-shadow:none !important;cursor:pointer;}
+.dp12-event-row:focus-visible {outline:2px solid #2667cf;outline-offset:-2px;}
+.dp12-event-row:last-child {border-bottom:0;}
+.dp12-event-description {min-width:0;flex:1;display:grid;gap:2px;}
+.dp12-event-description strong {font-size:12px;line-height:1.2;font-weight:700;color:#26384f;overflow-wrap:anywhere;}
+.dp12-event-description > span {font-size:10.5px;color:#8791a0;}
+.dp12-event-amount {flex:none;text-align:right;max-width:45%;font-size:12px;font-weight:750;color:#21354f;font-variant-numeric:tabular-nums;}
+.dp12-upcoming {display:grid;gap:0;padding:0 2px !important;background:transparent !important;border:0 !important;}
+.dp12-upcoming h3 {margin:5px 3px 4px;font-size:13px;line-height:1.25;color:#26384f;font-weight:800;letter-spacing:-.02em;}
+.dp12-upcoming .dp12-event-row {min-height:42px;padding:7px 4px;}
+@media (max-width:360px){
+ .dp12-month-title strong {font-size:14px;}
+ .dp12-calendar-day {min-height:43px;}
+ .dp12-calendar-tag {font-size:8px;}
+ #root .app-shell .mobile-app .dp12-calendar {padding:10px 8px 7px !important;}
+ .dp12-calendar-grid {gap:1px;}
+}
+#root .app-shell.theme-dark .dp12-calendar {background:#1d2a3a !important;border-color:#34465c !important;}
+#root .app-shell.theme-dark .dp12-month-title strong,
+#root .app-shell.theme-dark .dp12-event-description strong,
+#root .app-shell.theme-dark .dp12-calendar-detail h3,
+#root .app-shell.theme-dark .dp12-upcoming h3,
+#root .app-shell.theme-dark .dp12-event-amount,
+#root .app-shell.theme-dark .dp12-calendar-number {color:#eaf1fa !important;}
+#root .app-shell.theme-dark .dp12-month-controls button {color:#e7eefb !important;}
+#root .app-shell.theme-dark .dp12-month-controls button.dp12-month-today {background:#284260 !important;color:#e2edff !important;}
+#root .app-shell.theme-dark .dp12-calendar-day.is-selected {background:#294e80 !important;border-color:#38639a !important;}
+#root .app-shell.theme-dark .dp12-calendar-detail,
+#root .app-shell.theme-dark .dp12-event-row {border-color:#354558 !important;}

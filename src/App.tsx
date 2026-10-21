@@ -32,6 +32,8 @@ import {
   ArrowRightLeft,
   ArrowUpRight,
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   CreditCard,
   Home,
@@ -1487,7 +1489,9 @@ function App() {
               totalCash={totalCash}
               totalDebt={totalDebt}
               creditCardInsights={creditCardInsights}
-              recurringExpenses={activeBills}
+              recurringExpenses={financeData.recurringExpenses}
+              onOpenCard={setCardEditor}
+              onOpenBill={setBillEditor}
             />
           )}
 
@@ -1799,88 +1803,199 @@ function App() {
   )
 }
 
+type MoneyCalendarEvent = {
+  id: string
+  title: string
+  date: Date
+  amount: number | null
+  type: 'Recurring' | 'Cut-off' | 'Due'
+  cardId?: number
+  billId?: number
+}
+
+function monthMoneyEvents(
+  year: number,
+  month: number,
+  creditCardInsights: CreditCardInsight[],
+  recurringExpenses: RecurringExpense[],
+): MoneyCalendarEvent[] {
+  const result: MoneyCalendarEvent[] = []
+  const monthStart = new Date(year, month, 1)
+  const monthEnd = new Date(year, month + 1, 0)
+  const currentMonth = year === new Date().getFullYear() && month === new Date().getMonth()
+
+  const appendBill = (bill: RecurringExpense, date: Date) => {
+    if (date.getFullYear() !== year || date.getMonth() !== month) return
+    const amount = currentMonth ? getBillRemainingBalance(bill) : bill.amount
+    // Paid bills only disappear in the actual current month. Future months are projections.
+    if (currentMonth && amount <= 0) return
+    result.push({
+      id: `bill-${bill.id}-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+      title: bill.name,
+      date,
+      amount,
+      type: 'Recurring',
+      billId: bill.id,
+    })
+  }
+
+  for (const bill of recurringExpenses) {
+    const frequency = bill.frequency.toLowerCase()
+    const raw = bill.nextDue.trim()
+
+    if (frequency.includes('month')) {
+      // Supports a stored ISO date, "Oct 30", "Every 30th", and similar bill labels.
+      const isoDay = raw.match(/^\d{4}-\d{2}-(\d{2})$/)
+      const dayMatch = raw.match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/i)
+      const day = Number(isoDay?.[1] ?? dayMatch?.[1])
+      if (day >= 1 && day <= 31) appendBill(bill, buildDateForDay(year, month, day))
+      continue
+    }
+
+    if (frequency.includes('year') || frequency.includes('annual')) {
+      const reference = new Date(`${raw} ${year}`)
+      if (!Number.isNaN(reference.getTime())) appendBill(bill, startOfDay(reference))
+      continue
+    }
+
+    // Repeating weekly/daily bills need a known anchor. Never invent a date.
+    const anchor = getUpcomingBillDueDate(bill)
+    const interval = frequency.includes('biweekly') || frequency.includes('fortnight') ? 14
+      : frequency.includes('week') ? 7 : frequency.includes('daily') ? 1 : 0
+    if (!anchor || !interval) continue
+
+    let candidate = startOfDay(anchor)
+    while (candidate >= monthStart) candidate = addDays(candidate, -interval)
+    candidate = addDays(candidate, interval)
+    let safety = 0
+    while (candidate <= monthEnd && safety++ < 32) {
+      appendBill(bill, candidate)
+      candidate = addDays(candidate, interval)
+    }
+  }
+
+  for (const { card } of creditCardInsights) {
+    if (isValidDayOfMonth(card.cutOffDay)) {
+      const cutoff = buildDateForDay(year, month, card.cutOffDay)
+      result.push({ id: `cutoff-${card.id}`, title: `${card.name} Cut-off`, date: cutoff, amount: null, type: 'Cut-off', cardId: card.id })
+    }
+    if (isValidDayOfMonth(card.dueDay)) {
+      let dueDate = buildDateForDay(year, month, card.dueDay)
+      const today = startOfDay(new Date())
+      const nextRecurringDue = addDays(today, getDaysUntilDay(card.dueDay, today))
+      let activeDueDate = nextRecurringDue
+      // Only a valid, current/upcoming bank SOA date overrides the recurring cycle.
+      if (card.paymentDueDate && /^\d{4}-\d{2}-\d{2}$/.test(card.paymentDueDate)) {
+        const [dueYear, dueMonth, dueDay] = card.paymentDueDate.split('-').map(Number)
+        const bankDate = new Date(dueYear, dueMonth - 1, dueDay)
+        if (bankDate.getFullYear() === dueYear && bankDate.getMonth() === dueMonth - 1 && bankDate.getDate() === dueDay
+          && bankDate >= today) {
+          activeDueDate = bankDate
+        }
+      }
+      // Don't show an already superseded recurring due date in the current month.
+      if (!currentMonth || (activeDueDate.getFullYear() === year && activeDueDate.getMonth() === month)) {
+        if (activeDueDate.getFullYear() === year && activeDueDate.getMonth() === month) dueDate = activeDueDate
+        // Today's known SOA minimum is not a trustworthy projection for later months.
+        const isActualDue = activeDueDate.getTime() === dueDate.getTime()
+        result.push({
+          id: `due-${card.id}`,
+          title: `${card.name} Due Date`,
+          date: dueDate,
+          amount: isActualDue && typeof card.minimumDue === 'number' ? Math.max(0, card.minimumDue) : null,
+          type: 'Due',
+          cardId: card.id,
+        })
+      }
+    }
+  }
+
+  return result.sort((a, b) => a.date.getTime() - b.date.getTime() || a.title.localeCompare(b.title))
+}
+
 function TodayPage({
   totalCash,
   totalDebt,
   creditCardInsights,
   recurringExpenses,
+  onOpenCard,
+  onOpenBill,
 }: {
   totalCash: number
   totalDebt: number
   creditCardInsights: CreditCardInsight[]
   recurringExpenses: RecurringExpense[]
+  onOpenCard: (card: CreditCardAccount) => void
+  onOpenBill: (bill: RecurringExpense) => void
 }) {
-  const today = new Date()
-  const mondayOffset = today.getDay() === 0 ? -6 : 1 - today.getDay()
-  const days = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(today)
-    date.setHours(0, 0, 0, 0)
-    date.setDate(today.getDate() + mondayOffset + index)
-
-    return {
-      day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-      date: date.getDate(),
-      isToday:
-        date.getFullYear() === today.getFullYear() &&
-        date.getMonth() === today.getMonth() &&
-        date.getDate() === today.getDate(),
+  const today = startOfDay(new Date())
+  const [displayMonth, setDisplayMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
+  const [selectedDay, setSelectedDay] = useState(() => today.getDate())
+  const year = displayMonth.getFullYear()
+  const month = displayMonth.getMonth()
+  const monthEvents = useMemo(
+    () => monthMoneyEvents(year, month, creditCardInsights, recurringExpenses),
+    [year, month, creditCardInsights, recurringExpenses],
+  )
+  const eventsByDay = useMemo(() => {
+    const grouped = new Map<number, MoneyCalendarEvent[]>()
+    for (const event of monthEvents) {
+      const day = event.date.getDate()
+      grouped.set(day, [...(grouped.get(day) ?? []), event])
     }
-  })
+    return grouped
+  }, [monthEvents])
 
-  const dailyRecommendation = getDailyRecommendation(creditCardInsights)
+  const firstWeekday = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cells: Array<number | null> = [
+    ...Array.from({ length: firstWeekday }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+  ]
+  while (cells.length % 7 !== 0) cells.push(null)
 
-  // Show the actual upcoming cycle, not the month written into an old bill label.
-  const billEvents = recurringExpenses.map((bill) => {
-    const upcomingDate = getUpcomingBillDueDate(bill)
-    return {
-      id: `bill-${bill.id}`,
-      title: bill.name,
-      date: upcomingDate ? formatChartDate(upcomingDate) : bill.nextDue,
-      sortDate: upcomingDate?.getTime() ?? Number.MAX_SAFE_INTEGER,
-      amount: getBillRemainingBalance(bill),
-      type: 'Recurring',
-    }
-  })
-
-  const cardEvents = creditCardInsights.flatMap((insight) => [
-    {
-      id: `cutoff-${insight.card.id}`,
-      title: `${insight.card.name} Cut-off`,
-      date: formatRelativeDays(insight.daysToCutOff),
-      sortDate: addDays(startOfDay(today), insight.daysToCutOff).getTime(),
-      amount: 0,
-      type: 'Cut-off',
-    },
-    {
-      id: `due-${insight.card.id}`,
-      title: `${insight.card.name} Due Date`,
-      date: formatRelativeDays(insight.daysToDue),
-      sortDate: addDays(startOfDay(today), insight.daysToDue).getTime(),
-      amount: getCreditCardMinimumPayment(insight.card),
-      type: 'Due',
-    },
-  ])
-
-  const events = [...billEvents, ...cardEvents]
-    .sort((first, second) => first.sortDate - second.sortDate)
+  const selectedEvents = eventsByDay.get(selectedDay) ?? []
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month
+  const upcomingEvents = monthEvents
+    .filter((event) => (!isCurrentMonth || event.date.getDate() >= today.getDate()) && event.date.getDate() !== selectedDay)
     .slice(0, 4)
+
+  const moveMonth = (direction: number) => {
+    const nextMonth = new Date(year, month + direction, 1)
+    setDisplayMonth(nextMonth)
+    setSelectedDay(1)
+  }
+  const showCurrentMonth = () => {
+    setDisplayMonth(new Date(today.getFullYear(), today.getMonth(), 1))
+    setSelectedDay(today.getDate())
+  }
+  const dailyRecommendation = getDailyRecommendation(creditCardInsights)
+  const eventLabel = (type: MoneyCalendarEvent['type']) => type === 'Cut-off' ? 'Cut' : type === 'Due' ? 'Due' : 'Bill'
+
+  const openEvent = (event: MoneyCalendarEvent) => {
+    if (event.cardId !== undefined) {
+      const card = creditCardInsights.find((insight) => insight.card.id === event.cardId)?.card
+      if (card) onOpenCard(card)
+    } else if (event.billId !== undefined) {
+      const bill = recurringExpenses.find((item) => item.id === event.billId)
+      if (bill) onOpenBill(bill)
+    }
+  }
+  const renderEvent = (event: MoneyCalendarEvent, showDate: boolean) => (
+    <button key={event.id} type="button" className="dp12-event-row" onClick={() => openEvent(event)} aria-label={`Open ${event.title} details`}>
+      <span className={`dp12-event-dot dp12-event-dot--${getEventClass(event.type)}`} aria-hidden="true" />
+      <span className="dp12-event-description">
+        <strong>{event.title}</strong>
+        {showDate && <span>{event.date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</span>}
+      </span>
+      <span className="dp12-event-amount">{event.amount !== null ? peso.format(event.amount) : eventLabel(event.type)}</span>
+    </button>
+  )
 
   return (
     <>
-      <section className="date-strip" aria-label="Calendar dates">
-        {days.map((item) => (
-          <button key={`${item.day}-${item.date}`} type="button" className={item.isToday ? 'selected' : ''}>
-            <span>{item.day}</span>
-            <strong>{item.date}</strong>
-          </button>
-        ))}
-      </section>
-
       <section className="recommendation-card">
-        <div className="recommendation-icon">
-          <CreditCard size={25} />
-        </div>
-
+        <div className="recommendation-icon"><CreditCard size={25} /></div>
         <div>
           <p>Today’s Recommendation</p>
           <h2>{dailyRecommendation.title}</h2>
@@ -1893,33 +2008,73 @@ function TodayPage({
         <InfoCard label="Total Debt" value={peso.format(totalDebt)} />
       </section>
 
-      <SectionTitle title="Next Money Events" subtitle="Paid bills are hidden until the next month" />
+      <SectionTitle title="Next Money Events" subtitle="Bills, credit card due dates and cut-offs" />
 
-      <div className="card-list">
-        {events.length === 0 && (
-          <article className="account-card">
-            <div className="card-main-content">
-              <h3>No unpaid events yet</h3>
-              <p>Add bills or credit cards to generate events.</p>
-            </div>
-          </article>
-        )}
+      <section className="dp12-calendar" aria-label="Monthly money events calendar">
+        <div className="dp12-month-header">
+          <div className="dp12-month-title">
+            <strong>{displayMonth.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}</strong>
+            <span>{year < today.getFullYear() || (year === today.getFullYear() && month < today.getMonth()) ? 'Scheduled dates (not payment history)' : `${monthEvents.length} scheduled event${monthEvents.length === 1 ? '' : 's'}`}</span>
+          </div>
+          <div className="dp12-month-controls">
+            <button type="button" onClick={() => moveMonth(-1)} aria-label="Previous month"><ChevronLeft size={18} /></button>
+            <button type="button" className="dp12-month-today" onClick={showCurrentMonth}>Today</button>
+            <button type="button" onClick={() => moveMonth(1)} aria-label="Next month"><ChevronRight size={18} /></button>
+          </div>
+        </div>
 
-        {events.map((item) => (
-          <article key={item.id} className="event-card">
-            <div className={`event-indicator ${getEventClass(item.type)}`} />
-            <div className="card-main-content">
-              <h3>{item.title}</h3>
-              <p>{item.date}</p>
-            </div>
-            <strong>{item.amount > 0 ? peso.format(item.amount) : item.type}</strong>
-          </article>
-        ))}
-      </div>
+        <div className="dp12-calendar-grid" role="group" aria-label="Choose a date">
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((weekday, index) => (
+            <div className="dp12-calendar-weekday" key={index} aria-hidden="true">{weekday}</div>
+          ))}
+          {cells.map((day, index) => {
+            const todaysDate = day !== null && isCurrentMonth && day === today.getDate()
+            const dayEvents = day === null ? [] : (eventsByDay.get(day) ?? [])
+            return day === null ? (
+              <div className="dp12-calendar-empty" key={`empty-${index}`} aria-hidden="true" />
+            ) : (
+              <button
+                key={`${year}-${month}-${day}`}
+                type="button"
+                className={`dp12-calendar-day${selectedDay === day ? ' is-selected' : ''}${todaysDate ? ' is-today' : ''}`}
+                aria-pressed={selectedDay === day}
+                aria-label={`${new Date(year, month, day).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}, ${dayEvents.length} event${dayEvents.length === 1 ? '' : 's'}`}
+                onClick={() => setSelectedDay(day)}
+              >
+                <span className="dp12-calendar-number">{day}</span>
+                {dayEvents.length > 0 && (
+                  <span className="dp12-calendar-markers" aria-hidden="true">
+                    {dayEvents.length === 1
+                      ? <span className={`dp12-calendar-tag dp12-calendar-tag--${getEventClass(dayEvents[0].type)}`}>{eventLabel(dayEvents[0].type)}</span>
+                      : <><span className="dp12-calendar-count">{dayEvents.length}</span><span className="dp12-calendar-dots">{dayEvents.slice(0, 3).map((event) => <i key={event.id} className={`dp12-calendar-dot dp12-event-dot--${getEventClass(event.type)}`} />)}</span></>}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="dp12-calendar-legend" aria-label="Calendar event legend">
+          <span><i className="dp12-event-dot dp12-event-dot--due" />Due</span>
+          <span><i className="dp12-event-dot dp12-event-dot--cutoff" />Cut-off</span>
+          <span><i className="dp12-event-dot dp12-event-dot--recurring" />Bill</span>
+        </div>
+
+        <div className="dp12-calendar-detail" aria-live="polite">
+          <h3>{new Date(year, month, selectedDay).toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}</h3>
+          {selectedEvents.length ? selectedEvents.map((event) => renderEvent(event, false)) : <p className="dp12-empty-events">No events on this date</p>}
+        </div>
+      </section>
+
+      {upcomingEvents.length > 0 && (
+        <section className="dp12-upcoming" aria-label="Other upcoming events in this month">
+          <h3>{isCurrentMonth ? 'Coming up this month' : 'Other events this month'}</h3>
+          {upcomingEvents.map((event) => renderEvent(event, true))}
+        </section>
+      )}
 
       <SectionTitle title="Best Cards" subtitle="Based on cut-off, due date, credit, and utilization" />
       <CreditCardRanking insights={creditCardInsights.slice(0, 2)} />
-
     </>
   )
 }
@@ -2006,64 +2161,46 @@ function WalletPage({
           const utilization = insight?.utilization ?? 0
 
           return (
-            <article key={card.id} className="credit-card">
-              <div className="credit-card-header">
+            <article key={card.id} className="credit-card dp-v9-credit-card">
+              <div className="dp-v9-card-heading">
+                <h3>{card.name}</h3>
+                <span className="dp-v9-card-utilization">{utilization}% used</span>
+              </div>
+
+              <div className="dp-v9-balances">
                 <div>
-                  <h3>{card.name}</h3>
-                  <p>{insight?.reason ?? 'Available for recommendation'}</p>
-                </div>
-
-                <div style={amountActionColumnStyle}>
-                  <strong>{utilization}%</strong>
-                  <div style={miniActionRowStyle}>
-                    <IconButton label={`Pay ${card.name}`} onClick={() => onPayCreditCard(card)}>
-                      <ArrowDownLeft size={14} />
-                    </IconButton>
-                    <button type="button" className="dp-card-details-action" onClick={() => onEditCreditCard(card)} aria-label={`Card details for ${card.name}`}>
-                      <Pencil size={14} /> Details
-                    </button>
-                    <IconButton danger label={`Delete ${card.name}`} onClick={() => onDeleteCreditCard(card.id)}>
-                      <Trash2 size={14} />
-                    </IconButton>
-                  </div>
-                </div>
-              </div>
-
-              <div className="progress-track">
-                <div
-                  className={`progress-fill ${utilization >= 50 ? 'warning' : ''}`}
-                  style={{ width: `${Math.min(utilization, 100)}%` }}
-                />
-              </div>
-
-              <div className="credit-details">
-                <span>
-                  Balance
+                  <span>Balance</span>
                   <strong>{peso.format(card.currentBalance)}</strong>
-                </span>
-                <span>
-                  Available
+                </div>
+                <div>
+                  <span>Available</span>
                   <strong>{peso.format(card.creditLimit - card.currentBalance)}</strong>
-                </span>
+                </div>
               </div>
 
-              <div className="credit-dates">
-                <span>Cut-off: {formatOrdinalDay(card.cutOffDay)}</span>
-                <span>Due: {formatOrdinalDay(card.dueDay)}</span>
-                {typeof card.annualRate === 'number' && <span>APR: {Math.round(card.annualRate * 100)}%</span>}
+              <div className="dp-v9-card-facts">
+                <span>Cut-off: {formatOrdinalDay(card.cutOffDay).replace(/^Every /, '')}</span>
+                <span>Due: {card.paymentDueDate ? formatCreditCardDueDate(card.paymentDueDate) : formatOrdinalDay(card.dueDay).replace(/^Every /, '')}</span>
               </div>
-              {(card.statementDate || card.paymentDueDate) && (
-                <div className="dp-card-statement-meta">
-                  {card.statementDate && <span>SOA: {card.statementDate}</span>}
-                  {card.paymentDueDate && <span>Due: {card.paymentDueDate}</span>}
+
+              <div className={`dp-v9-card-footer ${typeof card.minimumDue === 'number' && Number.isFinite(card.minimumDue) ? '' : 'dp-v10-no-minimum'}`}>
+                {typeof card.minimumDue === 'number' && Number.isFinite(card.minimumDue) && (
+                  <div className="dp-v9-card-minimum">
+                    <span>Minimum due</span>
+                    <strong>{peso.format(getCreditCardMinimumPayment(card))}</strong>
+                  </div>
+                )}
+                <div className="dp-v9-card-actions">
+                  <IconButton label={`Pay ${card.name}`} onClick={() => onPayCreditCard(card)}>
+                    <ArrowDownLeft size={16} />
+                  </IconButton>
+                  <button type="button" onClick={() => onEditCreditCard(card)} aria-label={`Edit card details for ${card.name}`}>
+                    <Pencil size={16} />
+                  </button>
+                  <IconButton danger label={`Delete ${card.name}`} onClick={() => onDeleteCreditCard(card.id)}>
+                    <Trash2 size={16} />
+                  </IconButton>
                 </div>
-              )}
-              <div className="card-minimum-row">
-                <div>
-                  <span>{typeof card.minimumDue === 'number' ? 'Remaining minimum due' : 'Estimated minimum due'}</span>
-                  <strong>{peso.format(getCreditCardMinimumPayment(card))}</strong>
-                </div>
-                <small>{typeof card.minimumDue === 'number' ? 'Latest SOA / manual entry' : 'Estimate only · Edit card to enter the SOA amount'}</small>
               </div>
             </article>
           )
@@ -2617,6 +2754,9 @@ function InsightsPage({
   const creditCardMinimums = creditCardInsights.reduce(
     (total, insight) => total + getCreditCardMinimumPayment(insight.card), 0,
   )
+  const missingMinimumCards = creditCardInsights.filter(({ card }) =>
+    card.currentBalance > 0 && (typeof card.minimumDue !== 'number' || !Number.isFinite(card.minimumDue)),
+  )
   const loanMinimums = debts.reduce(
     (total, debt) => total + getStandaloneDebtMinimum(debt), 0,
   )
@@ -2933,10 +3073,10 @@ function InsightsPage({
             <div className="minimum-summary-heading">
               <div>
                 <p>Minimum Payment Check</p>
-                <h3>{peso.format(minimumTotal)} <span>still required</span></h3>
+                <h3>{peso.format(minimumTotal)} <span>{missingMinimumCards.length ? 'known minimums' : 'still required'}</span></h3>
               </div>
-              <span className={reserveShortfall > 0 ? 'minimum-status-risk' : 'minimum-status-ok'}>
-                {reserveShortfall > 0 ? 'Cash shortfall' : 'Covered by cash'}
+              <span className={reserveShortfall > 0 || missingMinimumCards.length > 0 ? 'minimum-status-risk' : 'minimum-status-ok'}>
+                {reserveShortfall > 0 ? 'Cash shortfall' : missingMinimumCards.length > 0 ? 'Needs minimums' : 'Covered by cash'}
               </span>
             </div>
             <div className="minimum-summary-grid">
@@ -2944,17 +3084,19 @@ function InsightsPage({
               <div><span>Loans / debts</span><strong>{peso.format(loanMinimums)}</strong></div>
               <div><span>Unpaid bills</span><strong>{peso.format(recurringTotal)}</strong></div>
             </div>
-            <p className={reserveShortfall > 0 ? 'minimum-warning' : 'minimum-footnote'}>
-              {reserveShortfall > 0
-                ? `Current cash is ${peso.format(reserveShortfall)} short of bills and required minimums. Prioritize due dates; avoid allocating extra debt payments until covered.`
-                : `${peso.format(Math.max(0, totalCash - mandatoryReserve))} remains after reserving unpaid bills and debt minimums from current cash.`}
+            <p className={reserveShortfall > 0 || missingMinimumCards.length > 0 ? 'minimum-warning' : 'minimum-footnote'}>
+              {missingMinimumCards.length > 0
+                ? `Enter the actual minimum due for ${missingMinimumCards.length} card${missingMinimumCards.length > 1 ? 's' : ''} in Wallet. Totals are incomplete until then.${reserveShortfall > 0 ? ` Tracked cash is already ${peso.format(reserveShortfall)} short of known bills and minimums.` : ''}`
+                : reserveShortfall > 0
+                  ? `Current cash is ${peso.format(reserveShortfall)} short of bills and required minimums. Prioritize due dates; avoid allocating extra debt payments until covered.`
+                  : `${peso.format(Math.max(0, totalCash - mandatoryReserve))} remains after reserving unpaid bills and debt minimums from current cash.`}
             </p>
             {creditCardInsights.length > 0 && (
               <div className="minimum-card-list">
                 {creditCardInsights.map(({ card }) => (
                   <div key={card.id}>
-                    <span>{card.name} · {typeof card.minimumDue === 'number' ? 'SOA/manual' : 'Estimated (edit in Wallet)'}</span>
-                    <strong>{peso.format(getCreditCardMinimumPayment(card))}</strong>
+                    <span>{card.name}</span>
+                    <strong>{typeof card.minimumDue === 'number' && Number.isFinite(card.minimumDue) ? peso.format(getCreditCardMinimumPayment(card)) : 'Not entered'}</strong>
                   </div>
                 ))}
               </div>
@@ -4172,6 +4314,36 @@ function StatementImportModal({
 }
 
 
+function getAutomaticCardDueDate(dueDay: number, statementDate: string, today = new Date()): string {
+  if (!isValidDayOfMonth(dueDay)) return ''
+  let anchor = startOfDay(today)
+  let fromStatement = false
+  if (/^\d{4}-\d{2}-\d{2}$/.test(statementDate)) {
+    const [year, month, day] = statementDate.split('-').map(Number)
+    const candidate = new Date(year, month - 1, day)
+    if (candidate.getFullYear() === year && candidate.getMonth() === month - 1 && candidate.getDate() === day) {
+      anchor = candidate
+      fromStatement = true
+    }
+  }
+  let target = buildDateForDay(anchor.getFullYear(), anchor.getMonth(), dueDay)
+  if (fromStatement ? target.getTime() <= anchor.getTime() : target.getTime() < anchor.getTime()) {
+    target = buildDateForDay(anchor.getFullYear(), anchor.getMonth() + 1, dueDay)
+  }
+  const year = target.getFullYear()
+  const month = String(target.getMonth() + 1).padStart(2, '0')
+  const day = String(target.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatCreditCardDueDate(isoDate: string): string {
+  const parts = isoDate.split('-').map(Number)
+  if (parts.length !== 3 || !parts.every(Number.isFinite)) return 'Set recurring due day'
+  const date = new Date(parts[0], parts[1] - 1, parts[2])
+  if (date.getFullYear() !== parts[0] || date.getMonth() !== parts[1] - 1 || date.getDate() !== parts[2]) return 'Set recurring due day'
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 function CreditCardEditorModal({
   card,
   installments,
@@ -4192,6 +4364,9 @@ function CreditCardEditorModal({
   const [dueDay, setDueDay] = useState(card?.dueDay.toString() ?? '')
   const [statementDate, setStatementDate] = useState(card?.statementDate ?? '')
   const [paymentDueDate, setPaymentDueDate] = useState(card?.paymentDueDate ?? '')
+  const [hasBankDueDateOverride, setHasBankDueDateOverride] = useState(() => Boolean(
+    card?.paymentDueDate && Number(card.paymentDueDate.slice(-2)) !== card.dueDay,
+  ))
   const [minimumDue, setMinimumDue] = useState(card?.minimumDue?.toString() ?? '')
   const [annualRate, setAnnualRate] = useState(
     typeof card?.annualRate === 'number' ? (card.annualRate * 100).toString() : '',
@@ -4206,12 +4381,16 @@ function CreditCardEditorModal({
     })),
   )
 
+  const recurringDay = Number(dueDay)
+  const automaticDueDate = getAutomaticCardDueDate(recurringDay, statementDate)
+  const effectiveDueDate = hasBankDueDateOverride ? paymentDueDate : automaticDueDate
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const parsedBalance = Number(currentBalance)
     const parsedLimit = Number(creditLimit)
     const parsedCutOff = Number(cutOffDay)
-    const parsedDue = paymentDueDate ? Number(paymentDueDate.slice(8, 10)) : Number(dueDay)
+    const parsedDue = Number(dueDay)
     const parsedMinimum = minimumDue.trim() === '' ? undefined : Number(minimumDue)
     const parsedAnnualRate = annualRate.trim() === '' ? undefined : Number(annualRate)
 
@@ -4219,10 +4398,12 @@ function CreditCardEditorModal({
     if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) return onNotify('Invalid Credit Limit', 'Please enter a valid credit limit.')
     if (!Number.isFinite(parsedBalance) || parsedBalance < 0 || parsedBalance > parsedLimit) return onNotify('Invalid Balance', 'Enter the latest outstanding amount, not higher than your credit limit.')
     if (!isValidDayOfMonth(parsedCutOff)) return onNotify('Invalid Cut-off Day', 'Enter a cut-off day from 1 to 31 under Card Settings.')
-    if (!isValidDayOfMonth(parsedDue)) return onNotify('Invalid Due Date', 'Enter the bank payment due date or a valid recurring due day.')
+    if (!isValidDayOfMonth(parsedDue)) return onNotify('Invalid Due Day', 'Enter a recurring due day from 1 to 31 under Card Settings.')
     if (statementDate && !/^\d{4}-\d{2}-\d{2}$/.test(statementDate)) return onNotify('Invalid SOA Date', 'Check the statement date.')
-    if (paymentDueDate && !/^\d{4}-\d{2}-\d{2}$/.test(paymentDueDate)) return onNotify('Invalid Due Date', 'Check the payment due date.')
-    if (statementDate && paymentDueDate && paymentDueDate < statementDate) return onNotify('Due Date Before SOA', 'The payment due date cannot be before the statement date.')
+    if (statementDate && formatCreditCardDueDate(statementDate) === 'Set recurring due day') return onNotify('Invalid SOA Date', 'Check the statement date.')
+    if (hasBankDueDateOverride && !/^\d{4}-\d{2}-\d{2}$/.test(paymentDueDate)) return onNotify('Invalid Due Date', 'Choose your actual bank due date.')
+    if (hasBankDueDateOverride && formatCreditCardDueDate(paymentDueDate) === 'Set recurring due day') return onNotify('Invalid Due Date', 'Choose a valid bank due date.')
+    if (statementDate && effectiveDueDate && effectiveDueDate < statementDate) return onNotify('Due Date Before SOA', 'The payment due date cannot be before the statement date.')
     if (parsedMinimum !== undefined && (!Number.isFinite(parsedMinimum) || parsedMinimum < 0 || parsedMinimum > parsedBalance)) {
       return onNotify('Invalid Minimum Due', 'Enter the unpaid minimum from your latest SOA, not exceeding the outstanding balance.')
     }
@@ -4248,7 +4429,7 @@ function CreditCardEditorModal({
         cutOffDay: parsedCutOff,
         dueDay: parsedDue,
         statementDate: statementDate || undefined,
-        paymentDueDate: paymentDueDate || undefined,
+        paymentDueDate: effectiveDueDate || undefined,
         minimumDue: parsedMinimum,
         annualRate: parsedAnnualRate === undefined ? undefined : parsedAnnualRate / 100,
       },
@@ -4259,36 +4440,63 @@ function CreditCardEditorModal({
 
   return (
     <ModalShell eyebrow="Wallet / Credit Card" title={card ? `${card.name} Details` : 'Add Credit Card'} onClose={onClose}>
-      <form onSubmit={submit} style={modalFormStyle} className="dp-card-details-form">
-        <div className="dp-card-modal-section">
-          <strong>Card</strong>
-          <TextField label="Card name" value={name} onChange={setName} placeholder="Example: BPI Visa" autoFocus />
-          <TextField label="Credit limit" type="number" value={creditLimit} onChange={setCreditLimit} placeholder="50000.00" />
+      <form onSubmit={submit} style={modalFormStyle} className="dp-card-details-form dp-v7-card-editor">
+        <div className="dp-v7-card-identity">
+          <TextField label="Card name" value={name} onChange={setName} placeholder="e.g., BPI Visa" autoFocus />
+          <TextField label="Credit limit" type="number" value={creditLimit} onChange={setCreditLimit} placeholder="0.00" />
         </div>
-        <div className="dp-card-modal-section">
-          <div className="dp-card-modal-section-title">
-            <strong>Monthly statement</strong>
-            <span>Just two amounts + due date</span>
+        <section className="dp-v7-monthly" aria-label="Monthly statement">
+          <h3>Monthly statement</h3>
+          <div className="dp-v7-money-grid">
+            <TextField label="Outstanding balance" type="number" value={currentBalance} onChange={setCurrentBalance} placeholder="0.00" />
+            <TextField label="Minimum due (SOA)" type="number" value={minimumDue} onChange={setMinimumDue} placeholder="Enter amount" />
           </div>
-          <TextField label="Outstanding balance (latest SOA)" type="number" value={currentBalance} onChange={setCurrentBalance} placeholder="0.00" />
-          <TextField label="Remaining minimum payment" type="number" value={minimumDue} onChange={setMinimumDue} placeholder="0.00" />
-          <TextField label="Payment due date" type="date" value={paymentDueDate} onChange={setPaymentDueDate} />
-          <p className="minimum-field-help">When your new SOA arrives, replace the balance and minimum above. Recorded payments automatically reduce both amounts. Leave the minimum blank only when unknown (estimates will be labelled).</p>
-        </div>
-        <details className="dp-card-advanced" open={!card}>
-          <summary>Card settings <span>Usually set once</span></summary>
-          <div className="dp-card-advanced-content">
-            <TextField label="Statement date (optional)" type="date" value={statementDate} onChange={setStatementDate} />
-            <TextField label="Cut-off day" type="number" value={cutOffDay} onChange={setCutOffDay} placeholder="Example: 12" />
-            <TextField label="Recurring due day (if no SOA date)" type="number" value={dueDay} onChange={setDueDay} placeholder="Example: 2" />
-            <TextField label="Annual interest rate (%) (optional)" type="number" value={annualRate} onChange={setAnnualRate} placeholder="Example: 36" />
-            <p className="minimum-field-help">Your actual SOA due date takes priority; the recurring day is a fallback for future months. Rates are used for debt-payoff estimates.</p>
+          <div className="dp-v7-due-field">
+            <div className="dp-v7-due-header">
+              <span>Payment due</span>
+              <button
+                type="button"
+                className="dp-v7-due-toggle"
+                aria-label={hasBankDueDateOverride ? 'Use recurring due date' : 'Use actual SOA due date'}
+                onClick={() => {
+                  if (hasBankDueDateOverride) {
+                    setHasBankDueDateOverride(false)
+                    setPaymentDueDate('')
+                  } else {
+                    setPaymentDueDate(automaticDueDate)
+                    setHasBankDueDateOverride(true)
+                  }
+                }}
+              >
+                {hasBankDueDateOverride ? 'Use automatic' : 'Change date'}
+              </button>
+            </div>
+            {hasBankDueDateOverride ? (
+              <TextField label="Bank SOA due date" type="date" value={paymentDueDate} onChange={setPaymentDueDate} />
+            ) : (
+              <div className="dp-v7-automatic-date" aria-live="polite">
+                <strong>{formatCreditCardDueDate(automaticDueDate)}</strong>
+                <span>Auto</span>
+              </div>
+            )}
+          </div>
+        </section>
+        <details className="dp-card-advanced dp-v7-advanced" open={!card}>
+          <summary>Card settings</summary>
+          <div className="dp-card-advanced-content dp-v8-settings-stack">
+            <div className="dp-v8-settings-full">
+              <TextField label="Statement date" type="date" value={statementDate} onChange={setStatementDate} />
+            </div>
+            <div className="dp-v8-settings-grid">
+              <TextField label="Cut-off day" type="number" value={cutOffDay} onChange={setCutOffDay} placeholder="1–31" />
+              <TextField label="Recurring due day" type="number" value={dueDay} onChange={setDueDay} placeholder="1–31" />
+              <TextField label="Annual interest (%)" type="number" value={annualRate} onChange={setAnnualRate} placeholder="Optional" />
+            </div>
           </div>
         </details>
         <details className="dp-card-advanced">
-          <summary>Future installments <span>{installmentRows.length} plans · Optional</span></summary>
+          <summary>Future installments{installmentRows.length > 0 ? ` (${installmentRows.length})` : ''}</summary>
           <div className="dp-card-advanced-content">
-            <p className="minimum-field-help">Track only remaining <strong>unbilled</strong> installments. Do not include charges already reflected in your SOA balance. These plans are not added to this month's minimum payment.</p>
             {installmentRows.map((row) => (
               <div className="dp-card-installment-row" key={row.key}>
                 <div className="dp-card-installment-heading">
@@ -4307,7 +4515,7 @@ function CreditCardEditorModal({
             </button>
           </div>
         </details>
-        <button type="submit" style={submitButtonStyle}>Save Card Details</button>
+        <button type="submit" className="dp-v7-save-button" style={submitButtonStyle}>Save card</button>
       </form>
     </ModalShell>
   )
@@ -5614,7 +5822,9 @@ function getCreditCardMinimumPayment(card: CreditCardAccount) {
   if (typeof card.minimumDue === 'number' && Number.isFinite(card.minimumDue)) {
     return Math.min(card.currentBalance, Math.max(card.minimumDue, 0))
   }
-  return Math.min(card.currentBalance, Math.max(500, Math.round(card.currentBalance * 0.04)))
+  // No guessed minimum: missing figures must be entered from the bank statement.
+  // Keep 0 out of required-payment totals and explicitly flag missing cards in Insights.
+  return 0
 }
 
 function sumNumbers(values: number[]) {

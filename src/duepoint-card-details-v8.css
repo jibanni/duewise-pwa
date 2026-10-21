@@ -1,0 +1,290 @@
+/* Due₱oint V8: cleaner card settings + compact card list */
+.dp-v7-card-editor {
+  gap: 10px !important;
+}
+
+.dp-v8-settings-stack {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.dp-v8-settings-full,
+.dp-v8-settings-full > label,
+.dp-v8-settings-grid > label {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.dp-v8-settings-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.dp-v8-settings-grid > label:last-child {
+  grid-column: 1 / -1 !important;
+}
+
+.dp-v8-settings-full label[style],
+.dp-v8-settings-grid label[style] {
+  display: grid !important;
+  gap: 6px !important;
+}
+
+.dp-v8-settings-full label[style] > input[style],
+.dp-v8-settings-grid label[style] > input[style] {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  padding: 0 12px !important;
+  border-radius: 14px !important;
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  font-variant-numeric: tabular-nums !important;
+  box-shadow: none !important;
+}
+
+.dp-v7-card-editor .dp-card-advanced > summary {
+  font-size: 14px !important;
+}
+
+.dp-v7-card-editor .dp-card-advanced-content {
+  padding: 12px !important;
+}
+
+.dp-v7-card-editor .dp-card-advanced-content.dp-v8-settings-stack {
+  gap: 12px !important;
+}
+
+.card-list {
+  gap: 10px !important;
+}
+
+.account-card,
+.credit-card {
+  padding: 14px !important;
+  border-radius: 20px !important;
+  box-shadow: none !important;
+}
+
+.account-card {
+  gap: 12px !important;
+}
+
+.account-card .account-icon {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+}
+
+.card-main-content h3,
+.credit-card-header h3 {
+  margin: 0 0 2px !important;
+  font-size: 17px !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.card-main-content p,
+.credit-card-header p {
+  margin: 0 !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  color: #6b7280 !important;
+}
+
+.credit-card-header p {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+.credit-card {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.credit-card-header {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 10px !important;
+  align-items: start !important;
+}
+
+.credit-card-header > div:last-child {
+  align-items: flex-end !important;
+  gap: 8px !important;
+}
+
+.credit-card-header > div:last-child > strong {
+  font-size: 15px !important;
+  line-height: 1 !important;
+  padding: 6px 8px !important;
+  border-radius: 999px !important;
+  background: #f1f5f9 !important;
+  color: #0f2747 !important;
+}
+
+.credit-card-header > div:last-child > div {
+  gap: 6px !important;
+}
+
+.credit-card-header button {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.dp-card-details-action-compact {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid #cdd7e5 !important;
+  background: #fff !important;
+  color: #2a67bf !important;
+}
+
+.dp-card-details-action-compact svg {
+  margin: 0 !important;
+}
+
+.progress-track {
+  margin: 0 !important;
+  height: 8px !important;
+}
+
+.credit-details {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.credit-details > span {
+  display: grid !important;
+  gap: 2px !important;
+  padding: 10px 11px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 14px !important;
+  background: #fafafa !important;
+  color: #667085 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.credit-details > span strong {
+  color: #111827 !important;
+  font-size: 16px !important;
+  font-weight: 750 !important;
+  line-height: 1.2 !important;
+}
+
+.credit-dates,
+.dp-card-statement-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+
+.credit-dates > span,
+.dp-card-statement-meta > span {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #fafafa !important;
+  color: #475467 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+}
+
+.card-minimum-row {
+  display: grid !important;
+  gap: 4px !important;
+  padding: 12px !important;
+  margin-top: 0 !important;
+  border-radius: 16px !important;
+  border: 1px solid #e3e8ef !important;
+  background: #f8fbff !important;
+}
+
+.card-minimum-row > div {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+.card-minimum-row > div > span {
+  color: #5f6b7a !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+.card-minimum-row > div > strong {
+  color: #11213a !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+}
+
+.card-minimum-row > small {
+  color: #667085 !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+@media (max-width: 380px) {
+  .dp-v8-settings-grid,
+  .credit-details {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dp-v8-settings-grid > label:last-child {
+    grid-column: auto !important;
+  }
+
+  .credit-card-header {
+    grid-template-columns: 1fr !important;
+  }
+
+  .credit-card-header > div:last-child {
+    align-items: stretch !important;
+  }
+}
+
+#root .app-shell.theme-dark .credit-card-header > div:last-child > strong {
+  background: #1f3a5f !important;
+  color: #ecf5ff !important;
+}
+
+#root .app-shell.theme-dark .credit-details > span,
+#root .app-shell.theme-dark .credit-dates > span,
+#root .app-shell.theme-dark .dp-card-statement-meta > span,
+#root .app-shell.theme-dark .card-minimum-row,
+#root .app-shell.theme-dark .dp-card-details-action-compact {
+  background: #19283d !important;
+  border-color: #304560 !important;
+  color: #d8e4f2 !important;
+}
+
+#root .app-shell.theme-dark .credit-details > span strong,
+#root .app-shell.theme-dark .card-minimum-row > div > strong {
+  color: #ffffff !important;
+}
+
+#root .app-shell.theme-dark .card-minimum-row > div > span,
+#root .app-shell.theme-dark .card-minimum-row > small,
+#root .app-shell.theme-dark .credit-details > span,
+#root .app-shell.theme-dark .credit-card-header p {
+  color: #b9c6d8 !important;
+}
