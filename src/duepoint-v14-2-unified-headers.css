@@ -1,0 +1,35 @@
+/* Due₱oint V14.2 — final shared main headings.
+   Loaded after the V13.4 Today-only CSS and V14 top-background fix.
+   Targets only the shared page title + wordmark, not section headings.
+   Data storage, bank logos, push and reminder schedules are unchanged. */
+
+html body #root .app-shell .mobile-app .app-header .dp-header-title > h1.dp-final-page-title,
+html body #root .app-shell .mobile-app:has(.dp134-money-calendar) .app-header .dp-header-title > h1.dp-final-page-title {
+  font-size: clamp(33px, 8.2vw, 42px) !important;
+  line-height: 1.03 !important;
+  font-weight: 770 !important;
+  letter-spacing: -0.05em !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Today had a separate 10px wordmark override. Match the other pages. */
+html body #root .app-shell .mobile-app .app-header .dp-header-title > .dp-header-wordmark,
+html body #root .app-shell .mobile-app:has(.dp134-money-calendar) .app-header .dp-header-title > .dp-header-wordmark {
+  font-size: 12px !important;
+  line-height: 1.1 !important;
+  letter-spacing: 0.19em !important;
+}
+
+@media (max-width: 390px) {
+  html body #root .app-shell .mobile-app .app-header .dp-header-title > h1.dp-final-page-title,
+  html body #root .app-shell .mobile-app:has(.dp134-money-calendar) .app-header .dp-header-title > h1.dp-final-page-title {
+    font-size: clamp(32px, 8.8vw, 37px) !important;
+  }
+
+  html body #root .app-shell .mobile-app .app-header .dp-header-title > .dp-header-wordmark,
+  html body #root .app-shell .mobile-app:has(.dp134-money-calendar) .app-header .dp-header-title > .dp-header-wordmark {
+    font-size: 11px !important;
+    letter-spacing: 0.16em !important;
+  }
+}

@@ -1750,7 +1750,7 @@ function App() {
         <header className="app-header">
           <div className="dp-header-title">
             <span className="dp-header-wordmark">DUEPOINT</span>
-            <h1>{getPageTitle(activeTab)}</h1>
+            <h1 className="dp-final-page-title">{getPageTitle(activeTab)}</h1>
           </div>
 
           <div className="header-actions">
@@ -2469,7 +2469,6 @@ function WalletPage({
         <button type="button" className={walletView === 'cash' ? 'active' : ''} aria-pressed={walletView === 'cash'} onClick={() => setWalletView('cash')}>Cash Accounts <small>{accounts.length}</small></button>
         <button type="button" className={walletView === 'cards' ? 'active' : ''} aria-pressed={walletView === 'cards'} onClick={() => setWalletView('cards')}>Credit Cards <small>{creditCards.length}</small></button>
       </div>
-      <div className="dp13-deck-hint">Swipe up or down on the heading to switch</div>
       <div className="dp13-deck-content">
       {walletView === 'cash' && <>
       <button type="button" className="dp13-inline-add" onClick={onAddAccount}><Plus size={16} /> Add cash account</button>
